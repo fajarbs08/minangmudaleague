@@ -3,7 +3,7 @@
     <div class="container">
         <div class="row">
             <div class="col-12 text-center">
-                <script>document.write(new Date().getFullYear())</script> &copy; {{ config('app.name') }}. Seluruh hak cipta dilindungi.
+                <script>document.write(new Date().getFullYear())</script> &copy; <a href="https://fajarlabs.com" target="_blank" rel="noopener">FajarLabs</a>. Seluruh hak cipta dilindungi.
             </div>
         </div>
     </div>
