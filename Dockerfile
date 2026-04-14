@@ -54,6 +54,8 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
     && php artisan package:discover --ansi \
     && chown -R www-data:www-data storage bootstrap/cache
 
+RUN chmod +x docker/entrypoint.sh
+
 EXPOSE 8080
 
-CMD ["sh", "-lc", "php artisan storage:link || true && php -S 0.0.0.0:${PORT:-8080} -t public"]
+CMD ["./docker/entrypoint.sh"]
