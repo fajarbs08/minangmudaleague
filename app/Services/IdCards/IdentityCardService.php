@@ -77,9 +77,6 @@ class IdentityCardService
         ])->render();
 
         $browsershot = Browsershot::html($html)
-            ->setChromePath(config('id-cards.chrome_path'))
-            ->setNodeBinary(config('id-cards.node_binary'))
-            ->setNodeModulePath(config('id-cards.node_modules_path'))
             ->showBackground()
             ->emulateMedia('screen')
             ->margins(0, 0, 0, 0)
@@ -98,11 +95,67 @@ class IdentityCardService
                 'font-render-hinting=medium',
             ]);
 
+        if ($chromePath = $this->detectExecutable([
+            (string) config('id-cards.chrome_path'),
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/chromium-browser',
+            '/usr/local/bin/chromium',
+            'google-chrome',
+            'chromium-browser',
+            'chromium',
+        ])) {
+            $browsershot->setChromePath($chromePath);
+        }
+
+        if ($nodeBinary = $this->detectExecutable([
+            (string) config('id-cards.node_binary'),
+            '/usr/bin/node',
+            '/usr/local/bin/node',
+            '/opt/homebrew/bin/node',
+            'node',
+        ])) {
+            $browsershot->setNodeBinary($nodeBinary);
+        }
+
+        $nodeModulesPath = (string) config('id-cards.node_modules_path');
+        if ($nodeModulesPath !== '' && is_dir($nodeModulesPath)) {
+            $browsershot->setNodeModulePath($nodeModulesPath);
+        }
+
         if (config('id-cards.no_sandbox')) {
             $browsershot->noSandbox();
         }
 
         return $browsershot->pdf();
+    }
+
+    private function detectExecutable(array $candidates): ?string
+    {
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string) $candidate);
+
+            if ($candidate === '') {
+                continue;
+            }
+
+            if (str_contains($candidate, DIRECTORY_SEPARATOR)) {
+                if (is_executable($candidate)) {
+                    return $candidate;
+                }
+
+                continue;
+            }
+
+            $resolved = trim((string) shell_exec('command -v '.escapeshellarg($candidate).' 2>/dev/null'));
+            if ($resolved !== '' && is_executable($resolved)) {
+                return $resolved;
+            }
+        }
+
+        return null;
     }
 
     private function buildDocument(
