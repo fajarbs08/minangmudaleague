@@ -7,11 +7,11 @@ use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Browsershot\Browsershot;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class IdentityCardService
