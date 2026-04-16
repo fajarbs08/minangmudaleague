@@ -6,11 +6,13 @@ use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Browsershot\Browsershot;
+use Throwable;
 
 class IdentityCardService
 {
@@ -76,6 +78,31 @@ class IdentityCardService
             'document' => $document,
         ])->render();
 
+        $chromePath = $this->detectExecutable([
+            (string) config('id-cards.chrome_path'),
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/chromium-browser',
+            '/usr/local/bin/chromium',
+            'google-chrome',
+            'chromium-browser',
+            'chromium',
+        ]);
+
+        $nodeBinary = $this->detectExecutable([
+            (string) config('id-cards.node_binary'),
+            '/usr/bin/node',
+            '/usr/local/bin/node',
+            '/opt/homebrew/bin/node',
+            'node',
+        ]);
+
+        if ($chromePath === null || $nodeBinary === null) {
+            return $this->renderPdfWithDomPdf($html);
+        }
+
         $browsershot = Browsershot::html($html)
             ->showBackground()
             ->emulateMedia('screen')
@@ -95,30 +122,8 @@ class IdentityCardService
                 'font-render-hinting=medium',
             ]);
 
-        if ($chromePath = $this->detectExecutable([
-            (string) config('id-cards.chrome_path'),
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/local/bin/google-chrome',
-            '/usr/local/bin/chromium-browser',
-            '/usr/local/bin/chromium',
-            'google-chrome',
-            'chromium-browser',
-            'chromium',
-        ])) {
-            $browsershot->setChromePath($chromePath);
-        }
-
-        if ($nodeBinary = $this->detectExecutable([
-            (string) config('id-cards.node_binary'),
-            '/usr/bin/node',
-            '/usr/local/bin/node',
-            '/opt/homebrew/bin/node',
-            'node',
-        ])) {
-            $browsershot->setNodeBinary($nodeBinary);
-        }
+        $browsershot->setChromePath($chromePath);
+        $browsershot->setNodeBinary($nodeBinary);
 
         $nodeModulesPath = (string) config('id-cards.node_modules_path');
         if ($nodeModulesPath !== '' && is_dir($nodeModulesPath)) {
@@ -129,7 +134,18 @@ class IdentityCardService
             $browsershot->noSandbox();
         }
 
-        return $browsershot->pdf();
+        try {
+            return $browsershot->pdf();
+        } catch (Throwable) {
+            return $this->renderPdfWithDomPdf($html);
+        }
+    }
+
+    private function renderPdfWithDomPdf(string $html): string
+    {
+        return Pdf::loadHTML($html)
+            ->setPaper('a4', 'portrait')
+            ->output();
     }
 
     private function detectExecutable(array $candidates): ?string
