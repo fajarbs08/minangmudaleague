@@ -360,7 +360,10 @@ class ThemeLayout {
      }
 
      changeMenuSize(size, save = true) {
+          this.html.classList.remove('default', 'sidebar-hover', 'sidebar-hidden');
           this.html.classList.add(size);
+          this.html.setAttribute('data-sidenav-size', size === 'sidebar-hover' ? 'hover' : size);
+
           if (save) {
                this.config.menu.size = size;
                this.setSwitchFromConfig();
@@ -431,7 +434,9 @@ class ThemeLayout {
                menuToggleButtons.forEach(function (menuToggleBtn) {
                     menuToggleBtn.addEventListener('click', function () {
                          if (window.innerWidth > 1040) {
-                              self.html.classList.toggle("sidebar-hover");
+                              const nextSize = self.html.classList.contains("sidebar-hover") ? "default" : "sidebar-hover";
+
+                              self.changeMenuSize(nextSize);
                          } else {
                               const isOpen = self.html.classList.toggle('sidebar-enable');
 

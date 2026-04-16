@@ -18,6 +18,8 @@
 
 @php
     $selectedClubId = old('club_id', $official->club_id ?: $clubs->first()?->id);
+    $imageUploadHelp = 'Format: JPG, JPEG, PNG. Maks. 2 MB.';
+    $documentUploadHelp = 'Format: PDF, JPG, JPEG, PNG. Maks. 4 MB.';
 @endphp
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
@@ -61,6 +63,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Pas Foto 3x4</label>
         <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png">
+        <small class="text-muted d-block mt-2">{{ $imageUploadHelp }}</small>
         @if ($official->photo_file_url)
             <a href="{{ $official->photo_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="image" class="fs-14"></i>
@@ -71,6 +74,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Bukti Lisensi</label>
         <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
         @if ($official->license_file_url)
             <a href="{{ $official->license_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -81,6 +85,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">KTP / Identitas</label>
         <input type="file" name="identity_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
         @if ($official->identity_file_url)
             <a href="{{ $official->identity_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -107,6 +112,7 @@
             name="birth_date"
             class="form-control"
             value="{{ old('birth_date', optional($official->birth_date)->format('Y-m-d')) }}"
+            max="{{ now()->format('Y-m-d') }}"
             data-native-picker
         >
     </div>
@@ -121,10 +127,6 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">NIK / Identitas</label>
         <input type="text" name="identity_number" class="form-control" value="{{ old('identity_number', $official->identity_number) }}">
-    </div>
-    <div class="col-lg-4 mb-3">
-        <label class="form-label">Nomor Paspor</label>
-        <input type="text" name="passport_number" class="form-control" value="{{ old('passport_number', $official->passport_number) }}">
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Level Lisensi</label>

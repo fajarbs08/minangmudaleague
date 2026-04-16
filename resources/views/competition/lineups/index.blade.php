@@ -218,15 +218,15 @@
                         data-bs-parent="#lineupAdminAccordion"
                     >
                         <div class="accordion-body">
-                            <div class="row g-3 align-items-start">
+                            <div class="row g-3 align-items-start competition-bulk-panel">
                                 <div class="col-lg-3">
                                     <label for="bulk-lineup-status" class="form-label">Aksi</label>
-                                    <select id="bulk-lineup-status" name="status" class="form-select" required>
-                                        <option value="">Bulk action admin</option>
-                                        <option value="approved">Approve terpilih</option>
-                                        <option value="revision">Minta revisi terpilih</option>
-                                        <option value="rejected">Reject terpilih</option>
-                                        <option value="deleted">Hapus terpilih</option>
+                                    <select id="bulk-lineup-status" name="status" class="form-select" data-choices data-choices-search-false data-bulk-choices required>
+                                        <option value="">Pilih aksi</option>
+                                        <option value="approved">Approve</option>
+                                        <option value="revision">Minta revisi</option>
+                                        <option value="rejected">Reject</option>
+                                        <option value="deleted">Hapus</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-6">
@@ -274,12 +274,21 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($lineupLists as $lineup)
+                        @forelse ($lineupLists as $lineup)
                         @php
                             $matchLineupClubIds = $lineup->match?->lineupLists?->pluck('club_id')->map(fn ($id) => (int) $id) ?? collect();
                             $matchComplete = $lineup->match
                                 && $matchLineupClubIds->contains((int) $lineup->match->club_a_id)
                                 && $matchLineupClubIds->contains((int) $lineup->match->club_b_id);
+                            $isAdmin = auth()->user()->isAdmin();
+                            $actionHint = match ($lineup->verification_status) {
+                                'draft' => $isAdmin ? 'Buka DSP atau edit manual admin.' : 'Lengkapi DSP lalu ajukan verifikasi.',
+                                'submitted' => $isAdmin ? 'Review pengajuan admin.' : 'Menunggu review admin.',
+                                'revision' => $isAdmin ? 'Minta revisi atau edit manual admin.' : 'Perbaiki data lalu submit ulang.',
+                                'approved' => $isAdmin ? 'DSP sudah diterima. Edit manual tetap tersedia.' : 'DSP sudah diterima admin.',
+                                'rejected' => $isAdmin ? 'Tindak lanjuti lewat revisi atau edit manual.' : 'Periksa catatan admin.',
+                                default => 'Lanjutkan sesuai status DSP.',
+                            };
                         @endphp
                         <tr>
                             @if (auth()->user()->isAdmin())
@@ -333,7 +342,7 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="text-end">
+                            <td class="text-end competition-table-actions">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span>Tindakan</span>
@@ -344,28 +353,98 @@
                                     <div class="dropdown-menu dropdown-menu-end p-2 competition-action-menu">
                                         <div class="competition-action-section">
                                             <div class="competition-action-label px-2 pb-2">Navigasi</div>
+                                            <div class="small text-muted px-2 pb-2 text-wrap">{{ $actionHint }}</div>
                                             @include('competition.partials.action-item', [
                                                 'href' => route('lineup-lists.show', $lineup),
                                                 'icon' => 'file-output',
-                                                'label' => 'Generate DSP',
+                                                'label' => 'Lihat DSP',
                                             ])
-                                            @if (auth()->user()->isAdmin() || $lineup->canBeEditedByClub())
+                                            @if ($lineup->verification_notes)
+                                                @include('competition.partials.action-item', [
+                                                    'icon' => 'message-square-text',
+                                                    'label' => 'Lihat Catatan Admin',
+                                                    'attributes' => [
+                                                        'data-bs-toggle' => 'modal',
+                                                        'data-bs-target' => '#lineupNoteModal',
+                                                        'data-note-title' => $lineup->title,
+                                                        'data-note-content' => $lineup->verification_notes,
+                                                    ],
+                                                ])
+                                            @endif
+                                            @if ($isAdmin || $lineup->canBeEditedByClub())
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('lineup-lists.edit', $lineup),
                                                     'icon' => 'square-pen',
-                                                    'label' => 'Edit',
+                                                    'label' => $isAdmin ? 'Edit Manual Admin' : 'Edit',
                                                 ])
                                             @endif
                                         </div>
-                                        <div class="dropdown-divider"></div>
-                                        <div class="competition-action-section">
-                                            @include('competition.partials.review-actions', [
-                                                'item' => $lineup,
-                                                'submitRoute' => route('lineup-lists.submit', $lineup),
-                                                'reviewRoute' => route('lineup-lists.review', $lineup),
-                                            ])
-                                        </div>
-                                        @if (auth()->user()->isAdmin() || $lineup->canBeSubmittedByClub())
+                                        @if (($isAdmin && $lineup->canBeReviewedByAdmin()) || (!$isAdmin && $lineup->canBeSubmittedByClub()))
+                                            <div class="dropdown-divider"></div>
+                                            <div class="competition-action-section">
+                                                @if ($isAdmin && $lineup->canBeReviewedByAdmin())
+                                                    <div class="competition-action-label px-2 pb-2">Review Admin</div>
+                                                    @if ($lineup->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'check',
+                                                            'label' => 'Approve',
+                                                            'class' => 'text-success',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#lineupReviewModal',
+                                                                'data-review-route' => route('lineup-lists.review', $lineup),
+                                                                'data-review-status' => 'approved',
+                                                                'data-review-label' => 'Approve DSP',
+                                                                'data-review-title' => $lineup->title,
+                                                                'data-review-notes-required' => '0',
+                                                                'data-review-placeholder' => 'Catatan admin opsional.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                    @include('competition.partials.action-item', [
+                                                        'icon' => 'refresh-ccw',
+                                                        'label' => 'Minta Revisi',
+                                                        'class' => 'text-warning',
+                                                        'attributes' => [
+                                                            'data-bs-toggle' => 'modal',
+                                                            'data-bs-target' => '#lineupReviewModal',
+                                                            'data-review-route' => route('lineup-lists.review', $lineup),
+                                                            'data-review-status' => 'revision',
+                                                            'data-review-label' => 'Minta Revisi DSP',
+                                                            'data-review-title' => $lineup->title,
+                                                            'data-review-notes-required' => '1',
+                                                            'data-review-placeholder' => 'Catatan admin wajib diisi untuk revisi.',
+                                                        ],
+                                                    ])
+                                                    @if ($lineup->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'x',
+                                                            'label' => 'Reject',
+                                                            'class' => 'text-danger',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#lineupReviewModal',
+                                                                'data-review-route' => route('lineup-lists.review', $lineup),
+                                                                'data-review-status' => 'rejected',
+                                                                'data-review-label' => 'Reject DSP',
+                                                                'data-review-title' => $lineup->title,
+                                                                'data-review-notes-required' => '1',
+                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk reject.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                @elseif (!$isAdmin && $lineup->canBeSubmittedByClub())
+                                                    <form method="POST" action="{{ route('lineup-lists.submit', $lineup) }}" class="px-2">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                                                            <i data-lucide="send" class="review-actions-icon" aria-hidden="true"></i>
+                                                            <span>Submit Verifikasi</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        @if ($isAdmin || $lineup->canBeSubmittedByClub())
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -410,6 +489,58 @@
     'messagePrefix' => 'DSP',
     'messageSuffix' => 'akan dihapus. Tindakan ini tidak bisa dibatalkan.',
 ])
+
+<div class="modal fade" id="lineupNoteModal" tabindex="-1" aria-labelledby="lineupNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="lineupNoteModalLabel">Catatan Admin</h5>
+                    <div class="small text-muted mt-1" id="lineup-note-title">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-wrap mb-0" id="lineup-note-content">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="lineupReviewModal" tabindex="-1" aria-labelledby="lineupReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="lineup-review-form">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="lineupReviewModalLabel">Review DSP</h5>
+                        <div class="small text-muted mt-1" id="lineup-review-title">-</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="status" id="lineup-review-status">
+                    <div class="mb-0">
+                        <label for="lineup-review-notes" class="form-label">Catatan Admin</label>
+                        <textarea
+                            name="verification_notes"
+                            id="lineup-review-notes"
+                            rows="4"
+                            class="form-control"
+                            placeholder="Catatan admin"
+                        ></textarea>
+                        <div class="form-text" id="lineup-review-help">Isi catatan bila diperlukan.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="lineup-review-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -470,6 +601,57 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     syncBulkState();
+
+    const reviewModal = document.getElementById('lineupReviewModal');
+    if (reviewModal) {
+        const reviewForm = reviewModal.querySelector('#lineup-review-form');
+        const reviewStatus = reviewModal.querySelector('#lineup-review-status');
+        const reviewTitle = reviewModal.querySelector('#lineup-review-title');
+        const reviewNotes = reviewModal.querySelector('#lineup-review-notes');
+        const reviewHelp = reviewModal.querySelector('#lineup-review-help');
+        const reviewSubmit = reviewModal.querySelector('#lineup-review-submit');
+        const reviewHeading = reviewModal.querySelector('#lineupReviewModalLabel');
+
+        reviewModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            const route = trigger.getAttribute('data-review-route') || '';
+            const status = trigger.getAttribute('data-review-status') || '';
+            const label = trigger.getAttribute('data-review-label') || 'Review DSP';
+            const title = trigger.getAttribute('data-review-title') || '-';
+            const notesRequired = trigger.getAttribute('data-review-notes-required') === '1';
+            const placeholder = trigger.getAttribute('data-review-placeholder') || 'Catatan admin';
+
+            reviewForm.setAttribute('action', route);
+            reviewStatus.value = status;
+            reviewTitle.textContent = title;
+            reviewNotes.value = '';
+            reviewNotes.placeholder = placeholder;
+            reviewNotes.required = notesRequired;
+            reviewHelp.textContent = notesRequired ? 'Catatan admin wajib diisi untuk aksi ini.' : 'Isi catatan bila diperlukan.';
+            reviewSubmit.textContent = label;
+            reviewHeading.textContent = label;
+        });
+    }
+
+    const noteModal = document.getElementById('lineupNoteModal');
+    if (noteModal) {
+        const noteTitle = noteModal.querySelector('#lineup-note-title');
+        const noteContent = noteModal.querySelector('#lineup-note-content');
+
+        noteModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            noteTitle.textContent = trigger.getAttribute('data-note-title') || '-';
+            noteContent.textContent = trigger.getAttribute('data-note-content') || '-';
+        });
+    }
 });
 </script>
 @endpush

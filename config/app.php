@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Minang Muda League'),
+    'name' => env('APP_NAME', 'Liga Anak Piaman Laweh'),
 
     /*
     |--------------------------------------------------------------------------

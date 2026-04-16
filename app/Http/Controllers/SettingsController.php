@@ -66,7 +66,7 @@ class SettingsController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'club_name' => [$club ? 'required' : 'nullable', 'string', 'max:255'],
             'manager_name' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
+            'zone' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
         ]);
 
@@ -79,7 +79,7 @@ class SettingsController extends Controller
             $club->update([
                 'name' => $validated['club_name'],
                 'manager_name' => $validated['manager_name'] ?? null,
-                'city' => $validated['city'] ?? null,
+                'zone' => $validated['zone'] ?? null,
                 'address' => $validated['address'] ?? null,
             ]);
         }
@@ -111,7 +111,7 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'account_name' => ['required', 'string', 'max:255'],
-            'generated_password' => ['nullable', 'string', 'regex:/^MMLpdg\d{4}[A-Z0-9]{4}$/'],
+            'generated_password' => ['nullable', 'string', 'regex:/^LAPLplw\d{4}[A-Z0-9]{4}$/'],
         ]);
 
         $sequence = $this->nextClubAccountSequence();
@@ -188,7 +188,7 @@ class SettingsController extends Controller
             ->value();
 
         $slug = $slug !== '' ? $slug : 'club'.$sequence;
-        $domain = 'minangmudaleague.com';
+        $domain = 'ligaanakpiamanlaweh.com';
         $email = "{$slug}@{$domain}";
 
         if (User::query()->where('email', $email)->exists()) {
@@ -200,6 +200,6 @@ class SettingsController extends Controller
 
     private function generateClubAccountPassword(): string
     {
-        return 'MMLpdg'.now()->year.Str::upper(Str::random(4));
+        return 'LAPLplw'.now()->year.Str::upper(Str::random(4));
     }
 }

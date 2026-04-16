@@ -13,7 +13,7 @@ class MatchScheduleController extends Controller
     public function index(Request $request)
     {
         $matches = MatchSchedule::query()
-            ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id'])
+            ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id,verification_status'])
             ->when($request->input('club_id'), function ($query, $clubId) {
                 $query->where(fn ($inner) => $inner
                     ->where('club_a_id', $clubId)

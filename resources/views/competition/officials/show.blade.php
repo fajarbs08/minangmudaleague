@@ -54,7 +54,6 @@
                     <div class="col-md-6"><div class="text-muted small">Tanggal Lahir</div><div class="fw-semibold">{{ optional($official->birth_date)->format('d M Y') ?: '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Kewarganegaraan</div><div class="fw-semibold">{{ $official->citizenship ?: '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">NIK / Identitas</div><div class="fw-semibold">{{ $official->identity_number ?: '-' }}</div></div>
-                    <div class="col-md-6"><div class="text-muted small">Paspor</div><div class="fw-semibold">{{ $official->passport_number ?: '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Lisensi</div><div class="fw-semibold">{{ $official->license_levels ?: $official->license_number ?: '-' }}</div></div>
                     <div class="col-12"><div class="text-muted small">Catatan</div><div class="fw-semibold">{{ $official->notes ?: '-' }}</div></div>
                 </div>

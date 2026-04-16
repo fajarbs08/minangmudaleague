@@ -88,6 +88,8 @@
                     @forelse ($matches as $match)
                         @php
                             $lineupClubIds = $match->lineupLists->pluck('club_id')->map(fn ($id) => (int) $id);
+                            $clubALineup = $match->lineupLists->firstWhere('club_id', $match->club_a_id);
+                            $clubBLineup = $match->lineupLists->firstWhere('club_id', $match->club_b_id);
                             $clubAReady = $lineupClubIds->contains((int) $match->club_a_id);
                             $clubBReady = $lineupClubIds->contains((int) $match->club_b_id);
                             $isComplete = $clubAReady && $clubBReady;
@@ -103,9 +105,23 @@
                                 <span class="badge {{ $isComplete ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' }}">
                                     {{ $isComplete ? 'Lengkap' : 'Belum lengkap' }}
                                 </span>
-                                <div class="small text-muted mt-1">
-                                    {{ $match->clubA?->short_name ?: $match->clubA?->name }}: {{ $clubAReady ? 'siap' : 'belum' }} ·
-                                    {{ $match->clubB?->short_name ?: $match->clubB?->name }}: {{ $clubBReady ? 'siap' : 'belum' }}
+                                <div class="small mt-2 d-flex flex-column gap-1">
+                                    <div>
+                                        <span class="text-muted">{{ $match->clubA?->short_name ?: $match->clubA?->name }}:</span>
+                                        @if ($clubALineup)
+                                            <a href="{{ route('lineup-lists.show', $clubALineup) }}" class="fw-semibold">Lihat DSP</a>
+                                        @else
+                                            <span class="text-muted">belum ada</span>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <span class="text-muted">{{ $match->clubB?->short_name ?: $match->clubB?->name }}:</span>
+                                        @if ($clubBLineup)
+                                            <a href="{{ route('lineup-lists.show', $clubBLineup) }}" class="fw-semibold">Lihat DSP</a>
+                                        @else
+                                            <span class="text-muted">belum ada</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </td>
                             <td class="text-end">

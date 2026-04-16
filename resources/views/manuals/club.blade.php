@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Manual Club - Minang Muda League</title>
+    <title>Manual Club - Liga Anak Piaman Laweh</title>
     <style>
         @page { margin: 22mm 20mm 20mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111827; line-height: 1.6; }
@@ -21,9 +21,9 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ public_path('images/logo-full-transparent.png') }}" alt="Minang Muda League">
+        <img src="{{ public_path('images/logo-full-transparent.png') }}" alt="Liga Anak Piaman Laweh">
         <h1>Manual Club</h1>
-        <div class="muted">Minang Muda League</div>
+        <div class="muted">Liga Anak Piaman Laweh</div>
         <div class="muted">Diperbarui: {{ $generatedAt->translatedFormat('d F Y') }}</div>
     </div>
 
@@ -62,7 +62,7 @@
         <h3>3) Input Pemain</h3>
         <ul class="list">
             <li>Isi data identitas pemain lengkap: nama, tempat/tanggal lahir, sekolah, tinggi, berat, dan dominant foot.</li>
-            <li>Unggah dokumen: pas foto, akta, NISN/ijazah/rapor sesuai aturan kompetisi.</li>
+            <li>Unggah dokumen: pas foto, KK, akta kelahiran, ijazah/rapor sesuai aturan kompetisi.</li>
             <li>Set kelompok usia, posisi, dan nomor punggung untuk tiap kelompok usia.</li>
         </ul>
 
@@ -115,7 +115,7 @@
     </div>
 
     <div class="footer">
-        Manual Club • Minang Muda League
+        Manual Club • Liga Anak Piaman Laweh
     </div>
 </body>
 </html>

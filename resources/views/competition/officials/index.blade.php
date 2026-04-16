@@ -176,59 +176,68 @@
     </div>
 
     @if (auth()->user()->isAdmin())
-    <div class="card-body border-bottom bg-light-subtle">
-        <div class="accordion" id="officialAdminAccordion">
-            <div class="accordion-item border rounded">
-                <h2 class="accordion-header" id="bulkReviewHeading">
-                    <button
-                        class="accordion-button collapsed fw-semibold"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#bulkReviewCollapse"
-                        aria-expanded="false"
-                        aria-controls="bulkReviewCollapse"
+    <form id="bulk-official-review-form" method="POST" action="{{ route('officials.bulk-review') }}">
+        @csrf
+        <div class="card-body border-bottom bg-light-subtle">
+            <div class="accordion" id="officialAdminAccordion">
+                <div class="accordion-item border rounded">
+                    <h2 class="accordion-header" id="bulkReviewHeading">
+                        <button
+                            class="accordion-button collapsed fw-semibold"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#bulkReviewCollapse"
+                            aria-expanded="false"
+                            aria-controls="bulkReviewCollapse"
+                        >
+                            Bulk Action Admin
+                        </button>
+                    </h2>
+                    <div
+                        id="bulkReviewCollapse"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="bulkReviewHeading"
+                        data-bs-parent="#officialAdminAccordion"
                     >
-                        Bulk Action Admin
-                    </button>
-                </h2>
-                <div
-                    id="bulkReviewCollapse"
-                    class="accordion-collapse collapse"
-                    aria-labelledby="bulkReviewHeading"
-                    data-bs-parent="#officialAdminAccordion"
-                >
-                    <div class="accordion-body">
-                        <form id="bulk-official-review-form" method="POST" action="{{ route('officials.bulk-review') }}" class="row g-3 align-items-start">
-                            @csrf
-                            <div class="col-lg-3">
-                                <label for="bulk-status" class="form-label">Aksi</label>
-                                <select id="bulk-status" name="status" class="form-select" required>
-                                    <option value="">Bulk action admin</option>
-                                    <option value="approved">Approve terpilih</option>
-                                    <option value="revision">Minta revisi terpilih</option>
-                                    <option value="rejected">Reject terpilih</option>
-                                    <option value="deleted">Hapus terpilih</option>
-                                </select>
+                        <div class="accordion-body">
+                            <div class="row g-3 align-items-start competition-bulk-panel">
+                                <div class="col-lg-3">
+                                    <label for="bulk-status" class="form-label">Aksi</label>
+                                    <select id="bulk-status" name="status" class="form-select" data-choices data-choices-search-false data-bulk-choices required>
+                                        <option value="">Pilih aksi</option>
+                                        <option value="approved">Approve</option>
+                                        <option value="revision">Minta revisi</option>
+                                        <option value="rejected">Reject</option>
+                                        <option value="deleted">Hapus</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label for="bulk-notes" class="form-label">Catatan verifikasi</label>
+                                    <textarea id="bulk-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label d-block">&nbsp;</label>
+                                    <button type="submit" class="btn btn-dark w-100" data-bulk-submit disabled>Terapkan ke Data Terpilih</button>
+                                </div>
+                                <div class="col-12">
+                                    <div class="small text-muted">
+                                        <span data-bulk-selected-count>0</span> data dipilih di halaman ini.
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-lg-6">
-                                <label for="bulk-notes" class="form-label">Catatan verifikasi</label>
-                                <textarea id="bulk-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
-                            </div>
-                            <div class="col-lg-3">
-                                <label class="form-label d-block">&nbsp;</label>
-                                <button type="submit" class="btn btn-dark w-100">Terapkan ke Data Terpilih</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    @endif
-
+        <div class="card-body p-0">
+            <div class="table-responsive competition-table-wrap">
+                <table class="table competition-table align-middle text-nowrap">
+    @else
     <div class="card-body p-0">
         <div class="table-responsive competition-table-wrap">
             <table class="table competition-table align-middle text-nowrap">
+    @endif
                 <thead>
                     <tr>
                         @if (auth()->user()->isAdmin())
@@ -321,7 +330,18 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="text-end">
+                            @php
+                                $isAdmin = auth()->user()->isAdmin();
+                                $actionHint = match ($official->verification_status) {
+                                    'draft' => $isAdmin ? 'Buka detail atau edit manual admin.' : 'Lengkapi data official lalu ajukan verifikasi.',
+                                    'submitted' => $isAdmin ? 'Review pengajuan admin.' : 'Menunggu review admin.',
+                                    'revision' => $isAdmin ? 'Minta revisi atau edit manual admin.' : 'Perbaiki data lalu submit ulang.',
+                                    'approved' => $isAdmin ? 'Official sudah diterima. Edit manual tetap tersedia.' : 'Official sudah diterima admin.',
+                                    'rejected' => $isAdmin ? 'Tindak lanjuti lewat revisi atau edit manual.' : 'Periksa catatan admin.',
+                                    default => 'Lanjutkan sesuai status official.',
+                                };
+                            @endphp
+                            <td class="text-end competition-table-actions">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span>Tindakan</span>
@@ -332,28 +352,98 @@
                                     <div class="dropdown-menu dropdown-menu-end p-2 competition-action-menu">
                                         <div class="competition-action-section">
                                             <div class="competition-action-label px-2 pb-2">Navigasi</div>
+                                            <div class="small text-muted px-2 pb-2 text-wrap">{{ $actionHint }}</div>
                                             @include('competition.partials.action-item', [
                                                 'href' => route('officials.show', $official),
                                                 'icon' => 'eye',
-                                                'label' => 'Detail',
+                                                'label' => 'Lihat Detail',
                                             ])
-                                            @if (auth()->user()->isAdmin() || $official->canBeEditedByClub())
+                                            @if ($official->verification_notes)
+                                                @include('competition.partials.action-item', [
+                                                    'icon' => 'message-square-text',
+                                                    'label' => 'Lihat Catatan Admin',
+                                                    'attributes' => [
+                                                        'data-bs-toggle' => 'modal',
+                                                        'data-bs-target' => '#officialNoteModal',
+                                                        'data-note-title' => $official->name,
+                                                        'data-note-content' => $official->verification_notes,
+                                                    ],
+                                                ])
+                                            @endif
+                                            @if ($isAdmin || $official->canBeEditedByClub())
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('officials.edit', $official),
                                                     'icon' => 'square-pen',
-                                                    'label' => 'Edit',
+                                                    'label' => $isAdmin ? 'Edit Manual Admin' : 'Edit',
                                                 ])
                                             @endif
                                         </div>
-                                        <div class="dropdown-divider"></div>
-                                        <div class="competition-action-section">
-                                            @include('competition.partials.review-actions', [
-                                                'item' => $official,
-                                                'submitRoute' => route('officials.submit', $official),
-                                                'reviewRoute' => route('officials.review', $official),
-                                            ])
-                                        </div>
-                                        @if (auth()->user()->isAdmin() || $official->canBeSubmittedByClub())
+                                        @if (($isAdmin && $official->canBeReviewedByAdmin()) || (!$isAdmin && $official->canBeSubmittedByClub()))
+                                            <div class="dropdown-divider"></div>
+                                            <div class="competition-action-section">
+                                                @if ($isAdmin && $official->canBeReviewedByAdmin())
+                                                    <div class="competition-action-label px-2 pb-2">Review Admin</div>
+                                                    @if ($official->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'check',
+                                                            'label' => 'Approve',
+                                                            'class' => 'text-success',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#officialReviewModal',
+                                                                'data-review-route' => route('officials.review', $official),
+                                                                'data-review-status' => 'approved',
+                                                                'data-review-label' => 'Approve Official',
+                                                                'data-review-title' => $official->name,
+                                                                'data-review-notes-required' => '0',
+                                                                'data-review-placeholder' => 'Catatan admin opsional.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                    @include('competition.partials.action-item', [
+                                                        'icon' => 'refresh-ccw',
+                                                        'label' => 'Minta Revisi',
+                                                        'class' => 'text-warning',
+                                                        'attributes' => [
+                                                            'data-bs-toggle' => 'modal',
+                                                            'data-bs-target' => '#officialReviewModal',
+                                                            'data-review-route' => route('officials.review', $official),
+                                                            'data-review-status' => 'revision',
+                                                            'data-review-label' => 'Minta Revisi Official',
+                                                            'data-review-title' => $official->name,
+                                                            'data-review-notes-required' => '1',
+                                                            'data-review-placeholder' => 'Catatan admin wajib diisi untuk revisi.',
+                                                        ],
+                                                    ])
+                                                    @if ($official->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'x',
+                                                            'label' => 'Reject',
+                                                            'class' => 'text-danger',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#officialReviewModal',
+                                                                'data-review-route' => route('officials.review', $official),
+                                                                'data-review-status' => 'rejected',
+                                                                'data-review-label' => 'Reject Official',
+                                                                'data-review-title' => $official->name,
+                                                                'data-review-notes-required' => '1',
+                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk reject.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                @elseif (!$isAdmin && $official->canBeSubmittedByClub())
+                                                    <form method="POST" action="{{ route('officials.submit', $official) }}" class="px-2">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                                                            <i data-lucide="send" class="review-actions-icon" aria-hidden="true"></i>
+                                                            <span>Submit Verifikasi</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        @if ($isAdmin || $official->canBeSubmittedByClub())
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -391,6 +481,9 @@
             </table>
         </div>
     </div>
+    @if (auth()->user()->isAdmin())
+    </form>
+    @endif
 
     <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
         <p class="text-muted mb-0">Menampilkan {{ $officials->firstItem() ?? 0 }}-{{ $officials->lastItem() ?? 0 }} dari {{ $officials->total() }} official.</p>
@@ -460,6 +553,58 @@
     'messagePrefix' => 'Official',
     'messageSuffix' => 'akan dihapus. Tindakan ini tidak bisa dibatalkan.',
 ])
+
+<div class="modal fade" id="officialNoteModal" tabindex="-1" aria-labelledby="officialNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="officialNoteModalLabel">Catatan Admin</h5>
+                    <div class="small text-muted mt-1" id="official-note-title">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-wrap mb-0" id="official-note-content">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="officialReviewModal" tabindex="-1" aria-labelledby="officialReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="official-review-form">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="officialReviewModalLabel">Review Official</h5>
+                        <div class="small text-muted mt-1" id="official-review-title">-</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="status" id="official-review-status">
+                    <div class="mb-0">
+                        <label for="official-review-notes" class="form-label">Catatan Admin</label>
+                        <textarea
+                            name="verification_notes"
+                            id="official-review-notes"
+                            rows="4"
+                            class="form-control"
+                            placeholder="Catatan admin"
+                        ></textarea>
+                        <div class="form-text" id="official-review-help">Isi catatan bila diperlukan.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="official-review-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -469,15 +614,106 @@ document.addEventListener('DOMContentLoaded', function () {
         bootstrap.Tooltip.getOrCreateInstance(element);
     });
 
-    const checkAll = document.querySelector('.js-check-all');
+    const bulkForm = document.querySelector('#bulk-official-review-form');
+    if (bulkForm) {
+        const checkAll = bulkForm.querySelector('.js-check-all');
+        const bulkSubmit = bulkForm.querySelector('[data-bulk-submit]');
+        const bulkCount = bulkForm.querySelector('[data-bulk-selected-count]');
 
-    if (checkAll) {
-        const rows = document.querySelectorAll(checkAll.dataset.target);
+        if (checkAll) {
+            const getRows = () => Array.from(bulkForm.querySelectorAll('.js-official-row'));
 
-        checkAll.addEventListener('change', function () {
-            rows.forEach((checkbox) => {
-                checkbox.checked = checkAll.checked;
+            const syncBulkState = () => {
+                const rows = getRows();
+                const selectedCount = rows.filter((checkbox) => checkbox.checked).length;
+
+                if (bulkCount) {
+                    bulkCount.textContent = selectedCount;
+                }
+
+                if (bulkSubmit) {
+                    bulkSubmit.disabled = selectedCount === 0;
+                }
+
+                checkAll.checked = rows.length > 0 && selectedCount === rows.length;
+                checkAll.indeterminate = selectedCount > 0 && selectedCount < rows.length;
+            };
+
+            checkAll.addEventListener('change', function () {
+                const rows = getRows();
+                rows.forEach((checkbox) => {
+                    checkbox.checked = checkAll.checked;
+                });
+
+                syncBulkState();
             });
+
+            bulkForm.addEventListener('change', function (event) {
+                if (event.target.matches('.js-official-row')) {
+                    syncBulkState();
+                }
+            });
+
+            bulkForm.addEventListener('submit', function (event) {
+                const selectedCount = getRows().filter((checkbox) => checkbox.checked).length;
+
+                if (selectedCount === 0) {
+                    event.preventDefault();
+                }
+            });
+
+            syncBulkState();
+        }
+    }
+
+    const reviewModal = document.getElementById('officialReviewModal');
+    if (reviewModal) {
+        const reviewForm = reviewModal.querySelector('#official-review-form');
+        const reviewStatus = reviewModal.querySelector('#official-review-status');
+        const reviewTitle = reviewModal.querySelector('#official-review-title');
+        const reviewNotes = reviewModal.querySelector('#official-review-notes');
+        const reviewHelp = reviewModal.querySelector('#official-review-help');
+        const reviewSubmit = reviewModal.querySelector('#official-review-submit');
+        const reviewHeading = reviewModal.querySelector('#officialReviewModalLabel');
+
+        reviewModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            const route = trigger.getAttribute('data-review-route') || '';
+            const status = trigger.getAttribute('data-review-status') || '';
+            const label = trigger.getAttribute('data-review-label') || 'Review Official';
+            const title = trigger.getAttribute('data-review-title') || '-';
+            const notesRequired = trigger.getAttribute('data-review-notes-required') === '1';
+            const placeholder = trigger.getAttribute('data-review-placeholder') || 'Catatan admin';
+
+            reviewForm.setAttribute('action', route);
+            reviewStatus.value = status;
+            reviewTitle.textContent = title;
+            reviewNotes.value = '';
+            reviewNotes.placeholder = placeholder;
+            reviewNotes.required = notesRequired;
+            reviewHelp.textContent = notesRequired ? 'Catatan admin wajib diisi untuk aksi ini.' : 'Isi catatan bila diperlukan.';
+            reviewSubmit.textContent = label;
+            reviewHeading.textContent = label;
+        });
+    }
+
+    const noteModal = document.getElementById('officialNoteModal');
+    if (noteModal) {
+        const noteTitle = noteModal.querySelector('#official-note-title');
+        const noteContent = noteModal.querySelector('#official-note-content');
+
+        noteModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            noteTitle.textContent = trigger.getAttribute('data-note-title') || '-';
+            noteContent.textContent = trigger.getAttribute('data-note-content') || '-';
         });
     }
 

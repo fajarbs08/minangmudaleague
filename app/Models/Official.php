@@ -26,7 +26,6 @@ class Official extends Model
         'birth_place',
         'citizenship',
         'identity_number',
-        'passport_number',
         'birth_date',
         'license_number',
         'license_levels',
@@ -127,7 +126,7 @@ class Official extends Model
         if (blank($this->birth_place)) $errors['birth_place'] = 'Tempat lahir official wajib diisi sebelum submit verifikasi.';
         if (blank($this->birth_date)) $errors['birth_date'] = 'Tanggal lahir official wajib diisi sebelum submit verifikasi.';
         if (blank($this->citizenship)) $errors['citizenship'] = 'Kewarganegaraan official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->identity_number) && blank($this->passport_number)) $errors['identity_number'] = 'NIK atau nomor paspor official wajib diisi sebelum submit verifikasi.';
+        if (blank($this->identity_number)) $errors['identity_number'] = 'NIK atau nomor identitas official wajib diisi sebelum submit verifikasi.';
         if (blank($this->photo_path)) $errors['photo_path'] = 'Foto official wajib diunggah sebelum submit verifikasi.';
         if (blank($this->license_file_path) && blank($this->license_number)) $errors['license_file_path'] = 'Lisensi official wajib dilengkapi sebelum submit verifikasi.';
         if (blank($this->identity_file_path)) $errors['identity_file_path'] = 'Dokumen identitas official wajib diunggah sebelum submit verifikasi.';

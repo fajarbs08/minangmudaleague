@@ -53,7 +53,7 @@
                         <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                             <div>
                                 <div class="fw-semibold">{{ $club->name }}</div>
-                                <div class="text-muted small">{{ $club->city ?: '-' }}</div>
+                                <div class="text-muted small">{{ $club->zone ?: '-' }}</div>
                             </div>
                             <a href="{{ route('clubs.edit', $club) }}" class="btn btn-sm btn-light">Lihat</a>
                         </div>
@@ -95,7 +95,7 @@
                         <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                             <div>
                                 <div class="fw-semibold">{{ $player->name }}</div>
-                                <div class="text-muted small">{{ $player->registration_number ?: '-' }}</div>
+                                <div class="text-muted small">{{ $player->school_name ?: '-' }}</div>
                             </div>
                             <a href="{{ route('players.show', $player) }}" class="btn btn-sm btn-light">Lihat</a>
                         </div>

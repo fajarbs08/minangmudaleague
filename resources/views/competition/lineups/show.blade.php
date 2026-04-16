@@ -2,6 +2,12 @@
 
 @php
     $players = $starters->concat($substitutes)->values();
+    $match = $lineupList->match;
+    $opponent = $lineupList->opponent();
+    $matchDay = $lineupList->match_day ?: $match?->match_day;
+    $matchDate = $lineupList->match_date ?: $match?->match_date;
+    $kickoffTime = $lineupList->played_time ?: $match?->kickoff_time;
+    $venue = $lineupList->played_at ?: $match?->venue;
     $officialEntries = $officials->map(function ($official) use ($lineupList) {
         $registration = $official->registrationForAgeGroup($lineupList->age_group_id);
         $role = $registration?->role ?: $official->role;
@@ -10,6 +16,7 @@
     })->values();
     $rosterRows = max($players->count(), 1);
     $officialRows = max($officialEntries->count(), 1);
+    $isAdmin = auth()->user()->isAdmin();
 @endphp
 
 @section('content')
@@ -137,6 +144,79 @@
         color: #475569;
     }
 
+    @media (max-width: 575.98px) {
+        .page-content {
+            padding: 0 !important;
+        }
+
+        .dsp-page {
+            padding: 0;
+        }
+
+        .dsp-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            margin-bottom: 0;
+            padding: 1rem 1rem 0.75rem;
+        }
+
+        .dsp-toolbar .d-flex.gap-2 {
+            display: grid !important;
+            grid-template-columns: 1fr;
+        }
+
+        .dsp-toolbar .btn {
+            width: 100%;
+        }
+
+        .dsp-print-card {
+            margin-bottom: 0;
+            border-left: 0 !important;
+            border-right: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .dsp-sheet {
+            width: 100%;
+            min-height: auto;
+            padding: 0.75rem;
+            box-shadow: none;
+        }
+
+        .dsp-table td,
+        .dsp-table th {
+            padding: 3px 4px;
+            font-size: 10px;
+        }
+
+        .dsp-logo-box {
+            height: 78px;
+        }
+
+        .dsp-logo-box img {
+            max-height: 58px;
+            margin-bottom: 4px;
+        }
+
+        .dsp-head-title {
+            font-size: 12px;
+        }
+
+        .dsp-subtitle {
+            font-size: 11px;
+        }
+
+        .dsp-roster td {
+            height: auto;
+        }
+
+        .dsp-note {
+            font-size: 10px;
+        }
+    }
+
     @media print {
         .topbar, .main-nav, .footer, .btn, .alert, .card:not(.dsp-print-card), .workflow-panel {
             display: none !important;
@@ -176,7 +256,9 @@
             <p class="text-muted mb-0">{{ $lineupList->title }}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('lineup-lists.edit', $lineupList) }}" class="btn btn-light">Edit DSP</a>
+            @if ($isAdmin || $lineupList->canBeEditedByClub())
+                <a href="{{ route('lineup-lists.edit', $lineupList) }}" class="btn btn-light">{{ $isAdmin ? 'Edit Manual Admin' : 'Edit DSP' }}</a>
+            @endif
             <button type="button" class="btn btn-primary" onclick="window.print()">Print DSP</button>
         </div>
     </div>
@@ -189,48 +271,56 @@
                         <td rowspan="2" style="width: 22%;" class="dsp-logo-box">
                             <img src="{{ asset('images/logo-dark.png') }}" alt="Logo">
                         </td>
-                        <td style="width: 58%;" class="dsp-center">
+                        <td style="width: 56%;" class="dsp-center">
                             <div class="dsp-head-title">
-                                {{ strtoupper($lineupList->club?->name ?: 'Minang Muda League') }}
+                                {{ strtoupper($lineupList->club?->name ?: 'Liga Anak Piaman Laweh') }}
                                 {{ $lineupList->ageGroup?->name ? ' '.$lineupList->ageGroup->name : '' }}
                             </div>
-                            <div class="dsp-head-title">MUSIM {{ optional($lineupList->match_date ?: $lineupList->match?->match_date)->format('Y') ?: now()->format('Y') }}</div>
+                            @if ($matchDay)
+                                <div class="dsp-head-title">{{ strtoupper($matchDay) }}</div>
+                            @endif
+                            <div class="dsp-head-title">MUSIM {{ optional($matchDate)->format('Y') ?: now()->format('Y') }}</div>
                         </td>
-                        <td style="width: 12%;" class="dsp-center dsp-bold">MATCH</td>
-                        <td style="width: 8%;"></td>
+                        <td rowspan="2" style="width: 22%;" class="dsp-logo-box">
+                            <img src="{{ asset('images/logo-dark.png') }}" alt="Logo">
+                        </td>
                     </tr>
                     <tr>
                         <td class="dsp-center">
                             <div class="dsp-subtitle">DAFTAR SUSUNAN PEMAIN</div>
                         </td>
-                        <td colspan="2" class="dsp-center">SIGNATURE</td>
                     </tr>
                 </table>
 
                 <table class="dsp-table dsp-meta mb-3">
                     <tr>
-                        <td>TEAM</td>
+                        <td>TIM</td>
                         <td>:</td>
                         <td colspan="5">{{ strtoupper($lineupList->club?->name ?: '-') }}</td>
                     </tr>
                     <tr>
-                        <td>JERSEY COLOUR</td>
+                        <td>LAWAN</td>
+                        <td>:</td>
+                        <td colspan="5">{{ strtoupper($opponent?->name ?: '-') }}</td>
+                    </tr>
+                    <tr>
+                        <td>WARNA JERSEY</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>GK JSY COLOUR</td>
+                        <td>WARNA JERSEY KIPER</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->goalkeeper_jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>PLAYED AT</td>
+                        <td>LOKASI</td>
                         <td>:</td>
-                        <td>{{ $lineupList->played_at ?: $lineupList->match?->venue ?: '-' }}</td>
-                        <td class="dsp-bold">DATE</td>
-                        <td>: {{ optional($lineupList->match_date ?: $lineupList->match?->match_date)->format('d-m-Y') ?: '-' }}</td>
-                        <td class="dsp-bold">TIME</td>
-                        <td>: {{ optional($lineupList->played_time ?: $lineupList->match?->kickoff_time)->format('H:i') ?: '-' }} WIB</td>
+                        <td>{{ $venue ?: '-' }}</td>
+                        <td class="dsp-bold">TANGGAL</td>
+                        <td>: {{ optional($matchDate)->format('d-m-Y') ?: '-' }}</td>
+                        <td class="dsp-bold">JAM</td>
+                        <td>: {{ optional($kickoffTime)->format('H:i') ?: '-' }} WIB</td>
                     </tr>
                 </table>
 
@@ -238,9 +328,9 @@
                     <thead>
                         <tr>
                             <th class="dsp-center">NO</th>
-                            <th>PLAYER'S NAME</th>
-                            <th class="dsp-center">NO JSY</th>
-                            <th>POSITION</th>
+                            <th>NAMA PEMAIN</th>
+                            <th class="dsp-center">NO JERSEY</th>
+                            <th>POSISI</th>
                             <th class="dsp-center">P</th>
                             <th class="dsp-center">S</th>
                         </tr>
@@ -266,7 +356,7 @@
                     <thead>
                         <tr>
                             <th class="dsp-center">NO</th>
-                            <th>OFFICIAL NAMES</th>
+                            <th>NAMA OFFICIAL</th>
                         </tr>
                     </thead>
                     <tbody>

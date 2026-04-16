@@ -30,7 +30,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" data-password-input required>
+                            <button class="btn btn-light admin-password-toggle" type="button" data-password-toggle aria-label="Tampilkan password" aria-pressed="false">
+                                <span data-password-hidden-icon>
+                                    <i data-lucide="eye" class="fs-16"></i>
+                                </span>
+                                <span class="d-none" data-password-visible-icon>
+                                    <i data-lucide="eye-off" class="fs-16"></i>
+                                </span>
+                            </button>
+                        </div>
                         @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Simpan Akun</button>
@@ -49,14 +59,14 @@
                     </div>
                 </div>
 
-                <div class="table-responsive admin-accounts-table">
-                    <table class="table align-middle mb-0">
+                <div class="table-responsive competition-table-wrap admin-accounts-table">
+                    <table class="table competition-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>Nama</th>
                                 <th>Email</th>
                                 <th>Dibuat</th>
-                                <th class="text-start text-md-end">Aksi</th>
+                                <th class="text-start text-md-end admin-accounts-action-cell">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -65,7 +75,7 @@
                                     <td class="fw-semibold">{{ $admin->name }}</td>
                                     <td>{{ $admin->email }}</td>
                                     <td>{{ $admin->created_at?->format('d M Y') ?: '-' }}</td>
-                                    <td class="text-start text-md-end">
+                                    <td class="text-start text-md-end admin-accounts-action-cell">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                                 <span>Tindakan</span>
@@ -120,13 +130,30 @@
 ])
 
 <style>
-    .admin-accounts-table {
-        overflow-x: auto;
-        overflow-y: visible;
+    .table-responsive.competition-table-wrap.admin-accounts-table,
+    .table-responsive.competition-table-wrap.admin-accounts-table.dropdown-open {
+        overflow: visible !important;
+        padding-right: 0.75rem;
     }
 
     .admin-accounts-table .table {
-        min-width: 640px;
+        min-width: 720px;
+    }
+
+    .admin-accounts-action-cell {
+        min-width: 150px;
+        width: 150px;
+    }
+
+    .admin-accounts-action-cell .competition-action-menu {
+        min-width: 220px;
+    }
+
+    .admin-password-toggle {
+        width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
 
@@ -172,6 +199,23 @@
 
             input.addEventListener('input', () => {
                 setMessage(input, '');
+            });
+        });
+
+        form.querySelectorAll('[data-password-toggle]').forEach((button) => {
+            const input = button.closest('.input-group')?.querySelector('[data-password-input]');
+            const hiddenIcon = button.querySelector('[data-password-hidden-icon]');
+            const visibleIcon = button.querySelector('[data-password-visible-icon]');
+            if (!input || !hiddenIcon || !visibleIcon) return;
+
+            button.addEventListener('click', () => {
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                button.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+                button.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                hiddenIcon.classList.toggle('d-none', isHidden);
+                visibleIcon.classList.toggle('d-none', !isHidden);
+                input.focus();
             });
         });
     })();

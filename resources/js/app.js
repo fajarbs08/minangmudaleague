@@ -178,6 +178,7 @@ const initActionDropdowns = () => {
   document.querySelectorAll('.competition-action-toggle').forEach((button) => {
     button.setAttribute('data-bs-display', 'static')
     button.setAttribute('data-bs-offset', '0,4')
+    button.setAttribute('data-bs-boundary', 'viewport')
   })
 }
 
@@ -364,6 +365,190 @@ const initSearchAutocomplete = () => {
   })
 }
 
+const initFormDraftAutosave = () => {
+  const storagePrefix = 'velok:form-draft'
+  const skippedInputTypes = new Set(['button', 'submit', 'reset', 'file', 'password'])
+  const skippedNames = new Set(['_token', '_method'])
+
+  const shouldAutosaveForm = (form) => {
+    if (form.dataset.autosave === 'off') return false
+    if (form.matches('.authentication-form, .review-actions-form')) return false
+    if (form.closest('.modal')) return false
+
+    const method = (form.getAttribute('method') || 'GET').toUpperCase()
+    if (method === 'GET') return false
+
+    const id = form.id || ''
+    if (id.startsWith('delete-') || id.startsWith('bulk-')) return false
+    if (id.includes('delete') || id.includes('bulk')) return false
+
+    const action = form.getAttribute('action') || ''
+    if (action.includes('/logout') || action.includes('/login')) return false
+    if (action.includes('bulk-review')) return false
+
+    return true
+  }
+
+  const draftKeyFor = (form, index) => {
+    const action = form.getAttribute('action') || window.location.pathname
+    const method = (form.getAttribute('method') || 'GET').toUpperCase()
+    const formId = form.id || `form-${index}`
+
+    return `${storagePrefix}:${window.location.pathname}:${method}:${action}:${formId}`
+  }
+
+  const controlsFor = (form) => {
+    return [...form.elements].filter((field) => {
+      if (!field.name || field.disabled) return false
+      if (skippedNames.has(field.name)) return false
+      if (field.matches('[data-autosave-ignore]')) return false
+
+      const type = (field.type || '').toLowerCase()
+      return !skippedInputTypes.has(type)
+    })
+  }
+
+  const serializeForm = (form) => {
+    const payload = {}
+    const grouped = new Map()
+
+    controlsFor(form).forEach((field) => {
+      if (!grouped.has(field.name)) {
+        grouped.set(field.name, [])
+      }
+
+      grouped.get(field.name).push(field)
+    })
+
+    grouped.forEach((fields, name) => {
+      const first = fields[0]
+      const type = (first.type || '').toLowerCase()
+
+      if (type === 'checkbox') {
+        payload[name] = fields.filter((field) => field.checked).map((field) => field.value)
+        return
+      }
+
+      if (type === 'radio') {
+        payload[name] = fields.find((field) => field.checked)?.value ?? null
+        return
+      }
+
+      if (first.tagName === 'SELECT' && first.multiple) {
+        payload[name] = [...first.selectedOptions].map((option) => option.value)
+        return
+      }
+
+      if (fields.length > 1) {
+        payload[name] = fields.map((field) => field.value)
+        return
+      }
+
+      payload[name] = first.value
+    })
+
+    return payload
+  }
+
+  const restoreForm = (form, payload) => {
+    if (!payload || typeof payload !== 'object') return
+
+    const grouped = new Map()
+    controlsFor(form).forEach((field) => {
+      if (!grouped.has(field.name)) {
+        grouped.set(field.name, [])
+      }
+
+      grouped.get(field.name).push(field)
+    })
+
+    Object.entries(payload).forEach(([name, value]) => {
+      const fields = grouped.get(name)
+      if (!fields?.length) return
+
+      const first = fields[0]
+      const type = (first.type || '').toLowerCase()
+
+      if (type === 'checkbox') {
+        const values = Array.isArray(value) ? value.map(String) : []
+        fields.forEach((field) => {
+          field.checked = values.includes(String(field.value))
+          field.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        return
+      }
+
+      if (type === 'radio') {
+        fields.forEach((field) => {
+          field.checked = String(field.value) === String(value)
+          field.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        return
+      }
+
+      if (first.tagName === 'SELECT' && first.multiple) {
+        const values = Array.isArray(value) ? value.map(String) : []
+        ;[...first.options].forEach((option) => {
+          option.selected = values.includes(String(option.value))
+        })
+        first.dispatchEvent(new Event('change', { bubbles: true }))
+        return
+      }
+
+      if (fields.length > 1 && Array.isArray(value)) {
+        fields.forEach((field, fieldIndex) => {
+          field.value = value[fieldIndex] ?? ''
+          field.dispatchEvent(new Event('input', { bubbles: true }))
+          field.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        return
+      }
+
+      first.value = value ?? ''
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+      first.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  document.querySelectorAll('form').forEach((form, index) => {
+    if (!shouldAutosaveForm(form)) return
+
+    const draftKey = draftKeyFor(form, index)
+    const rawDraft = localStorage.getItem(draftKey)
+    let saveTimer = null
+    let restoring = false
+
+    if (rawDraft) {
+      try {
+        restoring = true
+        restoreForm(form, JSON.parse(rawDraft).fields)
+      } catch (error) {
+        localStorage.removeItem(draftKey)
+      } finally {
+        restoring = false
+      }
+    }
+
+    const saveDraft = () => {
+      if (restoring) return
+
+      window.clearTimeout(saveTimer)
+      saveTimer = window.setTimeout(() => {
+        localStorage.setItem(draftKey, JSON.stringify({
+          fields: serializeForm(form),
+          savedAt: new Date().toISOString(),
+        }))
+      }, 250)
+    }
+
+    form.addEventListener('input', saveDraft)
+    form.addEventListener('change', saveDraft)
+    form.addEventListener('submit', () => {
+      localStorage.removeItem(draftKey)
+    })
+  })
+}
+
 // Form Validation ( Bootstrap )
 class FormValidation {
   initFormValidation() {
@@ -403,6 +588,12 @@ class FormAdvanced {
   initFormChoices() {
     var choicesExamples = document.querySelectorAll("[data-choices]");
     choicesExamples.forEach(function (item) {
+      if (item.dataset.choicesInitialized === 'true') {
+        return;
+      }
+
+      item.dataset.choicesInitialized = 'true';
+
       var choiceData = {};
       var isChoicesVal = item.attributes;
 
@@ -449,7 +640,76 @@ class FormAdvanced {
         choiceData.addItems = false;
       }
 
+      if (isChoicesVal["data-bulk-choices"]) {
+        choiceData.searchEnabled = false;
+        choiceData.shouldSort = false;
+        choiceData.itemSelectText = '';
+        choiceData.closeDropdownOnSelect = true;
+        choiceData.position = 'bottom';
+      }
+
       const choicesInstance = new Choices(item, choiceData);
+      const isSingleSelect = item.tagName === 'SELECT' && !item.multiple;
+      const container = choicesInstance.containerOuter ? choicesInstance.containerOuter.element : null;
+      const searchInput = choicesInstance.input ? choicesInstance.input.element : null;
+      const dropdown = choicesInstance.dropdown ? choicesInstance.dropdown.element : null;
+
+      const closeChoicesDropdown = function () {
+        if (!isSingleSelect) {
+          return;
+        }
+
+        window.setTimeout(function () {
+          choicesInstance.hideDropdown(true);
+
+          if (container) {
+            container.classList.remove('is-open', 'is-focused');
+            container.setAttribute('aria-expanded', 'false');
+            container.blur();
+          }
+
+          if (dropdown) {
+            dropdown.setAttribute('aria-expanded', 'false');
+          }
+
+          if (searchInput) {
+            searchInput.blur();
+          }
+        }, 0);
+      };
+
+      item.addEventListener('choice', closeChoicesDropdown);
+      item.addEventListener('addItem', closeChoicesDropdown);
+      item.addEventListener('change', closeChoicesDropdown);
+
+      if (container) {
+        const closeFromChoiceItem = function (event) {
+          const selectableChoice = event.target.closest('.choices__item--selectable');
+
+          if (!selectableChoice || (dropdown && !dropdown.contains(selectableChoice))) {
+            return;
+          }
+
+          closeChoicesDropdown();
+        };
+
+        container.addEventListener('click', closeFromChoiceItem);
+        container.addEventListener('touchend', closeFromChoiceItem, { passive: true });
+
+        document.addEventListener('pointerdown', function (event) {
+          if (container.contains(event.target)) {
+            return;
+          }
+
+          closeChoicesDropdown();
+        });
+
+        container.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            closeChoicesDropdown();
+          }
+        });
+      }
 
       // **FIXED:** Conditionally disable the instance after it's created
       if (isChoicesVal["data-choices-text-disabled-true"]) {
@@ -471,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTableDropdownOverflow()
   initActionDropdowns()
   initSearchAutocomplete()
+  initFormDraftAutosave()
 })
 
 // Dragula (Draggable Components)

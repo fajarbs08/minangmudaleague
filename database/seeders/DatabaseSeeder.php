@@ -25,28 +25,28 @@ class DatabaseSeeder extends Seeder
         $this->cleanupLegacyDemoData();
 
         $admin = $this->upsertUser(
-            'admin@minangmudaleague.local',
-            'Admin Minang Muda League',
+            'admin@ligaanakpiamanlaweh.local',
+            'Admin Liga Anak Piaman Laweh',
             'admin',
             'admin12345'
         );
 
         $clubAUser = $this->upsertUser(
-            'garuda@minangmudaleague.local',
+            'garuda@ligaanakpiamanlaweh.local',
             'Garuda Muda Manager',
             'club',
             'club12345'
         );
 
         $clubBUser = $this->upsertUser(
-            'elang@minangmudaleague.local',
+            'elang@ligaanakpiamanlaweh.local',
             'Elang Nusantara Manager',
             'club',
             'club12345'
         );
 
         $clubCUser = $this->upsertUser(
-            'rajawali@minangmudaleague.local',
+            'rajawali@ligaanakpiamanlaweh.local',
             'Rajawali City Manager',
             'club',
             'club12345'
@@ -58,9 +58,6 @@ class DatabaseSeeder extends Seeder
         $garudaLogo = $this->seedDemoImage('garuda-logo.svg', 'Garuda Muda FC');
         $elangLogo = $this->seedDemoImage('elang-logo.svg', 'Elang Nusantara');
         $rajawaliLogo = $this->seedDemoImage('rajawali-logo.svg', 'Rajawali City');
-        $garudaDeed = $this->seedDemoDocument('garuda-deed.pdf', 'Akta Garuda Muda FC');
-        $elangDeed = $this->seedDemoDocument('elang-deed.pdf', 'Akta Elang Nusantara');
-        $rajawaliDeed = $this->seedDemoDocument('rajawali-deed.pdf', 'Akta Rajawali City');
         $garudaStatement = $this->seedDemoDocument('garuda-statement.pdf', 'Surat Pernyataan Garuda Muda FC');
         $elangStatement = $this->seedDemoDocument('elang-statement.pdf', 'Surat Pernyataan Elang Nusantara');
         $rajawaliStatement = $this->seedDemoDocument('rajawali-statement.pdf', 'Surat Pernyataan Rajawali City');
@@ -73,18 +70,11 @@ class DatabaseSeeder extends Seeder
             'manager_name' => 'Rian Pratama',
             'manager_title' => 'Ketua / Penanggung Jawab',
             'zone' => 'Jakarta Barat',
-            'city' => 'Jakarta',
             'founded_year' => 2018,
             'logo_url' => $garudaLogo,
             'address' => 'Jl. Garuda 10, Jakarta Barat',
-            'mailing_address' => 'Jl. Garuda 10, Jakarta Barat',
             'training_address' => 'Lapangan Garuda, Jakarta Barat',
-            'deed_file_path' => $garudaDeed,
             'statement_file_path' => $garudaStatement,
-            'statement_age_group' => $u12->name,
-            'statement_contact' => '081200000101',
-            'statement_witness_name' => 'Aldi Pranata',
-            'statement_witness_title' => 'Manager Team / Admin Club',
             'notes' => 'Klub contoh dengan data yang masih bisa dilengkapi.',
             'verification_status' => Club::STATUS_DRAFT,
             'verification_notes' => null,
@@ -101,18 +91,11 @@ class DatabaseSeeder extends Seeder
             'manager_name' => 'Dimas Saputra',
             'manager_title' => 'Ketua / Penanggung Jawab',
             'zone' => 'Bandung',
-            'city' => 'Bandung',
             'founded_year' => 2017,
             'logo_url' => $elangLogo,
             'address' => 'Jl. Nusantara 21, Bandung',
-            'mailing_address' => 'Jl. Nusantara 21, Bandung',
             'training_address' => 'Lapangan Nusantara, Bandung',
-            'deed_file_path' => $elangDeed,
             'statement_file_path' => $elangStatement,
-            'statement_age_group' => $u14->name,
-            'statement_contact' => '081200000201',
-            'statement_witness_name' => 'Budi Firmansyah',
-            'statement_witness_title' => 'Manager Team / Admin Club',
             'notes' => 'Klub contoh yang sedang menunggu verifikasi admin.',
             'verification_status' => Club::STATUS_SUBMITTED,
             'verification_notes' => null,
@@ -129,18 +112,11 @@ class DatabaseSeeder extends Seeder
             'manager_name' => 'Bagas Mahendra',
             'manager_title' => 'Ketua / Penanggung Jawab',
             'zone' => 'Surabaya',
-            'city' => 'Surabaya',
             'founded_year' => 2016,
             'logo_url' => $rajawaliLogo,
             'address' => 'Jl. Stadion 8, Surabaya',
-            'mailing_address' => 'Jl. Stadion 8, Surabaya',
             'training_address' => 'Lapangan Rajawali, Surabaya',
-            'deed_file_path' => $rajawaliDeed,
             'statement_file_path' => $rajawaliStatement,
-            'statement_age_group' => $u16->name,
-            'statement_contact' => '081200000301',
-            'statement_witness_name' => 'Fajar Pratama',
-            'statement_witness_title' => 'Manager Team / Admin Club',
             'notes' => 'Klub contoh yang sudah lolos verifikasi.',
             'verification_status' => Club::STATUS_APPROVED,
             'verification_notes' => 'Data klub lengkap dan memenuhi syarat.',
@@ -161,6 +137,10 @@ class DatabaseSeeder extends Seeder
         User::whereIn('email', [
             'admin@minangmuda.local',
             'netral@minangmuda.local',
+            'admin@minangmudaleague.local',
+            'garuda@minangmudaleague.local',
+            'elang@minangmudaleague.local',
+            'rajawali@minangmudaleague.local',
         ])->delete();
 
         if (Schema::hasTable('rule_documents')) {
@@ -287,11 +267,10 @@ class DatabaseSeeder extends Seeder
 
         $this->upsertPlayer($garuda, 'Adit Nugraha', [
             'primary_age_group_id' => $u12->id,
-            'registration_number' => 'GMF-U12-001',
             'jersey_number' => 10,
             'position' => 'Forward',
             'photo_path' => $aditPhoto,
-            'nisn_file_path' => $this->seedDemoDocument('player-garuda-adit-nisn.pdf', 'NISN Adit Nugraha'),
+            'family_card_file_path' => $this->seedDemoDocument('player-garuda-adit-kk.pdf', 'KK Adit Nugraha'),
             'diploma_file_path' => $this->seedDemoDocument('player-garuda-adit-ijazah.pdf', 'Ijazah Adit Nugraha'),
             'report_file_path' => $this->seedDemoDocument('player-garuda-adit-rapor.pdf', 'Rapor Adit Nugraha'),
             'birth_certificate_file_path' => $this->seedDemoDocument('player-garuda-adit-akta.pdf', 'Akta Adit Nugraha'),
@@ -305,11 +284,10 @@ class DatabaseSeeder extends Seeder
 
         $this->upsertPlayer($elang, 'Farhan Maulana', [
             'primary_age_group_id' => $u14->id,
-            'registration_number' => 'ELG-U14-004',
             'jersey_number' => 8,
             'position' => 'Midfielder',
             'photo_path' => $farhanPhoto,
-            'nisn_file_path' => $this->seedDemoDocument('player-elang-farhan-nisn.pdf', 'NISN Farhan Maulana'),
+            'family_card_file_path' => $this->seedDemoDocument('player-elang-farhan-kk.pdf', 'KK Farhan Maulana'),
             'diploma_file_path' => $this->seedDemoDocument('player-elang-farhan-ijazah.pdf', 'Ijazah Farhan Maulana'),
             'report_file_path' => $this->seedDemoDocument('player-elang-farhan-rapor.pdf', 'Rapor Farhan Maulana'),
             'birth_certificate_file_path' => $this->seedDemoDocument('player-elang-farhan-akta.pdf', 'Akta Farhan Maulana'),
@@ -324,11 +302,10 @@ class DatabaseSeeder extends Seeder
 
         $this->upsertPlayer($elang, 'Rafli Kurniawan', [
             'primary_age_group_id' => $u14->id,
-            'registration_number' => 'ELG-U14-009',
             'jersey_number' => 14,
             'position' => 'Defender',
             'photo_path' => $rafliPhoto,
-            'nisn_file_path' => $this->seedDemoDocument('player-elang-rafli-nisn.pdf', 'NISN Rafli Kurniawan'),
+            'family_card_file_path' => $this->seedDemoDocument('player-elang-rafli-kk.pdf', 'KK Rafli Kurniawan'),
             'diploma_file_path' => $this->seedDemoDocument('player-elang-rafli-ijazah.pdf', 'Ijazah Rafli Kurniawan'),
             'report_file_path' => $this->seedDemoDocument('player-elang-rafli-rapor.pdf', 'Rapor Rafli Kurniawan'),
             'birth_certificate_file_path' => $this->seedDemoDocument('player-elang-rafli-akta.pdf', 'Akta Rafli Kurniawan'),
@@ -346,11 +323,10 @@ class DatabaseSeeder extends Seeder
 
         $this->upsertPlayer($rajawali, 'Naufal Pradana', [
             'primary_age_group_id' => $u16->id,
-            'registration_number' => 'RJC-U16-002',
             'jersey_number' => 7,
             'position' => 'Winger',
             'photo_path' => $naufalPhoto,
-            'nisn_file_path' => $this->seedDemoDocument('player-rajawali-naufal-nisn.pdf', 'NISN Naufal Pradana'),
+            'family_card_file_path' => $this->seedDemoDocument('player-rajawali-naufal-kk.pdf', 'KK Naufal Pradana'),
             'diploma_file_path' => $this->seedDemoDocument('player-rajawali-naufal-ijazah.pdf', 'Ijazah Naufal Pradana'),
             'report_file_path' => $this->seedDemoDocument('player-rajawali-naufal-rapor.pdf', 'Rapor Naufal Pradana'),
             'birth_certificate_file_path' => $this->seedDemoDocument('player-rajawali-naufal-akta.pdf', 'Akta Naufal Pradana'),
@@ -955,11 +931,10 @@ class DatabaseSeeder extends Seeder
 
             $attributes = [
                 'primary_age_group_id' => $ageGroup->id,
-                'registration_number' => $club->short_name.'-'.$ageGroup->code.'-'.$player['number'],
                 'jersey_number' => $player['number'],
                 'position' => $player['position'],
                 'photo_path' => $this->seedDemoImage("{$slug}.svg", $player['name']),
-                'nisn_file_path' => $this->seedDemoDocument("{$slug}-nisn.pdf", 'NISN '.$player['name']),
+                'family_card_file_path' => $this->seedDemoDocument("{$slug}-kk.pdf", 'KK '.$player['name']),
                 'diploma_file_path' => $this->seedDemoDocument("{$slug}-ijazah.pdf", 'Ijazah '.$player['name']),
                 'report_file_path' => $this->seedDemoDocument("{$slug}-rapor.pdf", 'Rapor '.$player['name']),
                 'birth_certificate_file_path' => $this->seedDemoDocument("{$slug}-akta.pdf", 'Akta '.$player['name']),

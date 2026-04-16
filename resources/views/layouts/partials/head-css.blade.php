@@ -97,6 +97,8 @@
 
     .competition-table-actions {
         min-width: 168px;
+        width: 1%;
+        white-space: nowrap;
     }
 
     .competition-table-meta {
@@ -165,6 +167,11 @@
         padding-right: 0.9rem;
     }
 
+    .competition-table-actions .dropdown,
+    .competition-table-actions .dropup {
+        display: inline-block;
+    }
+
     .competition-action-toggle:hover,
     .competition-action-toggle:focus,
     .competition-action-toggle.show {
@@ -196,8 +203,123 @@
         font-weight: 600;
     }
 
+    .review-actions-icon {
+        width: 0.95rem;
+        height: 0.95rem;
+        flex-shrink: 0;
+    }
+
     .review-actions-button-danger {
         grid-column: 1 / -1;
+    }
+
+    .competition-bulk-panel .form-select,
+    .competition-bulk-panel .form-control,
+    .competition-bulk-panel [data-bulk-submit],
+    .competition-bulk-panel .choices__inner {
+        min-height: 40px;
+    }
+
+    .competition-bulk-panel textarea.form-control {
+        min-height: 40px;
+        height: 40px;
+        resize: none;
+    }
+
+    .competition-bulk-panel .choices {
+        margin-bottom: 0;
+    }
+
+    .competition-bulk-panel .choices__inner {
+        border-color: var(--bs-border-color);
+        border-radius: var(--bs-border-radius);
+        background: #fff;
+        padding: 0.42rem 0.75rem;
+    }
+
+    .competition-bulk-panel .choices[data-type*="select-one"] .choices__inner {
+        padding-bottom: 0.42rem;
+    }
+
+    .competition-bulk-panel .choices__list--dropdown,
+    .competition-bulk-panel .choices__list[aria-expanded] {
+        z-index: 1085;
+        max-width: 100%;
+        word-break: break-word;
+    }
+
+    @media (max-width: 820px) {
+        .accordion .accordion-button {
+            padding: 0.9rem 1rem;
+        }
+
+        .accordion .accordion-body {
+            padding: 0.9rem;
+        }
+
+        .competition-bulk-panel {
+            row-gap: 0.85rem !important;
+        }
+
+        .competition-bulk-panel > [class*="col-"] {
+            width: 100%;
+        }
+
+        .competition-bulk-panel .form-label {
+            display: block;
+            margin-bottom: 0.35rem;
+            min-height: 0;
+            font-size: 0.875rem;
+        }
+
+        .competition-bulk-panel .form-label.d-block {
+            margin-bottom: 0;
+            line-height: 0;
+        }
+
+        .competition-bulk-panel .form-select,
+        .competition-bulk-panel .form-control,
+        .competition-bulk-panel .btn,
+        .competition-bulk-panel .choices {
+            width: 100%;
+        }
+
+        .competition-bulk-panel textarea.form-control {
+            min-height: 40px;
+            height: 40px;
+        }
+
+        .competition-bulk-panel [data-bulk-submit] {
+            margin-top: 0.1rem;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .competition-table-actions {
+            min-width: 132px;
+        }
+
+        .competition-table-actions .dropdown,
+        .competition-table-actions .dropup {
+            width: auto;
+        }
+
+        .competition-action-toggle {
+            min-width: 120px;
+            justify-content: space-between;
+        }
+
+        .competition-table-actions .competition-action-menu {
+            min-width: 0;
+            width: min(220px, calc(100vw - 1rem));
+            max-width: calc(100vw - 1rem);
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        .competition-action-menu .dropdown-item {
+            white-space: normal;
+        }
     }
 
 </style>

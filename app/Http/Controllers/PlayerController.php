@@ -41,7 +41,7 @@ class PlayerController extends Controller
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('registration_number', 'like', "%{$search}%")
+                        ->orWhere('school_name', 'like', "%{$search}%")
                         ->orWhere('position', 'like', "%{$search}%")
                         ->orWhereHas('ageRegistrations', fn ($registration) => $registration->where('position', 'like', "%{$search}%"));
                 });
@@ -395,10 +395,10 @@ class PlayerController extends Controller
 
         foreach ([
             'photo_path',
-            'nisn_file_path',
             'diploma_file_path',
             'report_file_path',
             'birth_certificate_file_path',
+            'family_card_file_path',
         ] as $field) {
             if ($player->{$field}) {
                 Storage::disk('public')->delete($player->{$field});
@@ -418,20 +418,16 @@ class PlayerController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
             'school_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:255'],
             'jersey_number' => ['nullable', 'integer', 'min:1', 'max:99'],
             'position' => ['nullable', 'string', 'max:255'],
             'citizenship' => ['nullable', 'in:WNI,WNA'],
-            'nisn' => ['nullable', 'string', 'max:255'],
-            'non_nisn' => ['nullable', 'string', 'max:255'],
-            'passport_number' => ['nullable', 'string', 'max:255'],
             'birth_place' => ['nullable', 'string', 'max:255'],
             'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'nisn_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
             'diploma_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
             'report_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
             'birth_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
-            'birth_date' => ['nullable', 'date'],
+            'family_card_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
             'weight_kg' => ['nullable', 'integer', 'min:10', 'max:200'],
             'dominant_foot' => ['nullable', 'in:Kanan,Kiri,Keduanya'],
@@ -447,6 +443,7 @@ class PlayerController extends Controller
             'age_registrations.*.is_substitute' => ['nullable', 'boolean'],
         ], [
             'birth_certificate_file.uploaded' => 'Berkas akta kelahiran gagal diunggah.',
+            'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
             'height_cm.min' => 'Tinggi badan minimal 50 cm.',
         ], [
             'birth_certificate_file' => 'berkas akta kelahiran',
@@ -457,10 +454,6 @@ class PlayerController extends Controller
 
         if ($request->hasFile('photo_file')) {
             $data['photo_path'] = $request->file('photo_file')->store('players/photos', 'public');
-        }
-
-        if ($request->hasFile('nisn_file')) {
-            $data['nisn_file_path'] = $request->file('nisn_file')->store('players/nisn', 'public');
         }
 
         if ($request->hasFile('diploma_file')) {
@@ -475,7 +468,11 @@ class PlayerController extends Controller
             $data['birth_certificate_file_path'] = $request->file('birth_certificate_file')->store('players/birth-certificates', 'public');
         }
 
-        unset($data['photo_file'], $data['nisn_file'], $data['diploma_file'], $data['report_file'], $data['birth_certificate_file']);
+        if ($request->hasFile('family_card_file')) {
+            $data['family_card_file_path'] = $request->file('family_card_file')->store('players/family-cards', 'public');
+        }
+
+        unset($data['photo_file'], $data['diploma_file'], $data['report_file'], $data['birth_certificate_file'], $data['family_card_file']);
 
         $ageRegistrations = collect($request->input('age_registrations', []))
             ->map(fn ($registration) => [
@@ -519,10 +516,10 @@ class PlayerController extends Controller
     {
         $map = [
             'photo_file' => 'photo_path',
-            'nisn_file' => 'nisn_file_path',
             'diploma_file' => 'diploma_file_path',
             'report_file' => 'report_file_path',
             'birth_certificate_file' => 'birth_certificate_file_path',
+            'family_card_file' => 'family_card_file_path',
         ];
 
         foreach ($map as $input => $column) {

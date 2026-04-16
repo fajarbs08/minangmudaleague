@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Club as ClubModel;
 use App\Models\Club;
+use App\Models\InformationResource;
 use App\Models\LineupList;
 use App\Models\Official;
 use App\Models\Player;
@@ -45,6 +46,60 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function clubResources(Request $request)
+    {
+        abort_unless($request->user()?->isClubUser(), 403);
+        $category = $request->string('category')->value();
+
+        return view('competition.club-resources', [
+            'title' => 'Pusat Informasi Club',
+            'managedResources' => InformationResource::query()
+                ->where('is_published', true)
+                ->when($category, fn ($query, $value) => $query->where('category', $value))
+                ->orderByDesc('is_pinned')
+                ->orderBy('sort_order')
+                ->orderByDesc('created_at')
+                ->get(),
+            'activeCategory' => $category,
+            'downloadResources' => [
+                [
+                    'label' => 'Template Surat Pernyataan',
+                    'description' => 'File template surat pernyataan yang diisi club lalu diunggah kembali pada data klub.',
+                    'open_url' => route('clubs.statement-template'),
+                    'download_url' => route('clubs.statement-template'),
+                    'badge' => 'Template',
+                    'badge_class' => 'bg-primary-subtle text-primary',
+                ],
+                [
+                    'label' => 'Flow Alur Registrasi',
+                    'description' => 'Panduan urutan kerja akun club mulai dari data klub, pemain, official, sampai DSP.',
+                    'open_url' => route('dashboard.workflow-pdf'),
+                    'download_url' => route('dashboard.workflow-pdf', ['download' => 1]),
+                    'badge' => 'PDF',
+                    'badge_class' => 'bg-success-subtle text-success',
+                ],
+                [
+                    'label' => 'Manual Club',
+                    'description' => 'Dokumen panduan penggunaan sistem untuk akun club dalam format PDF.',
+                    'open_url' => route('dashboard.club-manual-pdf'),
+                    'download_url' => route('dashboard.club-manual-pdf', ['download' => 1]),
+                    'badge' => 'PDF',
+                    'badge_class' => 'bg-info-subtle text-info',
+                ],
+            ],
+            'upcomingResources' => [
+                [
+                    'label' => 'Rules Kompetisi',
+                    'description' => 'Slot dokumen rules/ketentuan pertandingan. Bisa dihubungkan ke file resmi saat sudah tersedia.',
+                ],
+                [
+                    'label' => 'Dokumen Tambahan',
+                    'description' => 'Area untuk file briefing teknis, jadwal teknikal meeting, atau lampiran informasi lain.',
+                ],
+            ],
+        ]);
+    }
+
     public function workflowPdf(Request $request)
     {
         abort_unless($request->user()?->isClubUser(), 403);
@@ -81,7 +136,7 @@ class DashboardController extends Controller
                     ],
                     'details' => [
                         'Isi nama klub, nama singkat, nama manajer, zona, kota, tahun berdiri, dan alamat.',
-                        'Unggah logo klub, bukti akta SSB, dan surat pernyataan dalam format yang diterima sistem.',
+                        'Unduh template surat pernyataan, isi data klub, tanda tangan, lalu unggah kembali bersama logo klub.',
                         'Periksa ulang apakah seluruh identitas klub sudah benar dan sama dengan dokumen pendukung yang diunggah.',
                     ],
                     'result' => 'Profil klub lengkap dan siap diajukan ke verifikasi atau dilanjutkan ke input official dan pemain.',
@@ -117,7 +172,7 @@ class DashboardController extends Controller
                     ],
                     'details' => [
                         'Isi identitas pemain seperti nama, nama ibu kandung, sekolah, nomor registrasi, tinggi, berat, tempat lahir, tanggal lahir, dan dominant foot.',
-                        'Unggah pas foto 3x4, file NISN, ijazah, rapor, dan akta kelahiran sesuai kebutuhan verifikasi.',
+                        'Unggah pas foto 3x4, file KK, ijazah, rapor, dan akta kelahiran sesuai kebutuhan verifikasi.',
                         'Tetapkan kelompok usia, musim, nomor punggung, posisi, serta catatan per kelompok usia. Satu pemain dapat tercatat di lebih dari satu kelompok usia.',
                     ],
                     'result' => 'Data pemain masuk ke daftar registrasi dan siap dilanjutkan ke penyusunan roster pertandingan.',
@@ -155,7 +210,7 @@ class DashboardController extends Controller
                         'Pada data klub, official, pemain, dan DSP, club menekan tombol Submit Verifikasi ketika data sudah lengkap.',
                         'Setelah dikirim, status berubah menjadi Dalam Proses atau submitted dan waktu pengajuan tercatat di sistem.',
                         'Data dianggap lengkap bila semua field penting terisi, dokumen wajib sudah diunggah, identitas sesuai, kelompok usia sudah ditetapkan, dan tidak ada informasi yang masih kosong atau bertentangan.',
-                        'Untuk klub, lengkap berarti profil klub, manajer, alamat, logo, akta, dan surat pernyataan sudah siap diperiksa.',
+                        'Untuk klub, lengkap berarti profil klub, manajer, alamat, logo, dan surat pernyataan sudah siap diperiksa.',
                         'Untuk official, lengkap berarti identitas, peran, lisensi, dokumen pendukung, dan kelompok usia sudah sesuai kebutuhan kompetisi.',
                         'Untuk pemain, lengkap berarti identitas pemain, dokumen administrasi, kelompok usia, posisi, dan nomor punggung sudah benar.',
                         'Untuk DSP, lengkap berarti pertandingan, pelatih, kelompok usia, starter, cadangan, dan urutan roster sudah sesuai aturan sistem.',
@@ -236,7 +291,7 @@ class DashboardController extends Controller
             'generatedAt' => now(),
         ])->setPaper('a4', 'portrait');
 
-        $fileName = 'manual-admin-minang-muda-league.pdf';
+        $fileName = 'manual-admin-liga-anak-piaman-laweh.pdf';
 
         if ($request->boolean('download')) {
             return $pdf->download($fileName);
@@ -253,7 +308,7 @@ class DashboardController extends Controller
             'generatedAt' => now(),
         ])->setPaper('a4', 'portrait');
 
-        $fileName = 'manual-club-minang-muda-league.pdf';
+        $fileName = 'manual-club-liga-anak-piaman-laweh.pdf';
 
         if ($request->boolean('download')) {
             return $pdf->download($fileName);

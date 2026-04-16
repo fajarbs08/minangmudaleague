@@ -161,7 +161,6 @@ return [
         'phone' => 'telepon',
         'birth_date' => 'tanggal lahir',
         'identity_number' => 'nomor identitas',
-        'registration_number' => 'nomor registrasi',
         'jersey_number' => 'nomor punggung',
         'position' => 'posisi',
         'role' => 'peran',

@@ -1,4 +1,4 @@
-# Minang Muda League
+# Liga Anak Piaman Laweh
 
 Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
@@ -25,11 +25,11 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
 ## Konfigurasi Utama
 
-- `APP_NAME="Minang Muda League"`
+- `APP_NAME="Liga Anak Piaman Laweh"`
 - `APP_URL`
 - kredensial database di `.env`
 - konfigurasi mail bila fitur email dipakai
 
 ## Catatan
 
-Project ini menggunakan Laravel sebagai framework, tetapi branding aplikasi yang ditampilkan ke pengguna adalah `Minang Muda League`.
+Project ini menggunakan Laravel sebagai framework, tetapi branding aplikasi yang ditampilkan ke pengguna adalah `Liga Anak Piaman Laweh`.

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Manual Admin - Minang Muda League</title>
+    <title>Manual Admin - Liga Anak Piaman Laweh</title>
     <style>
         @page { margin: 22mm 20mm 20mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111827; line-height: 1.6; }
@@ -21,9 +21,9 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ public_path('images/logo-full-transparent.png') }}" alt="Minang Muda League">
+        <img src="{{ public_path('images/logo-full-transparent.png') }}" alt="Liga Anak Piaman Laweh">
         <h1>Manual Admin</h1>
-        <div class="muted">Minang Muda League</div>
+        <div class="muted">Liga Anak Piaman Laweh</div>
         <div class="muted">Diperbarui: {{ $generatedAt->translatedFormat('d F Y') }}</div>
     </div>
 
@@ -142,7 +142,7 @@
     </div>
 
     <div class="footer">
-        Manual Admin • Minang Muda League
+        Manual Admin • Liga Anak Piaman Laweh
     </div>
 </body>
 </html>

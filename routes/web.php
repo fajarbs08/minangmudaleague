@@ -9,6 +9,7 @@ use App\Http\Controllers\LineupListController;
 use App\Http\Controllers\MatchScheduleController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminAccountController;
+use App\Http\Controllers\InformationResourceController;
 use App\Http\Controllers\SearchController;
 
 /*
@@ -36,6 +37,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('dashboard/club-workflow-pdf', [DashboardController::class, 'workflowPdf'])
         ->middleware('role:club')
         ->name('dashboard.workflow-pdf');
+    Route::get('club-resources', [DashboardController::class, 'clubResources'])
+        ->middleware('role:club')
+        ->name('club-resources.index');
+    Route::get('information-resources/{informationResource}/download', [InformationResourceController::class, 'download'])
+        ->middleware('role:admin,club')
+        ->name('information-resources.download');
     Route::get('dashboard/admin-manual-pdf', [DashboardController::class, 'adminManualPdf'])
         ->middleware('role:admin')
         ->name('dashboard.admin-manual-pdf');
@@ -84,6 +91,13 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::middleware('role:admin')->group(function () {
         Route::resource('matches', MatchScheduleController::class)->except('show');
+        Route::get('information-resources', [InformationResourceController::class, 'index'])->name('information-resources.index');
+        Route::post('information-resources', [InformationResourceController::class, 'store'])->name('information-resources.store');
+        Route::post('information-resources/bulk-update', [InformationResourceController::class, 'bulkUpdate'])->name('information-resources.bulk-update');
+        Route::get('information-resources/{informationResource}/edit', [InformationResourceController::class, 'edit'])->name('information-resources.edit');
+        Route::put('information-resources/{informationResource}', [InformationResourceController::class, 'update'])->name('information-resources.update');
+        Route::patch('information-resources/{informationResource}/toggle-publish', [InformationResourceController::class, 'togglePublish'])->name('information-resources.toggle-publish');
+        Route::delete('information-resources/{informationResource}', [InformationResourceController::class, 'destroy'])->name('information-resources.destroy');
         Route::get('admin-accounts', [AdminAccountController::class, 'index'])->name('admin-accounts.index');
         Route::post('admin-accounts', [AdminAccountController::class, 'store'])->name('admin-accounts.store');
         Route::get('admin-accounts/{adminAccount}/edit', [AdminAccountController::class, 'edit'])->name('admin-accounts.edit');

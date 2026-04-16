@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\Club;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +17,7 @@ class ClubController extends Controller
         $user = auth()->user();
         $sort = $request->string('sort')->value() ?: 'created_at';
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['name', 'zone', 'city', 'officials_count', 'players_count', 'lineup_lists_count', 'verification_status', 'created_at'];
+        $allowedSorts = ['name', 'zone', 'officials_count', 'players_count', 'lineup_lists_count', 'verification_status', 'created_at'];
 
         if (!in_array($sort, $allowedSorts, true)) {
             $sort = 'created_at';
@@ -32,7 +31,6 @@ class ClubController extends Controller
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
                         ->orWhere('short_name', 'like', "%{$search}%")
-                        ->orWhere('city', 'like', "%{$search}%")
                         ->orWhere('zone', 'like', "%{$search}%");
                 });
             })
@@ -72,10 +70,8 @@ class ClubController extends Controller
                     Storage::disk('public')->delete($club->logo_url);
                 }
 
-                foreach (['deed_file_path', 'statement_file_path'] as $field) {
-                    if ($club->{$field} && !str_starts_with($club->{$field}, 'http')) {
-                        Storage::disk('public')->delete($club->{$field});
-                    }
+                if ($club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
+                    Storage::disk('public')->delete($club->statement_file_path);
                 }
 
                 $club->delete();
@@ -107,35 +103,13 @@ class ClubController extends Controller
         ]);
     }
 
-    public function statementTemplate(Request $request)
+    public function statementTemplate()
     {
-        $user = $request->user();
-        $club = null;
+        $path = public_path('documents/surat_pernyataan_liga_piaman_laweh_final.pdf');
 
-        if ($request->filled('club_id')) {
-            $club = Club::query()->findOrFail($request->integer('club_id'));
+        abort_unless(is_file($path), 404);
 
-            if ($user->isClubUser()) {
-                abort_unless($club->user_id === $user->id, 403);
-            }
-        } elseif ($user->isClubUser()) {
-            $club = $user->clubs()->latest()->first();
-        }
-
-        $pdf = Pdf::loadView('competition.clubs.statement-template-pdf', [
-            'club' => $club,
-            'user' => $user,
-            'today' => now(),
-        ])->setPaper('a4', 'portrait');
-
-        $filename = 'template-surat-pernyataan-klub.pdf';
-
-        if ($club?->name) {
-            $slug = str($club->name)->slug('-')->value();
-            $filename = "template-surat-pernyataan-{$slug}.pdf";
-        }
-
-        return $pdf->stream($filename);
+        return response()->download($path, 'surat_pernyataan_liga_piaman_laweh_final.pdf');
     }
 
     public function store(Request $request)
@@ -188,13 +162,8 @@ class ClubController extends Controller
             Storage::disk('public')->delete($club->logo_url);
         }
 
-        foreach ([
-            'deed_file' => 'deed_file_path',
-            'statement_file' => 'statement_file_path',
-        ] as $input => $column) {
-            if ($request->hasFile($input) && $club->{$column} && !str_starts_with($club->{$column}, 'http')) {
-                Storage::disk('public')->delete($club->{$column});
-            }
+        if ($request->hasFile('statement_file') && $club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
+            Storage::disk('public')->delete($club->statement_file_path);
         }
 
         $club->update($this->validatedData($request));
@@ -230,10 +199,8 @@ class ClubController extends Controller
             Storage::disk('public')->delete($club->logo_url);
         }
 
-        foreach (['deed_file_path', 'statement_file_path'] as $field) {
-            if ($club->{$field} && !str_starts_with($club->{$field}, 'http')) {
-                Storage::disk('public')->delete($club->{$field});
-            }
+        if ($club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
+            Storage::disk('public')->delete($club->statement_file_path);
         }
 
         $club->delete();
@@ -250,18 +217,11 @@ class ClubController extends Controller
             'manager_name' => ['required', 'string', 'max:255'],
             'manager_title' => ['required', 'string', 'max:255'],
             'zone' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
             'founded_year' => ['nullable', 'integer', 'min:1900', 'max:'.date('Y')],
             'logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'deed_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:4096'],
             'statement_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:4096'],
             'address' => ['nullable', 'string'],
-            'mailing_address' => ['required', 'string'],
             'training_address' => ['nullable', 'string'],
-            'statement_age_group' => ['required', 'string', 'max:50'],
-            'statement_contact' => ['required', 'string', 'max:100'],
-            'statement_witness_name' => ['required', 'string', 'max:255'],
-            'statement_witness_title' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -269,15 +229,11 @@ class ClubController extends Controller
             $data['logo_url'] = $request->file('logo_file')->store('club-logos', 'public');
         }
 
-        if ($request->hasFile('deed_file')) {
-            $data['deed_file_path'] = $request->file('deed_file')->store('clubs/deeds', 'public');
-        }
-
         if ($request->hasFile('statement_file')) {
             $data['statement_file_path'] = $request->file('statement_file')->store('clubs/statements', 'public');
         }
 
-        unset($data['logo_file'], $data['deed_file'], $data['statement_file']);
+        unset($data['logo_file'], $data['statement_file']);
 
         return $data;
     }

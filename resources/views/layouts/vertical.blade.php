@@ -45,6 +45,8 @@
 
         </div>
 
+        @include('layouts.partials.club-onboarding-modal')
+
         @include('layouts.partials.vendor-scripts')
         @stack('scripts')
 

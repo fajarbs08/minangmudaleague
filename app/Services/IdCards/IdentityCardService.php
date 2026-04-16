@@ -124,7 +124,7 @@ class IdentityCardService
             'club' => [
                 'name' => $club->name,
                 'shortName' => $club->short_name,
-                'city' => $club->city,
+                'zone' => $club->zone,
                 'logoSrc' => $this->clubLogoSource($club),
                 'initials' => $this->initials($club->short_name ?: $club->name),
             ],
@@ -169,7 +169,7 @@ class IdentityCardService
                 'name' => $official->name,
                 'role' => $role,
                 'club' => $club->name,
-                'clubLine' => trim(($club->short_name ?: $club->name).($club->city ? ' · '.$club->city : '')),
+                'clubLine' => trim(($club->short_name ?: $club->name).($club->zone ? ' · '.$club->zone : '')),
                 'identifierLabel' => 'ID Official',
                 'identifierValue' => $identifier,
                 'secondaryLabel' => 'License',
@@ -217,7 +217,7 @@ class IdentityCardService
         $registration = $player->registrationForAgeGroup($ageGroup->id);
         $position = $player->displayPosition($ageGroup->id) ?: 'Player';
         $jersey = $player->displayJerseyNumber($ageGroup->id);
-        $identifier = $player->registration_number ?: $player->nisn ?: 'PLY-'.str_pad((string) $player->id, 4, '0', STR_PAD_LEFT);
+        $identifier = 'PLY-'.str_pad((string) $player->id, 4, '0', STR_PAD_LEFT);
         $qrPayload = $this->absoluteRoute('players.scan-result', $player);
 
         return [
@@ -230,8 +230,8 @@ class IdentityCardService
                 'name' => $player->name,
                 'role' => $position,
                 'club' => $club->name,
-                'clubLine' => trim(($club->short_name ?: $club->name).($club->city ? ' · '.$club->city : '')),
-                'identifierLabel' => 'Registration',
+                'clubLine' => trim(($club->short_name ?: $club->name).($club->zone ? ' · '.$club->zone : '')),
+                'identifierLabel' => 'ID Pemain',
                 'identifierValue' => $identifier,
                 'secondaryLabel' => 'Jersey',
                 'secondaryValue' => $jersey ? '#'.$jersey : '-',
@@ -240,7 +240,6 @@ class IdentityCardService
                     ['label' => 'TTL', 'value' => $this->birthText($player->birth_place, $player->birth_date?->format('d M Y'))],
                     ['label' => 'KU', 'value' => $ageGroup->name],
                     ['label' => 'NP', 'value' => $jersey ? (string) $jersey : '-'],
-                    ['label' => 'NISN', 'value' => $player->nisn ?: '-'],
                     ['label' => 'Klub', 'value' => $club->name],
                 ],
                 'meta' => [
@@ -248,7 +247,6 @@ class IdentityCardService
                     ['label' => 'KU', 'value' => $ageGroup->name],
                     ['label' => 'No. Pgg', 'value' => $jersey ? '#'.$jersey : '-'],
                     ['label' => 'Posisi', 'value' => $position],
-                    ['label' => 'NISN', 'value' => $player->nisn ?: '-'],
                     ['label' => 'School', 'value' => $player->school_name ?: '-'],
                 ],
                 'photoSrc' => $this->personPhotoSource($player->photo_path, $player->name, 'Player'),
@@ -265,9 +263,9 @@ class IdentityCardService
                     ['label' => 'Jersey', 'value' => $jersey ? '#'.$jersey : '-'],
                 ],
                 'detailLines' => [
-                    'Registration: '.$identifier,
+                    'ID Pemain: '.$identifier,
                     'Birth: '.$this->birthText($player->birth_place, $player->birth_date?->format('d M Y')),
-                    'NISN: '.($player->nisn ?: '-'),
+                    'School: '.($player->school_name ?: '-'),
                 ],
                 'disclaimer' => 'Only valid for the registered player and the specified age group. Misuse may result in access revocation.',
                 'qrLabel' => 'Player verification',
@@ -279,8 +277,8 @@ class IdentityCardService
 
     private function qrSource(string $payload): string
     {
-        return 'data:image/png;base64,'.base64_encode(
-            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+        return 'data:image/svg+xml;base64,'.base64_encode(
+            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
                 ->size(320)
                 ->margin(1)
                 ->generate($payload)

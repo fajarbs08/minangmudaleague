@@ -36,11 +36,14 @@
 
      if (config) {
           html.setAttribute("data-bs-theme", config.theme);
+          html.setAttribute("data-sidenav-size", config.menu.size === "sidebar-hover" ? "hover" : config.menu.size);
           html.classList.add(config.topbar.color);
           html.classList.add(config.menu.color);
 
           if (window.innerWidth <= 1140) {
                html.classList.add("sidebar-hidden");
+          } else if (config.menu.size === "sidebar-hover") {
+               html.classList.add("sidebar-hover");
           }
      }
 })();

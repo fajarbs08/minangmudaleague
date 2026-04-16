@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     generateButton.addEventListener('click', function () {
-        const password = `MMLpdg${currentYear}${randomSuffix()}`;
+        const password = `LAPLplw${currentYear}${randomSuffix()}`;
         passwordPreview.value = password;
         generatedPasswordInput.value = password;
     });

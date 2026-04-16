@@ -142,6 +142,7 @@
 }
 
 .choices__list--dropdown {
+     display: none;
      padding: 10px 10px 20px 10px;
      background-color: $card-bg !important;
      border: 1px solid $dropdown-border-color !important;
@@ -153,6 +154,7 @@
      transform: translateY(1px);
 
      &.is-active {
+          display: block;
           animation-name: DropDownSlide;
      }
 
@@ -253,6 +255,31 @@
      .choices[data-type*="select-one"] {
           .choices__button {
                filter: $btn-close-white-filter;
+          }
+     }
+}
+
+.competition-bulk-panel {
+     .choices {
+          width: 100%;
+          margin-bottom: 0;
+     }
+
+     .choices__list--dropdown {
+          display: none;
+          width: 100%;
+          min-width: 100%;
+     }
+
+     .choices__list--dropdown.is-active {
+          display: block;
+     }
+}
+
+@media (max-width: 991.98px) {
+     .competition-bulk-panel {
+          .choices__list--dropdown {
+               max-height: min(16rem, 50vh);
           }
      }
 }

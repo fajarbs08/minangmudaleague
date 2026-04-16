@@ -171,7 +171,7 @@
                         <span class="input-group-text bg-light border-end-0">
                             <i class="fs-16" data-lucide="search"></i>
                         </span>
-                        <input type="text" class="form-control border-start-0" name="search" value="{{ request('search') }}" placeholder="Cari nama klub, kota, zona">
+                        <input type="text" class="form-control border-start-0" name="search" value="{{ request('search') }}" placeholder="Cari nama klub atau zona kota/kabupaten">
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
@@ -194,58 +194,68 @@
         </div>
     @endif
     @if ($isAdmin)
-    <div class="card-body border-bottom bg-light-subtle">
-        <div class="accordion" id="clubAdminAccordion">
-            <div class="accordion-item border rounded">
-                <h2 class="accordion-header" id="clubBulkReviewHeading">
-                    <button
-                        class="accordion-button collapsed fw-semibold"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#clubBulkReviewCollapse"
-                        aria-expanded="false"
-                        aria-controls="clubBulkReviewCollapse"
+    <form id="bulk-club-review-form" method="POST" action="{{ route('clubs.bulk-review') }}">
+        @csrf
+        <div class="card-body border-bottom bg-light-subtle">
+            <div class="accordion" id="clubAdminAccordion">
+                <div class="accordion-item border rounded">
+                    <h2 class="accordion-header" id="clubBulkReviewHeading">
+                        <button
+                            class="accordion-button collapsed fw-semibold"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#clubBulkReviewCollapse"
+                            aria-expanded="false"
+                            aria-controls="clubBulkReviewCollapse"
+                        >
+                            Bulk Action Admin
+                        </button>
+                    </h2>
+                    <div
+                        id="clubBulkReviewCollapse"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="clubBulkReviewHeading"
+                        data-bs-parent="#clubAdminAccordion"
                     >
-                        Bulk Action Admin
-                    </button>
-                </h2>
-                <div
-                    id="clubBulkReviewCollapse"
-                    class="accordion-collapse collapse"
-                    aria-labelledby="clubBulkReviewHeading"
-                    data-bs-parent="#clubAdminAccordion"
-                >
-                    <div class="accordion-body">
-                        <form id="bulk-club-review-form" method="POST" action="{{ route('clubs.bulk-review') }}" class="row g-3 align-items-start">
-                            @csrf
-                            <div class="col-lg-3">
-                                <label for="bulk-club-status" class="form-label">Aksi</label>
-                                <select id="bulk-club-status" name="status" class="form-select" required>
-                                    <option value="">Bulk action admin</option>
-                                    <option value="approved">Approve terpilih</option>
-                                    <option value="revision">Minta revisi terpilih</option>
-                                    <option value="rejected">Reject terpilih</option>
-                                    <option value="deleted">Hapus terpilih</option>
-                                </select>
+                        <div class="accordion-body">
+                            <div class="row g-3 align-items-start competition-bulk-panel">
+                                <div class="col-lg-3">
+                                    <label for="bulk-club-status" class="form-label">Aksi</label>
+                                    <select id="bulk-club-status" name="status" class="form-select" data-choices data-choices-search-false data-bulk-choices required>
+                                        <option value="">Pilih aksi</option>
+                                        <option value="approved">Approve</option>
+                                        <option value="revision">Minta revisi</option>
+                                        <option value="rejected">Reject</option>
+                                        <option value="deleted">Hapus</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label for="bulk-club-notes" class="form-label">Catatan verifikasi</label>
+                                    <textarea id="bulk-club-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label d-block">&nbsp;</label>
+                                    <button type="submit" class="btn btn-dark w-100" data-bulk-submit disabled>Terapkan ke Data Terpilih</button>
+                                </div>
+                                <div class="col-12">
+                                    <div class="small text-muted">
+                                        <span data-bulk-selected-count>0</span> data dipilih di halaman ini.
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-lg-6">
-                                <label for="bulk-club-notes" class="form-label">Catatan verifikasi</label>
-                                <textarea id="bulk-club-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
-                            </div>
-                            <div class="col-lg-3">
-                                <label class="form-label d-block">&nbsp;</label>
-                                <button type="submit" class="btn btn-dark w-100">Terapkan ke Data Terpilih</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    @endif
+        <div class="card-body p-0">
+            <div class="table-responsive competition-table-wrap">
+                <table class="table competition-table align-middle text-nowrap">
+    @else
     <div class="card-body p-0">
         <div class="table-responsive competition-table-wrap">
             <table class="table competition-table align-middle text-nowrap">
+    @endif
                 <thead>
                     <tr>
                         @if (auth()->user()->isAdmin())
@@ -254,8 +264,7 @@
                         </th>
                         @endif
                         @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Klub', 'defaultSort' => 'created_at'])
-                        @include('competition.partials.sortable-th', ['key' => 'zone', 'label' => 'Zona', 'defaultSort' => 'created_at'])
-                        @include('competition.partials.sortable-th', ['key' => 'city', 'label' => 'Kota', 'defaultSort' => 'created_at'])
+                        @include('competition.partials.sortable-th', ['key' => 'zone', 'label' => 'Zona (Kota / Kabupaten)', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'officials_count', 'label' => 'Official', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'players_count', 'label' => 'Pemain', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'lineup_lists_count', 'label' => 'DSP', 'defaultSort' => 'created_at'])
@@ -275,12 +284,6 @@
                                 <div class="fw-semibold">{{ $club->name }}</div>
                                 <div class="text-muted small">{{ $club->short_name ?: '-' }}</div>
                                 <div class="d-flex flex-wrap gap-2 mt-2">
-                                    @if ($club->deed_file_url)
-                                        <a href="{{ $club->deed_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
-                                            <i data-lucide="file-text" class="fs-14"></i>
-                                            <span>Akta</span>
-                                        </a>
-                                    @endif
                                     @if ($club->statement_file_url)
                                         <a href="{{ $club->statement_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
                                             <i data-lucide="file-text" class="fs-14"></i>
@@ -290,7 +293,6 @@
                                 </div>
                             </td>
                             <td>{{ $club->zone ?: '-' }}</td>
-                            <td>{{ $club->city ?: '-' }}</td>
                             <td>{{ $club->officials_count }}</td>
                             <td>{{ $club->players_count }}</td>
                             <td>{{ $club->lineup_lists_count }}</td>
@@ -316,7 +318,17 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="text-end">
+                            @php
+                                $actionHint = match ($club->verification_status) {
+                                    'draft' => $isAdmin ? 'Buka detail atau edit manual admin.' : 'Lengkapi data klub lalu ajukan verifikasi.',
+                                    'submitted' => $isAdmin ? 'Review pengajuan admin.' : 'Menunggu review admin.',
+                                    'revision' => $isAdmin ? 'Minta revisi atau edit manual admin.' : 'Perbaiki data lalu submit ulang.',
+                                    'approved' => $isAdmin ? 'Klub sudah diterima. Edit manual tetap tersedia.' : 'Klub sudah diterima admin.',
+                                    'rejected' => $isAdmin ? 'Tindak lanjuti lewat revisi atau edit manual.' : 'Periksa catatan admin.',
+                                    default => 'Lanjutkan sesuai status klub.',
+                                };
+                            @endphp
+                            <td class="text-end competition-table-actions">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span>Tindakan</span>
@@ -327,28 +339,98 @@
                                     <div class="dropdown-menu dropdown-menu-end p-2 competition-action-menu">
                                         <div class="competition-action-section">
                                             <div class="competition-action-label px-2 pb-2">Navigasi</div>
+                                            <div class="small text-muted px-2 pb-2 text-wrap">{{ $actionHint }}</div>
                                             @include('competition.partials.action-item', [
                                                 'href' => route('clubs.show', $club),
                                                 'icon' => 'eye',
-                                                'label' => 'View',
+                                                'label' => 'Lihat Detail',
                                             ])
-                                            @if (auth()->user()->isAdmin() || $club->canBeSubmittedByClub())
+                                            @if ($club->verification_notes)
+                                                @include('competition.partials.action-item', [
+                                                    'icon' => 'message-square-text',
+                                                    'label' => 'Lihat Catatan Admin',
+                                                    'attributes' => [
+                                                        'data-bs-toggle' => 'modal',
+                                                        'data-bs-target' => '#clubNoteModal',
+                                                        'data-note-title' => $club->name,
+                                                        'data-note-content' => $club->verification_notes,
+                                                    ],
+                                                ])
+                                            @endif
+                                            @if ($isAdmin || $club->canBeSubmittedByClub())
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('clubs.edit', $club),
                                                     'icon' => 'square-pen',
-                                                    'label' => 'Edit',
+                                                    'label' => $isAdmin ? 'Edit Manual Admin' : 'Edit',
                                                 ])
                                             @endif
                                         </div>
-                                        <div class="dropdown-divider"></div>
-                                        <div class="competition-action-section">
-                                            @include('competition.partials.review-actions', [
-                                                'item' => $club,
-                                                'submitRoute' => route('clubs.submit', $club),
-                                                'reviewRoute' => route('clubs.review', $club),
-                                            ])
-                                        </div>
-                                        @if (auth()->user()->isAdmin() || $club->canBeSubmittedByClub())
+                                        @if (($isAdmin && $club->canBeReviewedByAdmin()) || (!$isAdmin && $club->canBeSubmittedByClub()))
+                                            <div class="dropdown-divider"></div>
+                                            <div class="competition-action-section">
+                                                @if ($isAdmin && $club->canBeReviewedByAdmin())
+                                                    <div class="competition-action-label px-2 pb-2">Review Admin</div>
+                                                    @if ($club->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'check',
+                                                            'label' => 'Approve',
+                                                            'class' => 'text-success',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#clubReviewModal',
+                                                                'data-review-route' => route('clubs.review', $club),
+                                                                'data-review-status' => 'approved',
+                                                                'data-review-label' => 'Approve Klub',
+                                                                'data-review-title' => $club->name,
+                                                                'data-review-notes-required' => '0',
+                                                                'data-review-placeholder' => 'Catatan admin opsional.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                    @include('competition.partials.action-item', [
+                                                        'icon' => 'refresh-ccw',
+                                                        'label' => 'Minta Revisi',
+                                                        'class' => 'text-warning',
+                                                        'attributes' => [
+                                                            'data-bs-toggle' => 'modal',
+                                                            'data-bs-target' => '#clubReviewModal',
+                                                            'data-review-route' => route('clubs.review', $club),
+                                                            'data-review-status' => 'revision',
+                                                            'data-review-label' => 'Minta Revisi Klub',
+                                                            'data-review-title' => $club->name,
+                                                            'data-review-notes-required' => '1',
+                                                            'data-review-placeholder' => 'Catatan admin wajib diisi untuk revisi.',
+                                                        ],
+                                                    ])
+                                                    @if ($club->verification_status !== 'approved')
+                                                        @include('competition.partials.action-item', [
+                                                            'icon' => 'x',
+                                                            'label' => 'Reject',
+                                                            'class' => 'text-danger',
+                                                            'attributes' => [
+                                                                'data-bs-toggle' => 'modal',
+                                                                'data-bs-target' => '#clubReviewModal',
+                                                                'data-review-route' => route('clubs.review', $club),
+                                                                'data-review-status' => 'rejected',
+                                                                'data-review-label' => 'Reject Klub',
+                                                                'data-review-title' => $club->name,
+                                                                'data-review-notes-required' => '1',
+                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk reject.',
+                                                            ],
+                                                        ])
+                                                    @endif
+                                                @elseif (!$isAdmin && $club->canBeSubmittedByClub())
+                                                    <form method="POST" action="{{ route('clubs.submit', $club) }}" class="px-2">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                                                            <i data-lucide="send" class="review-actions-icon" aria-hidden="true"></i>
+                                                            <span>Submit Verifikasi</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        @if ($isAdmin || $club->canBeSubmittedByClub())
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -380,6 +462,9 @@
 
         <div class="mt-3">{{ $clubs->links() }}</div>
     </div>
+    @if ($isAdmin)
+    </form>
+    @endif
 </div>
 
 @include('competition.partials.delete-modal', [
@@ -390,23 +475,169 @@
     'messagePrefix' => 'Klub',
     'messageSuffix' => 'akan dihapus. Tindakan ini tidak bisa dibatalkan.',
 ])
+
+<div class="modal fade" id="clubNoteModal" tabindex="-1" aria-labelledby="clubNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="clubNoteModalLabel">Catatan Admin</h5>
+                    <div class="small text-muted mt-1" id="club-note-title">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-wrap mb-0" id="club-note-content">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="clubReviewModal" tabindex="-1" aria-labelledby="clubReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="club-review-form">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="clubReviewModalLabel">Review Klub</h5>
+                        <div class="small text-muted mt-1" id="club-review-title">-</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="status" id="club-review-status">
+                    <div class="mb-0">
+                        <label for="club-review-notes" class="form-label">Catatan Admin</label>
+                        <textarea
+                            name="verification_notes"
+                            id="club-review-notes"
+                            rows="4"
+                            class="form-control"
+                            placeholder="Catatan admin"
+                        ></textarea>
+                        <div class="form-text" id="club-review-help">Isi catatan bila diperlukan.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="club-review-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const checkAll = document.querySelector('.js-check-all');
+    const bulkForm = document.querySelector('#bulk-club-review-form');
+    if (!bulkForm) {
+        return;
+    }
+
+    const checkAll = bulkForm.querySelector('.js-check-all');
+    const bulkSubmit = bulkForm.querySelector('[data-bulk-submit]');
+    const bulkCount = bulkForm.querySelector('[data-bulk-selected-count]');
+
     if (!checkAll) {
         return;
     }
 
-    const rows = document.querySelectorAll(checkAll.dataset.target);
+    const getRows = () => Array.from(bulkForm.querySelectorAll('.js-club-row'));
+
+    const syncBulkState = () => {
+        const rows = getRows();
+        const selectedCount = rows.filter((checkbox) => checkbox.checked).length;
+
+        if (bulkCount) {
+            bulkCount.textContent = selectedCount;
+        }
+
+        if (bulkSubmit) {
+            bulkSubmit.disabled = selectedCount === 0;
+        }
+
+        checkAll.checked = rows.length > 0 && selectedCount === rows.length;
+        checkAll.indeterminate = selectedCount > 0 && selectedCount < rows.length;
+    };
 
     checkAll.addEventListener('change', function () {
+        const rows = getRows();
         rows.forEach((checkbox) => {
             checkbox.checked = checkAll.checked;
         });
+
+        syncBulkState();
     });
+
+    bulkForm.addEventListener('change', function (event) {
+        if (event.target.matches('.js-club-row')) {
+            syncBulkState();
+        }
+    });
+
+    bulkForm.addEventListener('submit', function (event) {
+        const selectedCount = getRows().filter((checkbox) => checkbox.checked).length;
+
+        if (selectedCount === 0) {
+            event.preventDefault();
+        }
+    });
+
+    syncBulkState();
+
+    const reviewModal = document.getElementById('clubReviewModal');
+    if (reviewModal) {
+        const reviewForm = reviewModal.querySelector('#club-review-form');
+        const reviewStatus = reviewModal.querySelector('#club-review-status');
+        const reviewTitle = reviewModal.querySelector('#club-review-title');
+        const reviewNotes = reviewModal.querySelector('#club-review-notes');
+        const reviewHelp = reviewModal.querySelector('#club-review-help');
+        const reviewSubmit = reviewModal.querySelector('#club-review-submit');
+        const reviewHeading = reviewModal.querySelector('#clubReviewModalLabel');
+
+        reviewModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            const route = trigger.getAttribute('data-review-route') || '';
+            const status = trigger.getAttribute('data-review-status') || '';
+            const label = trigger.getAttribute('data-review-label') || 'Review Klub';
+            const title = trigger.getAttribute('data-review-title') || '-';
+            const notesRequired = trigger.getAttribute('data-review-notes-required') === '1';
+            const placeholder = trigger.getAttribute('data-review-placeholder') || 'Catatan admin';
+
+            reviewForm.setAttribute('action', route);
+            reviewStatus.value = status;
+            reviewTitle.textContent = title;
+            reviewNotes.value = '';
+            reviewNotes.placeholder = placeholder;
+            reviewNotes.required = notesRequired;
+            reviewHelp.textContent = notesRequired ? 'Catatan admin wajib diisi untuk aksi ini.' : 'Isi catatan bila diperlukan.';
+            reviewSubmit.textContent = label;
+            reviewHeading.textContent = label;
+        });
+    }
+
+    const noteModal = document.getElementById('clubNoteModal');
+    if (noteModal) {
+        const noteTitle = noteModal.querySelector('#club-note-title');
+        const noteContent = noteModal.querySelector('#club-note-content');
+
+        noteModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            noteTitle.textContent = trigger.getAttribute('data-note-title') || '-';
+            noteContent.textContent = trigger.getAttribute('data-note-content') || '-';
+        });
+    }
 });
 </script>
 @endpush

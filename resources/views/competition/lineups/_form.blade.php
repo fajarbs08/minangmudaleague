@@ -20,7 +20,158 @@
         ->sortBy(fn ($id) => [(int) ($substituteOrders[$id] ?? 999), $id])
         ->values()
         ->all();
+    $blockedSelectedPlayers = collect($blockedSelectedPlayers ?? []);
+    $blockedLineupPlayers = collect($blockedLineupPlayers ?? []);
 @endphp
+
+<style>
+    [data-lineup-builder],
+    [data-lineup-builder] * {
+        min-width: 0;
+    }
+
+    .lineup-role-toggle {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .lineup-role-toggle .btn {
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        white-space: normal;
+    }
+
+    .lineup-role-toggle .btn:first-child {
+        border-radius: 6px 0 0 6px !important;
+    }
+
+    .lineup-role-toggle .btn:last-child {
+        border-radius: 0 6px 6px 0 !important;
+    }
+
+    .lineup-section-header {
+        min-width: 0;
+    }
+
+    .lineup-player-name,
+    .lineup-player-meta,
+    .lineup-selected-player-name,
+    .lineup-selected-player-meta {
+        overflow-wrap: anywhere;
+    }
+
+    .lineup-selected-player {
+        min-width: 0;
+    }
+
+    .lineup-selected-player-actions {
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 575.98px) {
+        .page-content {
+            padding: 0 !important;
+        }
+
+        .lineup-form-page-header {
+            padding: 1rem 1rem 0.75rem;
+            margin-bottom: 0 !important;
+            gap: 0.75rem !important;
+        }
+
+        .lineup-form-page-header .btn {
+            width: 100%;
+        }
+
+        .lineup-form-card,
+        .lineup-roster-card {
+            margin-bottom: 0;
+            border-left: 0 !important;
+            border-right: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .lineup-form-card {
+            margin-top: 0;
+        }
+
+        .lineup-form-card > .card-body,
+        .lineup-roster-card > .card-body {
+            padding: 0.9rem 1rem 1rem;
+        }
+
+        .lineup-roster-card {
+            margin-top: 0 !important;
+        }
+
+        .lineup-section-header {
+            align-items: flex-start !important;
+            flex-direction: column;
+        }
+
+        [data-lineup-form] {
+            row-gap: 0;
+        }
+
+        [data-lineup-form] .mb-3 {
+            margin-bottom: 0.85rem !important;
+        }
+
+        [data-lineup-builder] {
+            --bs-gutter-x: 0.85rem;
+            --bs-gutter-y: 0.85rem;
+        }
+
+        [data-lineup-builder] > [class*="col-"] > .border {
+            border-radius: 6px !important;
+            padding: 0.85rem !important;
+        }
+
+        [data-player-option] {
+            border-radius: 6px !important;
+            padding: 0.85rem !important;
+        }
+
+        .lineup-role-toggle {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .lineup-role-toggle .btn {
+            width: 100%;
+            min-height: 42px;
+            padding: 0.45rem 0.35rem;
+            font-size: 0.72rem;
+            line-height: 1.15;
+        }
+
+        .lineup-selected-player {
+            align-items: stretch !important;
+            flex-direction: column;
+        }
+
+        .lineup-selected-player-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .lineup-selected-player-actions .input-group {
+            width: auto !important;
+            flex: 1 1 auto;
+        }
+
+        .lineup-form-page-actions {
+            margin-top: 1rem !important;
+            padding: 0 1rem 1rem;
+        }
+
+        .lineup-form-page-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
 <div class="row" data-lineup-form>
@@ -62,7 +213,7 @@
     <div class="col-lg-6 mb-3">
         <label class="form-label">Klub Penyusun DSP <span class="text-danger">*</span></label>
         @if (auth()->user()->isAdmin())
-            <select name="club_id" class="form-select" required data-lineup-club>
+            <select name="club_id" class="form-select" required data-lineup-club data-current-club-id="{{ old('club_id', $lineupList->club_id) }}">
                 <option value="">Pilih klub</option>
                 @foreach ($clubs as $club)
                     <option value="{{ $club->id }}" @selected((string) $selectedClubId === (string) $club->id)>{{ $club->name }}</option>
@@ -129,9 +280,9 @@
     </div>
 </div>
 
-<div class="card border mt-3">
+<div class="card border mt-3 lineup-roster-card">
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
             <div>
                 <h5 class="mb-1">Roster DSP</h5>
                 <div class="text-muted">Pilih role pemain satu kali. Susunan DSP otomatis mengikuti urutan di panel Starter dan Cadangan, lalu bisa dirapikan dengan tombol naik atau turun.</div>
@@ -147,6 +298,22 @@
             Aturan DSP: tepat {{ \App\Models\LineupList::REQUIRED_STARTERS }} starter dan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} cadangan. Jika pemain tersedia 16 orang, cukup pilih 11 starter lalu sisanya bisa dijadikan cadangan.
         </div>
 
+        @if ($blockedSelectedPlayers->isNotEmpty())
+            <div class="alert alert-danger mb-3">
+                Beberapa pemain yang sebelumnya ada di DSP sekarang tidak bisa dipakai karena status verifikasinya belum diterima:
+                <strong>{{ $blockedSelectedPlayers->pluck('name')->implode(', ') }}</strong>.
+                Perbaiki data pemain tersebut lalu ajukan ulang sampai statusnya diterima admin.
+            </div>
+        @endif
+
+        @if ($blockedLineupPlayers->isNotEmpty())
+            <div class="alert alert-warning mb-3">
+                Pemain dengan status belum diterima admin tidak bisa dimasukkan ke DSP.
+                Perbaiki data pemain berikut lalu ajukan ulang untuk verifikasi:
+                <strong>{{ $blockedLineupPlayers->pluck('name')->implode(', ') }}</strong>.
+            </div>
+        @endif
+
         <div class="alert alert-secondary border mb-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2" data-lineup-progress>
             <div>
                 <div class="fw-semibold" data-lineup-progress-title>Starter 0/{{ \App\Models\LineupList::REQUIRED_STARTERS }} · Cadangan 0/{{ \App\Models\LineupList::MAX_SUBSTITUTES }}</div>
@@ -157,7 +324,7 @@
         <div class="row g-4" data-lineup-builder>
             <div class="col-xl-7">
                 <div class="border rounded p-3 h-100">
-                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
                         <div>
                             <h6 class="mb-1">Roster Pemain</h6>
                             <div class="text-muted small">Klik `Starter` atau `Cadangan`. Jika belum dipakai, biarkan `Belum dipilih`.</div>
@@ -192,15 +359,15 @@
                                 data-player-age-details='@json($ageDetails)'
                             >
                                 <div>
-                                    <div class="fw-semibold">{{ $player->name }}</div>
-                                    <div class="text-muted small" data-player-meta>
+                                    <div class="fw-semibold lineup-player-name">{{ $player->name }}</div>
+                                    <div class="text-muted small lineup-player-meta" data-player-meta>
                                         #{{ $player->displayJerseyNumber($selectedAgeGroupId) ?: '-' }} · {{ $player->displayPosition($selectedAgeGroupId) ?: 'Tanpa posisi' }}
                                         @if (auth()->user()->isAdmin())
                                             · {{ ucfirst($player->verification_status) }}
                                         @endif
                                     </div>
                                 </div>
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Pilih role">
+                                <div class="btn-group btn-group-sm lineup-role-toggle" role="group" aria-label="Pilih role">
                                     <button type="button" class="btn btn-outline-secondary" data-role-button="" data-role-value="">Belum dipilih</button>
                                     <button type="button" class="btn btn-outline-primary" data-role-button="starter" data-role-value="{{ \App\Models\LineupList::ROLE_STARTER }}">Starter</button>
                                     <button type="button" class="btn btn-outline-warning" data-role-button="substitute" data-role-value="{{ \App\Models\LineupList::ROLE_SUBSTITUTE }}">Cadangan</button>
@@ -214,7 +381,7 @@
             <div class="col-xl-5">
                 <div class="d-flex flex-column gap-3 h-100">
                     <div class="border rounded p-3">
-                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
                             <div>
                                 <h6 class="mb-1">Starter</h6>
                                 <div class="text-muted small">Harus tepat {{ \App\Models\LineupList::REQUIRED_STARTERS }} pemain.</div>
@@ -226,7 +393,7 @@
                     </div>
 
                     <div class="border rounded p-3">
-                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
                             <div>
                                 <h6 class="mb-1">Cadangan</h6>
                                 <div class="text-muted small">Maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} pemain.</div>
@@ -274,6 +441,10 @@
         const progressNode = root.querySelector('[data-lineup-progress]');
         const requiredStarters = {{ \App\Models\LineupList::REQUIRED_STARTERS }};
         const maxSubstitutes = {{ \App\Models\LineupList::MAX_SUBSTITUTES }};
+        const draftKey = `velok:lineup-form-draft:${window.location.pathname}`;
+        const currentLineupClubId = clubInput?.dataset.currentClubId || '';
+        let isRestoringDraft = false;
+        let saveDraftTimer = null;
 
         const selectedMatchOption = () => matchInput?.selectedOptions?.[0] || null;
 
@@ -304,10 +475,10 @@
             const clubAName = option.dataset.clubAName || '';
             const clubBName = option.dataset.clubBName || '';
             const usedClubIds = (option.dataset.usedClubIds || '').split(',').filter(Boolean);
-            const availableClubIds = [clubAId, clubBId].filter((id) => id && !usedClubIds.includes(id));
+            const availableClubIds = [clubAId, clubBId].filter((id) => id && (!usedClubIds.includes(id) || id === currentLineupClubId));
             const availableClubNames = [
-                !usedClubIds.includes(clubAId) ? clubAName : null,
-                !usedClubIds.includes(clubBId) ? clubBName : null,
+                (!usedClubIds.includes(clubAId) || clubAId === currentLineupClubId) ? clubAName : null,
+                (!usedClubIds.includes(clubBId) || clubBId === currentLineupClubId) ? clubBName : null,
             ].filter(Boolean);
 
             if (clubInput.tagName === 'SELECT') {
@@ -315,12 +486,16 @@
                     if (!clubOption.value) return;
                     const enabled =
                         (clubOption.value === clubAId || clubOption.value === clubBId)
-                        && !usedClubIds.includes(clubOption.value);
+                        && (!usedClubIds.includes(clubOption.value) || clubOption.value === currentLineupClubId);
                     clubOption.disabled = !enabled;
                 });
 
+                const selectedClubIsUsable =
+                    (clubInput.value === clubAId || clubInput.value === clubBId)
+                    && (!usedClubIds.includes(clubInput.value) || clubInput.value === currentLineupClubId);
                 const availableClubId = availableClubIds[0] || '';
-                if (clubInput.value !== clubAId && clubInput.value !== clubBId || usedClubIds.includes(clubInput.value)) {
+
+                if (!selectedClubIsUsable) {
                     clubInput.value = availableClubId;
                 }
 
@@ -389,6 +564,91 @@
             substitute: @json($orderedSubstituteIds),
         };
 
+        const draftFieldNames = [
+            'match_id',
+            'club_id',
+            'coach_name',
+            'jersey_color',
+            'goalkeeper_jersey_color',
+            'notes',
+        ];
+
+        const persistDraft = () => {
+            if (isRestoringDraft) return;
+
+            const fields = {};
+
+            draftFieldNames.forEach((name) => {
+                const field = root.querySelector(`[name="${name}"]`);
+                if (field) {
+                    fields[name] = field.value;
+                }
+            });
+
+            localStorage.setItem(draftKey, JSON.stringify({
+                fields,
+                selectedPlayers: {
+                    starter: [...selectedPlayers.starter],
+                    substitute: [...selectedPlayers.substitute],
+                },
+                jerseyOverrides: { ...jerseyOverrides },
+                savedAt: new Date().toISOString(),
+            }));
+        };
+
+        const saveDraft = ({ immediate = false } = {}) => {
+            if (isRestoringDraft) return;
+
+            window.clearTimeout(saveDraftTimer);
+
+            if (immediate) {
+                persistDraft();
+                return;
+            }
+
+            saveDraftTimer = window.setTimeout(() => {
+                persistDraft();
+            }, 250);
+        };
+
+        const restoreDraft = () => {
+            const rawDraft = localStorage.getItem(draftKey);
+            if (!rawDraft) return;
+
+            try {
+                const draft = JSON.parse(rawDraft);
+                isRestoringDraft = true;
+
+                Object.entries(draft.fields || {}).forEach(([name, value]) => {
+                    const field = root.querySelector(`[name="${name}"]`);
+                    if (field) {
+                        field.value = value ?? '';
+                    }
+                });
+
+                syncMatchDetails();
+
+                if (Array.isArray(draft.selectedPlayers?.starter)) {
+                    selectedPlayers.starter = draft.selectedPlayers.starter.map(Number).filter(Boolean);
+                }
+
+                if (Array.isArray(draft.selectedPlayers?.substitute)) {
+                    selectedPlayers.substitute = draft.selectedPlayers.substitute.map(Number).filter(Boolean);
+                }
+
+                Object.keys(jerseyOverrides).forEach((key) => delete jerseyOverrides[key]);
+                Object.entries(draft.jerseyOverrides || {}).forEach(([playerId, value]) => {
+                    if (value !== null && value !== '') {
+                        jerseyOverrides[playerId] = value;
+                    }
+                });
+            } catch (error) {
+                localStorage.removeItem(draftKey);
+            } finally {
+                isRestoringDraft = false;
+            }
+        };
+
         const setRoleButtonsState = (option, role) => {
             option.querySelectorAll('[data-role-button]').forEach((button) => {
                 const isActive = button.dataset.roleValue === role;
@@ -432,7 +692,7 @@
             if (!option) return null;
 
             const wrapper = document.createElement('div');
-            wrapper.className = 'border rounded p-2 d-flex justify-content-between align-items-center gap-3';
+            wrapper.className = 'border rounded p-2 d-flex justify-content-between align-items-center gap-3 lineup-selected-player';
 
             const meta = getPlayerMeta(option, playerId);
             const statusText = option.dataset.playerStatus ? ` · ${option.dataset.playerStatus}` : '';
@@ -440,13 +700,13 @@
                 <div class="d-flex align-items-start gap-2">
                     <span class="badge text-bg-light border">${index + 1}</span>
                     <div>
-                        <div class="fw-semibold">${option.dataset.playerName}</div>
-                        <div class="text-muted small" data-lineup-meta>#${meta.jersey} · ${meta.position}${statusText}</div>
+                        <div class="fw-semibold lineup-selected-player-name">${option.dataset.playerName}</div>
+                        <div class="text-muted small lineup-selected-player-meta" data-lineup-meta>#${meta.jersey} · ${meta.position}${statusText}</div>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 lineup-selected-player-actions">
                     <div class="input-group input-group-sm" style="width: 120px;">
-                        <span class="input-group-text">No</span>
+                        <span class="input-group-text">No Jersey</span>
                         <input type="text" class="form-control" data-jersey-input value="${meta.jersey === '-' ? '' : meta.jersey}">
                     </div>
                     <button type="button" class="btn btn-sm btn-light" data-move="-1">↑</button>
@@ -470,6 +730,7 @@
                     const updated = getPlayerMeta(option, playerId);
                     metaNode.textContent = `#${updated.jersey} · ${updated.position}${statusText}`;
                     refreshPlayerMeta();
+                    saveDraft({ immediate: true });
                 });
             }
 
@@ -494,6 +755,7 @@
             if (jerseyInput) {
                 jerseyInput.addEventListener('input', () => {
                     jerseyHidden.value = jerseyInput.value.trim();
+                    saveDraft({ immediate: true });
                 });
             }
 
@@ -564,9 +826,10 @@
             }
 
             renderSelectedLists();
+            saveDraft({ immediate: true });
         };
 
-        const refreshOptions = () => {
+        const refreshOptions = ({ preserveSelection = false } = {}) => {
             syncMatchDetails();
 
             const clubId = clubInput.value;
@@ -584,7 +847,9 @@
 
                 option.hidden = !isVisible;
                 if (!isVisible) {
-                    setPlayerRole(Number(option.dataset.playerId), '');
+                    if (!preserveSelection) {
+                        setPlayerRole(Number(option.dataset.playerId), '');
+                    }
                     return;
                 }
 
@@ -596,9 +861,13 @@
             if (availableEmptyNode) availableEmptyNode.hidden = visibleCount > 0 || !clubId || !ageId;
         };
 
+        restoreDraft();
+
         root.querySelectorAll('[data-player-option]').forEach((option) => {
             const playerId = Number(option.dataset.playerId);
-            const initialRole = option.dataset.initialRole || '';
+            const initialRole = selectedPlayers.starter.includes(playerId)
+                ? 'starter'
+                : (selectedPlayers.substitute.includes(playerId) ? 'substitute' : (option.dataset.initialRole || ''));
             option.dataset.currentRole = initialRole;
             setRoleButtonsState(option, initialRole);
 
@@ -610,8 +879,23 @@
         });
 
         renderSelectedLists();
-        matchInput?.addEventListener('change', refreshOptions);
-        clubInput.addEventListener('change', refreshOptions);
-        refreshOptions();
+        matchInput?.addEventListener('change', () => {
+            refreshOptions();
+            saveDraft();
+        });
+        clubInput.addEventListener('change', () => {
+            refreshOptions();
+            saveDraft();
+        });
+        draftFieldNames.forEach((name) => {
+            root.querySelector(`[name="${name}"]`)?.addEventListener('input', saveDraft);
+        });
+        root.addEventListener('submit', () => {
+            window.clearTimeout(saveDraftTimer);
+            localStorage.removeItem(draftKey);
+        });
+        window.addEventListener('pagehide', persistDraft);
+        window.addEventListener('beforeunload', persistDraft);
+        refreshOptions({ preserveSelection: true });
     })();
 </script>

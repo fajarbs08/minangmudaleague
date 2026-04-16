@@ -29,7 +29,7 @@
                               <div class="mb-4">
                                    <label class="form-label" for="emailaddress">Email</label>
                                    <div class="position-relative w-100">
-                                        <input class="form-control form-control-lg rounded" type="email" name="email" id="emailaddress" value="test@example.com" required="" placeholder="Enter Your Email"/>
+                                        <input class="form-control form-control-lg rounded" type="email" name="email" id="emailaddress" value="{{ old('email') }}" required="" placeholder="Enter Your Email"/>
                                         <p class="text-muted p-0 position-absolute end-0 top-50 border-0 fs-4 translate-middle-y me-2 mb-0">
                                              <iconify-icon class="fs-20 mt-1 text-muted" icon="solar:letter-bold-duotone"></iconify-icon>
                                         </p>
@@ -38,7 +38,7 @@
                               <div class="mb-4">
                                    <label class="form-label" for="password">Password</label>
                                    <div class="position-relative w-100">
-                                        <input class="form-control form-control-lg rounded"  type="password" required="" id="password" name="password" value="password" placeholder="Enter your password"/>
+                                        <input class="form-control form-control-lg rounded"  type="password" required="" id="password" name="password" placeholder="Enter your password"/>
                                         <button class="btn text-muted p-0 position-absolute end-0 top-50 border-0 fs-4 translate-middle-y me-2" type="button" id="toggle-password" aria-label="Show password" aria-pressed="false">
                                              <iconify-icon class="fs-20 mt-1 text-muted" id="toggle-password-icon" icon="solar:eye-bold-duotone"></iconify-icon>
                                         </button>
@@ -46,7 +46,7 @@
                               </div>
                               <div class="mb-3">
                                    <div class="form-check">
-                                        <input class="form-check-input" id="checkbox-signin" type="checkbox" />
+                                        <input class="form-check-input" id="checkbox-signin" name="remember" type="checkbox" value="1" @checked(old('remember')) />
                                         <label class="form-check-label" for="checkbox-signin">Remember me</label>
                                    </div>
                               </div>

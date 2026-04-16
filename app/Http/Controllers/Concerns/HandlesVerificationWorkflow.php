@@ -48,6 +48,12 @@ trait HandlesVerificationWorkflow
         abort_unless(auth()->user()->isAdmin(), 403);
         abort_unless(method_exists($model, 'canBeReviewedByAdmin') && $model->canBeReviewedByAdmin(), 422);
 
+        if (($model->verification_status ?? null) === 'approved' && in_array($status, ['approved', 'rejected'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Data yang sudah diterima hanya bisa diubah ke revisi bila memang perlu perbaikan.',
+            ]);
+        }
+
         $model->update([
             'verification_status' => $status,
             'verification_notes' => $notes,
@@ -78,6 +84,18 @@ trait HandlesVerificationWorkflow
             throw ValidationException::withMessages([
                 'selected_ids' => 'Tidak ada data yang bisa direview dari pilihan tersebut.',
             ]);
+        }
+
+        if (in_array($validated['status'], ['approved', 'rejected'], true)) {
+            $models = $models
+                ->reject(fn (Model $model) => ($model->verification_status ?? null) === 'approved')
+                ->values();
+
+            if ($models->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'selected_ids' => 'Semua data yang dipilih sudah diterima. Data yang sudah diterima hanya bisa diubah ke revisi bila memang perlu perbaikan.',
+                ]);
+            }
         }
 
         $models->each(function (Model $model) use ($validated) {

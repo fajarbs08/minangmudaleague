@@ -23,19 +23,15 @@ class Player extends Model
         'name',
         'mother_name',
         'school_name',
-        'registration_number',
         'jersey_number',
         'position',
         'citizenship',
-        'nisn',
-        'non_nisn',
-        'passport_number',
         'birth_place',
         'photo_path',
-        'nisn_file_path',
         'diploma_file_path',
         'report_file_path',
         'birth_certificate_file_path',
+        'family_card_file_path',
         'birth_date',
         'height_cm',
         'weight_kg',
@@ -113,11 +109,6 @@ class Player extends Model
         return $this->fileUrl($this->photo_path);
     }
 
-    public function getNisnFileUrlAttribute(): ?string
-    {
-        return $this->fileUrl($this->nisn_file_path);
-    }
-
     public function getDiplomaFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->diploma_file_path);
@@ -131,6 +122,11 @@ class Player extends Model
     public function getBirthCertificateFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->birth_certificate_file_path);
+    }
+
+    public function getFamilyCardFileUrlAttribute(): ?string
+    {
+        return $this->fileUrl($this->family_card_file_path);
     }
 
     public function registrationForAgeGroup(?int $ageGroupId): ?PlayerAgeGroup
@@ -173,13 +169,13 @@ class Player extends Model
         $errors = [];
 
         if (blank($this->name)) $errors['name'] = 'Nama pemain wajib diisi sebelum submit verifikasi.';
-        if (blank($this->registration_number)) $errors['registration_number'] = 'Nomor registrasi pemain wajib diisi sebelum submit verifikasi.';
         if (blank($this->birth_place)) $errors['birth_place'] = 'Tempat lahir pemain wajib diisi sebelum submit verifikasi.';
         if (blank($this->birth_date)) $errors['birth_date'] = 'Tanggal lahir pemain wajib diisi sebelum submit verifikasi.';
         if (blank($this->citizenship)) $errors['citizenship'] = 'Kewarganegaraan pemain wajib diisi sebelum submit verifikasi.';
         if (blank($this->photo_path)) $errors['photo_path'] = 'Foto pemain wajib diunggah sebelum submit verifikasi.';
         if (blank($this->birth_certificate_file_path)) $errors['birth_certificate_file_path'] = 'Akte kelahiran wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->nisn_file_path) && blank($this->diploma_file_path) && blank($this->report_file_path)) {
+        if (blank($this->family_card_file_path)) $errors['family_card_file_path'] = 'File KK wajib diunggah sebelum submit verifikasi.';
+        if (blank($this->diploma_file_path) && blank($this->report_file_path)) {
             $errors['school_document'] = 'Minimal satu dokumen sekolah pemain wajib diunggah sebelum submit verifikasi.';
         }
 

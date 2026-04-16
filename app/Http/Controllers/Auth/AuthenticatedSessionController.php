@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -28,10 +29,19 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
-
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        $user = $request->user();
+
+        if ($user?->isClubUser() && !$user->club_onboarding_seen_at) {
+            $user->forceFill([
+                'club_onboarding_seen_at' => Carbon::now(),
+            ])->save();
+
+            $request->session()->flash('show_club_onboarding', true);
+        }
 
         return redirect()->intended(RouteServiceProvider::HOME);
     }

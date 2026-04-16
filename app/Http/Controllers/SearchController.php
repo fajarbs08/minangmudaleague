@@ -23,12 +23,12 @@ class SearchController extends Controller
         $lineups = collect();
 
         if ($query !== '') {
-            $clubsQuery = Club::query()->select(['id', 'name', 'city']);
+            $clubsQuery = Club::query()->select(['id', 'name', 'zone']);
             if ($clubIds) {
                 $clubsQuery->whereIn('id', $clubIds);
             }
 
-            $clubs = $this->applySearchTerms($clubsQuery, ['name', 'city'], $query)
+            $clubs = $this->applySearchTerms($clubsQuery, ['name', 'zone'], $query)
                 ->orderBy('name')
                 ->limit(8)
                 ->get();
@@ -43,12 +43,12 @@ class SearchController extends Controller
                 ->limit(8)
                 ->get();
 
-            $playersQuery = Player::query()->select(['id', 'club_id', 'name', 'registration_number', 'school_name']);
+            $playersQuery = Player::query()->select(['id', 'club_id', 'name', 'school_name']);
             if ($clubIds) {
                 $playersQuery->whereIn('club_id', $clubIds);
             }
 
-            $players = $this->applySearchTerms($playersQuery, ['name', 'registration_number', 'school_name'], $query)
+            $players = $this->applySearchTerms($playersQuery, ['name', 'school_name'], $query)
                 ->orderBy('name')
                 ->limit(8)
                 ->get();
@@ -88,20 +88,20 @@ class SearchController extends Controller
         $clubIds = $this->resolveClubIds($request);
         $suggestions = collect();
 
-        $clubsQuery = Club::query()->select(['id', 'name', 'city']);
+        $clubsQuery = Club::query()->select(['id', 'name', 'zone']);
         if ($clubIds) {
             $clubsQuery->whereIn('id', $clubIds);
         }
 
         $suggestions = $suggestions->merge(
-            $this->applySearchTerms($clubsQuery, ['name', 'city'], $query)
+            $this->applySearchTerms($clubsQuery, ['name', 'zone'], $query)
                 ->orderBy('name')
                 ->limit(3)
                 ->get()
                 ->map(fn (Club $club) => [
                     'type' => 'Klub',
                     'label' => $club->name,
-                    'description' => $club->city ?: 'Data klub',
+                    'description' => $club->zone ?: 'Data klub',
                     'url' => route('clubs.edit', $club),
                 ])
         );
@@ -124,20 +124,20 @@ class SearchController extends Controller
                 ])
         );
 
-        $playersQuery = Player::query()->select(['id', 'club_id', 'name', 'registration_number', 'school_name']);
+        $playersQuery = Player::query()->select(['id', 'club_id', 'name', 'school_name']);
         if ($clubIds) {
             $playersQuery->whereIn('club_id', $clubIds);
         }
 
         $suggestions = $suggestions->merge(
-            $this->applySearchTerms($playersQuery, ['name', 'registration_number', 'school_name'], $query)
+            $this->applySearchTerms($playersQuery, ['name', 'school_name'], $query)
                 ->orderBy('name')
                 ->limit(2)
                 ->get()
                 ->map(fn (Player $player) => [
                     'type' => 'Pemain',
                     'label' => $player->name,
-                    'description' => $player->registration_number ?: ($player->school_name ?: 'Data pemain'),
+                    'description' => $player->school_name ?: 'Data pemain',
                     'url' => route('players.show', $player),
                 ])
         );

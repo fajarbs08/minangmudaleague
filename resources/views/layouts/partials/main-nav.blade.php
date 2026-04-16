@@ -22,7 +22,18 @@
                position: absolute;
                right: 12px;
                top: 50%;
+               width: 40px;
+               height: 40px;
+               align-items: center;
+               justify-content: center;
                transform: translateY(-50%);
+          }
+
+          html.sidebar-hover .main-nav:not(:hover) .main-logo-box .button-toggle-menu,
+          html[data-sidenav-size="condensed"] .main-nav .main-logo-box .button-toggle-menu {
+               left: 50%;
+               right: auto;
+               transform: translate(-50%, -50%);
           }
 
           .main-nav .logo-box {
@@ -179,6 +190,15 @@
                          <span class="nav-text">Jadwal Match</span>
                     </a>
                </li>
+
+               <li class="menu-item">
+                    <a class="menu-link" href="{{ route('information-resources.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="folder-kanban"></i>
+                         </span>
+                         <span class="nav-text">Pusat Informasi</span>
+                    </a>
+               </li>
                @endif
 
                <li class="menu-item">
@@ -192,6 +212,17 @@
                          @endif
                     </a>
                </li>
+
+               @if (auth()->user()->isClubUser())
+               <li class="menu-item">
+                    <a class="menu-link" href="{{ route('club-resources.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="folder-down"></i>
+                         </span>
+                         <span class="nav-text">Pusat Informasi</span>
+                    </a>
+               </li>
+               @endif
 
           </ul>
      </div>

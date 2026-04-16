@@ -1,10 +1,32 @@
+@php
+    $isAdmin = auth()->user()->isAdmin();
+    $statusGuidance = match ($item->verification_status) {
+        'draft' => $isAdmin
+            ? 'Data masih draft. Admin bisa edit manual bila ada permintaan khusus dari klub.'
+            : 'Lengkapi DSP lalu ajukan verifikasi ke admin.',
+        'submitted' => $isAdmin
+            ? 'Data sudah diajukan. Review dari halaman ini atau edit manual bila memang perlu intervensi admin.'
+            : 'DSP sedang direview admin.',
+        'revision' => $isAdmin
+            ? 'DSP menunggu tindak lanjut. Minta revisi jika klub yang harus memperbaiki, atau edit manual bila admin diminta membantu.'
+            : 'Perbaiki data sesuai catatan admin lalu ajukan verifikasi ulang.',
+        'approved' => $isAdmin
+            ? 'DSP sudah diterima. Jika ada kebutuhan khusus dari klub, admin tetap bisa edit manual atau ubah ke revisi.'
+            : 'DSP sudah diterima admin.',
+        'rejected' => $isAdmin
+            ? 'DSP ditolak. Gunakan revisi bila klub perlu memperbaiki, atau edit manual bila admin diminta membantu.'
+            : 'DSP ditolak. Periksa catatan admin sebelum lanjut.',
+        default => 'Ikuti tahapan verifikasi sesuai status DSP.',
+    };
+@endphp
+
 <div class="card mt-4">
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
             <div>
                 <h5 class="mb-1">Workflow Verifikasi</h5>
                 <div class="text-muted">
-                    Tahapan: input data, ajukan verifikasi, review admin, lalu status akhir diterima atau ditolak.
+                    {{ $statusGuidance }}
                 </div>
             </div>
             @include('competition.partials.status-badge', ['status' => $item->verification_status])

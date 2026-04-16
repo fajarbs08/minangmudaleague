@@ -22,7 +22,7 @@
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h4 class="card-title mb-1">Generator Akun Club</h4>
-            <p class="text-muted mb-0">Format default: `namaclub@minangmudaleague.com` dan `MMLpdg{{ $currentYear }}XXXX`.</p>
+            <p class="text-muted mb-0">Format default: `namaclub@ligaanakpiamanlaweh.com` dan `LAPLplw{{ $currentYear }}XXXX`.</p>
         </div>
         <span class="badge bg-light text-dark border">{{ $clubAccounts->count() }} akun</span>
     </div>
@@ -66,7 +66,7 @@
                                     >
                                     <button class="btn btn-light js-copy-trigger" type="button" data-copy-target="#account-email">Copy</button>
                                 </div>
-                                <div class="competition-table-meta">Terisi otomatis ke domain `@minangmudaleague.com`.</div>
+                                <div class="competition-table-meta">Terisi otomatis ke domain `@ligaanakpiamanlaweh.com`.</div>
                             </td>
                             <td>
                                 <div class="d-md-none small text-muted mb-1">Password</div>
@@ -76,7 +76,7 @@
                                         id="account-password"
                                         type="text"
                                         value=""
-                                        placeholder="MMLpdg{{ $currentYear }}AB12"
+                                        placeholder="LAPLplw{{ $currentYear }}AB12"
                                         readonly
                                     >
                                     <button class="btn btn-light js-copy-trigger" type="button" data-copy-target="#account-password">Copy</button>
@@ -248,9 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const generateCredentials = () => {
         const slug = slugify(nameInput.value) || 'club{{ $nextSequence }}';
-        const password = `MMLpdg${currentYear}${randomSuffix()}`;
+        const password = `LAPLplw${currentYear}${randomSuffix()}`;
 
-        emailInput.value = `${slug}@minangmudaleague.com`;
+        emailInput.value = `${slug}@ligaanakpiamanlaweh.com`;
         passwordInput.value = password;
         generatedPasswordInput.value = password;
     };

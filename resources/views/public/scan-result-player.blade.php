@@ -137,8 +137,6 @@
                     <div class="badge">Terverifikasi untuk dilihat publik</div>
 
                     <div class="grid">
-                        <div class="item"><div class="label">Nomor Registrasi</div><div class="value">{{ $player->registration_number ?: '-' }}</div></div>
-                        <div class="item"><div class="label">NISN</div><div class="value">{{ $player->nisn ?: '-' }}</div></div>
                         <div class="item"><div class="label">Tempat, Tanggal Lahir</div><div class="value">{{ trim(($player->birth_place ?: '-').', '.(optional($player->birth_date)->format('d M Y') ?: '-')) }}</div></div>
                         <div class="item"><div class="label">Sekolah</div><div class="value">{{ $player->school_name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Posisi</div><div class="value">{{ $player->displayPosition($player->primary_age_group_id) ?: $player->position ?: '-' }}</div></div>

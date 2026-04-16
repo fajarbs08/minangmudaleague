@@ -352,8 +352,7 @@ class OfficialController extends Controller
             'birth_place' => ['nullable', 'string', 'max:255'],
             'citizenship' => ['nullable', 'in:WNI,WNA'],
             'identity_number' => ['nullable', 'string', 'max:255'],
-            'passport_number' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'license_number' => ['nullable', 'string', 'max:255'],
             'license_levels' => ['nullable', 'string', 'max:255'],
             'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
@@ -367,6 +366,8 @@ class OfficialController extends Controller
             'age_registrations.*.role' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.license_levels' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.notes' => ['nullable', 'string', 'max:500'],
+        ], [
+            'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
         ]) + [
             'is_active' => $request->boolean('is_active'),
         ];

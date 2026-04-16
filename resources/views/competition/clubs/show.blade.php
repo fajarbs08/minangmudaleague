@@ -51,12 +51,8 @@
                     <div class="fw-semibold">{{ $club->manager_title ?: '-' }}</div>
                 </div>
                 <div class="mb-3">
-                    <div class="text-muted small">Zona</div>
+                    <div class="text-muted small">Zona (Kota / Kabupaten)</div>
                     <div class="fw-semibold">{{ $club->zone ?: '-' }}</div>
-                </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Kota</div>
-                    <div class="fw-semibold">{{ $club->city ?: '-' }}</div>
                 </div>
                 <div>
                     <div class="text-muted small">Tahun Berdiri</div>
@@ -76,29 +72,9 @@
                     <div class="text-muted small">Alamat Klub</div>
                     <div class="fw-semibold">{{ $club->address ?: '-' }}</div>
                 </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Alamat Surat</div>
-                    <div class="fw-semibold">{{ $club->mailing_address ?: '-' }}</div>
-                </div>
                 <div>
                     <div class="text-muted small">Alamat Latihan</div>
                     <div class="fw-semibold">{{ $club->training_address ?: '-' }}</div>
-                </div>
-                <div class="mt-3">
-                    <div class="text-muted small">Kelompok Umur (Surat)</div>
-                    <div class="fw-semibold">{{ $club->statement_age_group ?: '-' }}</div>
-                </div>
-                <div class="mt-3">
-                    <div class="text-muted small">Kontak (Surat)</div>
-                    <div class="fw-semibold">{{ $club->statement_contact ?: '-' }}</div>
-                </div>
-                <div class="mt-3">
-                    <div class="text-muted small">Penandatangan Mengetahui</div>
-                    <div class="fw-semibold">{{ $club->statement_witness_name ?: '-' }}</div>
-                </div>
-                <div class="mt-3">
-                    <div class="text-muted small">Jabatan Mengetahui</div>
-                    <div class="fw-semibold">{{ $club->statement_witness_title ?: '-' }}</div>
                 </div>
             </div>
         </div>
@@ -137,27 +113,21 @@
     </div>
     <div class="card-body">
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('clubs.statement-template', ['club_id' => $club->id]) }}" target="_blank" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+            <a href="{{ route('clubs.statement-template') }}" target="_blank" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
                 <i data-lucide="download" class="fs-14"></i>
                 <span>Download Template Surat</span>
             </a>
-            @if ($club->deed_file_url)
-                <a href="{{ $club->deed_file_url }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
-                    <i data-lucide="file-text" class="fs-14"></i>
-                    <span>Akta</span>
-                </a>
-            @endif
             @if ($club->statement_file_url)
                 <a href="{{ $club->statement_file_url }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                     <i data-lucide="file-text" class="fs-14"></i>
                     <span>Pernyataan</span>
                 </a>
             @endif
-            @if (!$club->deed_file_url && !$club->statement_file_url)
+            @if (!$club->statement_file_url)
                 <div class="text-muted">Belum ada dokumen yang diunggah.</div>
             @endif
         </div>
-        <div class="text-muted small mt-2">Template akan otomatis berisi nama klub dan penanggung jawab.</div>
+        <div class="text-muted small mt-2">Download template, isi data dan tanda tangan, lalu unggah kembali.</div>
     </div>
 </div>
 

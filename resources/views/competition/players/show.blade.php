@@ -62,11 +62,7 @@
                     <div class="col-md-6"><div class="text-muted small">Nama Lengkap</div><div class="fw-semibold">{{ $player->name }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Nama Ibu Kandung</div><div class="fw-semibold">{{ $player->mother_name ?: '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Sekolah</div><div class="fw-semibold">{{ $player->school_name ?: '-' }}</div></div>
-                    <div class="col-md-4"><div class="text-muted small">No. Registrasi</div><div class="fw-semibold">{{ $player->registration_number ?: '-' }}</div></div>
                     <div class="col-md-4"><div class="text-muted small">Kewarganegaraan</div><div class="fw-semibold">{{ $player->citizenship ?: '-' }}</div></div>
-                    <div class="col-md-4"><div class="text-muted small">NISN</div><div class="fw-semibold">{{ $player->nisn ?: '-' }}</div></div>
-                    <div class="col-md-4"><div class="text-muted small">Non NISN</div><div class="fw-semibold">{{ $player->non_nisn ?: '-' }}</div></div>
-                    <div class="col-md-4"><div class="text-muted small">Paspor</div><div class="fw-semibold">{{ $player->passport_number ?: '-' }}</div></div>
                     <div class="col-md-4"><div class="text-muted small">Tempat Lahir</div><div class="fw-semibold">{{ $player->birth_place ?: '-' }}</div></div>
                     <div class="col-md-4"><div class="text-muted small">Tanggal Lahir</div><div class="fw-semibold">{{ optional($player->birth_date)->format('d M Y') ?: '-' }}</div></div>
                     <div class="col-md-4"><div class="text-muted small">Tinggi</div><div class="fw-semibold">{{ $player->height_cm ? $player->height_cm.' cm' : '-' }}</div></div>
@@ -230,10 +226,10 @@
             </div>
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2">
-                    @if ($player->nisn_file_url)
-                        <a href="{{ $player->nisn_file_url }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                    @if ($player->family_card_file_url)
+                        <a href="{{ $player->family_card_file_url }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                             <i data-lucide="file-text" class="fs-14"></i>
-                            <span>Lihat NISN</span>
+                            <span>Lihat KK</span>
                         </a>
                     @endif
                     @if ($player->diploma_file_url)
@@ -254,7 +250,7 @@
                             <span>Lihat Akta</span>
                         </a>
                     @endif
-                    @unless ($player->nisn_file_url || $player->diploma_file_url || $player->report_file_url || $player->birth_certificate_file_url)
+                    @unless ($player->family_card_file_url || $player->diploma_file_url || $player->report_file_url || $player->birth_certificate_file_url)
                         <div class="text-muted">Belum ada berkas.</div>
                     @endunless
                 </div>
