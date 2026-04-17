@@ -54,9 +54,7 @@ class InformationResource extends Model
             return Storage::disk('public')->url($this->file_path);
         }
 
-        $base = request()->getSchemeAndHttpHost();
-
-        return $base.'/storage/'.ltrim($this->file_path, '/');
+        return url('/storage/'.ltrim($this->file_path, '/'));
     }
 
     public function getFileSizeBytesAttribute(): ?int

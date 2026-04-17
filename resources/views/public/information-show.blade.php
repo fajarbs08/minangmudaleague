@@ -59,8 +59,25 @@
             color: #dbeafe;
         }
 
+        .lap-public .lap-resource-actions {
+            align-items: stretch;
+            display: grid;
+            gap: 14px 16px;
+            grid-template-columns: repeat(3, max-content);
+            margin-top: 10px;
+            justify-content: start;
+        }
+
         .lap-public .lap-resource-actions .btn {
-            min-width: 150px;
+            min-width: 176px;
+        }
+
+        .lap-public .lap-resource-actions .btn:nth-child(4) {
+            grid-column: 1 / span 2;
+        }
+
+        .lap-public .news-right-widget .widget .btn {
+            min-width: 168px;
         }
 
         .lap-public .lap-resource-nav {
@@ -98,6 +115,11 @@
         .lap-public .lap-resource-nav-card p {
             color: #5c6271;
             margin: 0;
+        }
+
+        .lap-public .lap-resource-nav-card:hover,
+        .lap-public .lap-resource-nav-card:focus {
+            text-decoration: none;
         }
 
         .lap-public .lap-resource-url {
@@ -183,6 +205,19 @@
 
             .lap-public .lap-resource-nav {
                 grid-template-columns: 1fr;
+            }
+
+            .lap-public .lap-resource-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .lap-public .lap-resource-actions .btn,
+            .lap-public .news-right-widget .widget .btn {
+                width: 100%;
+            }
+
+            .lap-public .lap-resource-actions .btn:nth-child(4) {
+                grid-column: auto;
             }
         }
     </style>

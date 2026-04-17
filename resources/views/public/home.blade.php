@@ -340,12 +340,12 @@
                             <p class="time">{{ optional($match->match_date)->translatedFormat('d F Y') }} {{ optional($match->kickoff_time)->format('H:i') }} WIB</p>
                         </div>
                         <div class="team-logo-area">
-                            <a href="{{ route('public.schedule') }}" class="text-center">
+                            <a href="{{ $match->clubA ? route('public.clubs.show', ['clubSlug' => $match->clubA->public_slug]) : route('public.schedule') }}" class="text-center">
                                 <img src="{{ $match->clubA?->logo_file_url ?: asset('kester-assets/images/team/logo-01.png') }}" alt="{{ $match->clubA?->name ?: 'Klub A' }}">
                                 <p class="team">{{ strtoupper($match->clubA?->short_name ?: $match->clubA?->name ?: 'TBD') }}</p>
                             </a>
                             <span class="versus">VS</span>
-                            <a href="{{ route('public.schedule') }}" class="text-center">
+                            <a href="{{ $match->clubB ? route('public.clubs.show', ['clubSlug' => $match->clubB->public_slug]) : route('public.schedule') }}" class="text-center">
                                 <img src="{{ $match->clubB?->logo_file_url ?: asset('kester-assets/images/team/logo-02.png') }}" alt="{{ $match->clubB?->name ?: 'Klub B' }}">
                                 <p class="team">{{ strtoupper($match->clubB?->short_name ?: $match->clubB?->name ?: 'TBD') }}</p>
                             </a>
@@ -479,11 +479,12 @@
                         @forelse ($featuredPlayers as $player)
                             @php
                                 $playerImage = $player->photo_file_url ?: asset('kester-assets/images/team/team'.str_pad((string) (($loop->index % 9) + 1), 2, '0', STR_PAD_LEFT).'.png');
+                                $playerClubUrl = $player->club ? route('public.clubs.show', ['clubSlug' => $player->club->public_slug]) : route('public.clubs');
                             @endphp
                             <div class="swiper-slide">
                                 <div class="team-wraper">
                                     <div class="player-card">
-                                        <a class="image" href="{{ route('public.clubs') }}"><img src="{{ $playerImage }}" alt="{{ $player->name }}"></a>
+                                        <a class="image" href="{{ $playerClubUrl }}"><img src="{{ $playerImage }}" alt="{{ $player->name }}"></a>
                                         <div class="number">{{ $player->jersey_number ?: '-' }}</div>
                                         <ul class="social-area">
                                             <li><a href="#0" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a></li>
@@ -493,7 +494,7 @@
                                     </div>
                                     <div class="profile">
                                         <p class="position">{{ strtoupper($player->position ?: 'PLAYER') }}</p>
-                                        <a href="{{ route('public.clubs') }}" class="name">{{ strtoupper($player->name) }}</a>
+                                        <a href="{{ $playerClubUrl }}" class="name">{{ strtoupper($player->name) }}</a>
                                     </div>
                                 </div>
                             </div>

@@ -40,6 +40,6 @@ class Sponsor extends Model
             return Storage::disk('public')->url($path);
         }
 
-        return request()->getSchemeAndHttpHost().'/storage/'.$path;
+        return url('/storage/'.$path);
     }
 }

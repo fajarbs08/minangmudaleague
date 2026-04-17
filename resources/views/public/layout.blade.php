@@ -14,13 +14,15 @@
     <meta property="og:title" content="{{ $seoTitle ?? $title }}">
     <meta property="og:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
     <meta property="og:url" content="{{ $seoUrl ?? url()->current() }}">
-    <meta property="og:image" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
-    <meta property="og:image:secure_url" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
+    <meta property="og:image" content="{{ $seoImage ?? asset('og-default.png') }}">
+    <meta property="og:image:secure_url" content="{{ $seoImage ?? asset('og-default.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{{ $seoTitle ?? $title }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seoTitle ?? $title }}">
     <meta name="twitter:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
-    <meta name="twitter:image" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
+    <meta name="twitter:image" content="{{ $seoImage ?? asset('og-default.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
@@ -112,6 +114,122 @@
             display: grid;
             gap: 24px;
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .lap-public .btn {
+            align-items: center;
+            background: #10131f;
+            border: 1px solid #10131f;
+            border-radius: 14px;
+            box-shadow: none;
+            color: #ffffff;
+            display: inline-flex;
+            gap: 8px;
+            justify-content: center;
+            letter-spacing: .08em;
+            line-height: 1;
+            min-height: 52px;
+            padding: 14px 22px;
+            text-transform: uppercase;
+            transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease, transform .2s ease;
+        }
+
+        .lap-public .btn::before {
+            display: none;
+        }
+
+        .lap-public .btn:hover,
+        .lap-public .btn:focus {
+            background: #0b1220;
+            border-color: #0b1220;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, .12);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .lap-public .btn:focus-visible {
+            outline: 2px solid rgba(228, 27, 35, .22);
+            outline-offset: 2px;
+        }
+
+        .lap-public .btn.btn-primary {
+            background: #e41b23;
+            border-color: #e41b23;
+            color: #ffffff;
+        }
+
+        .lap-public .btn.btn-primary:hover,
+        .lap-public .btn.btn-primary:focus {
+            background: #c9151d;
+            border-color: #c9151d;
+            color: #ffffff;
+        }
+
+        .lap-public .btn.btn-light {
+            background: #ffffff;
+            border-color: #d9e0e8;
+            color: #10131f;
+        }
+
+        .lap-public .btn.btn-light:hover,
+        .lap-public .btn.btn-light:focus {
+            background: #f8fafc;
+            border-color: #cdd5df;
+            color: #10131f;
+        }
+
+        .lap-public .news-feed-section .news-right-widget .widget.widget-post .post-list li .blog-post .post-content h6 a {
+            color: #10131f;
+            transition: color .2s ease;
+        }
+
+        .lap-public .news-feed-section .news-right-widget .widget.widget-post .post-list li .blog-post:hover .post-content h6 a,
+        .lap-public .news-feed-section .news-right-widget .widget.widget-post .post-list li .blog-post .post-content h6 a:hover {
+            color: #e41b23;
+        }
+
+        .lap-public .lap-resource-nav-card {
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+
+        .lap-public .lap-resource-nav-card:hover,
+        .lap-public .lap-resource-nav-card:focus {
+            border-color: rgba(228, 27, 35, .14);
+            box-shadow: 0 24px 54px rgba(15, 23, 42, .09);
+            transform: translateY(-2px);
+        }
+
+        .lap-public .lap-resource-nav-card:hover .eyebrow,
+        .lap-public .lap-resource-nav-card:focus .eyebrow {
+            color: #e41b23;
+        }
+
+        .lap-public .lap-resource-nav-card:hover h5,
+        .lap-public .lap-resource-nav-card:hover p,
+        .lap-public .lap-resource-nav-card:focus h5,
+        .lap-public .lap-resource-nav-card:focus p {
+            color: #10131f;
+        }
+
+        .lap-public .rts-blog-section .blog-item .contents .blog-title,
+        .lap-public .rts-blog-section .blog-item .contents .blog-title:hover {
+            color: #10131f;
+        }
+
+        .lap-public .rts-blog-section .blog-item .contents .blog-title:hover {
+            color: #e41b23;
+        }
+
+        .lap-public .lap-sponsor-clubs .sponsor-single:hover .lap-club-line,
+        .lap-public .lap-sponsor-clubs .sponsor-single:focus .lap-club-line {
+            color: #111111;
+        }
+
+        .lap-public .lap-sponsor-clubs .sponsor-single:hover .lap-sponsor-tier,
+        .lap-public .lap-sponsor-clubs .sponsor-single:hover .lap-club-tier,
+        .lap-public .lap-sponsor-clubs .sponsor-single:focus .lap-sponsor-tier,
+        .lap-public .lap-sponsor-clubs .sponsor-single:focus .lap-club-tier {
+            color: #777777;
         }
 
         .lap-public .lap-table-note {
@@ -1115,7 +1233,7 @@
                             <div class="recent-post">
                                 @foreach ($featuredClubs->take(3) as $club)
                                     <div class="picture">
-                                        <a href="{{ route('public.clubs') }}">
+                                        <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}">
                                             <img src="{{ $club->logo_file_url ?: asset('kester-assets/images/footer/news1.png') }}" alt="{{ $club->name }}">
                                         </a>
                                     </div>
@@ -1124,7 +1242,7 @@
                             <div class="recent-post post2">
                                 @foreach ($featuredClubs->slice(3, 3) as $club)
                                     <div class="picture">
-                                        <a href="{{ route('public.clubs') }}">
+                                        <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}">
                                             <img src="{{ $club->logo_file_url ?: asset('kester-assets/images/footer/news4.png') }}" alt="{{ $club->name }}">
                                         </a>
                                     </div>

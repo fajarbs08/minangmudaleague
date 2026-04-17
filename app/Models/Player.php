@@ -222,8 +222,6 @@ class Player extends Model
             return Storage::disk('public')->url($path);
         }
 
-        $base = request()->getSchemeAndHttpHost();
-
-        return $base.'/storage/'.$path;
+        return url('/storage/'.$path);
     }
 }

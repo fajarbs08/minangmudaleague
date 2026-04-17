@@ -22,6 +22,7 @@ class DashboardController extends Controller
     {
         return view('public.home', $this->publicPageData([
             'title' => 'Liga Anak Piaman Laweh',
+            'seoTitle' => 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak',
             'activePublicPage' => 'home',
             'seoDescription' => 'Platform resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil, klasemen, daftar klub, sponsor, dan pusat informasi kompetisi.',
         ]));
@@ -31,6 +32,7 @@ class DashboardController extends Controller
     {
         return view('public.schedule', $this->publicPageData([
             'title' => 'Jadwal Pertandingan',
+            'seoTitle' => 'Jadwal Liga Anak Piaman Laweh | Pertandingan Terbaru',
             'activePublicPage' => 'schedule',
             'bannerTitle' => 'Jadwal Pertandingan',
             'bannerCurrent' => 'Jadwal',
@@ -42,6 +44,7 @@ class DashboardController extends Controller
     {
         return view('public.results', $this->publicPageData([
             'title' => 'Hasil Pertandingan',
+            'seoTitle' => 'Hasil Liga Anak Piaman Laweh | Skor Pertandingan',
             'activePublicPage' => 'results',
             'bannerTitle' => 'Hasil Pertandingan',
             'bannerCurrent' => 'Hasil',
@@ -53,6 +56,7 @@ class DashboardController extends Controller
     {
         return view('public.standings', $this->publicPageData([
             'title' => 'Klasemen Liga',
+            'seoTitle' => 'Klasemen Liga Anak Piaman Laweh | Posisi Klub',
             'activePublicPage' => 'standings',
             'bannerTitle' => 'Klasemen Kompetisi',
             'bannerCurrent' => 'Klasemen',
@@ -64,6 +68,7 @@ class DashboardController extends Controller
     {
         return view('public.clubs', $this->publicPageData([
             'title' => 'Klub Peserta',
+            'seoTitle' => 'Klub Peserta Liga Anak Piaman Laweh | Profil Tim',
             'activePublicPage' => 'clubs',
             'bannerTitle' => 'Daftar Klub',
             'bannerCurrent' => 'Klub',
@@ -75,6 +80,7 @@ class DashboardController extends Controller
     {
         return view('public.sponsors', $this->publicPageData([
             'title' => 'Sponsor Kompetisi',
+            'seoTitle' => 'Sponsor Liga Anak Piaman Laweh | Mitra Resmi',
             'activePublicPage' => 'sponsors',
             'bannerTitle' => 'Sponsor Kompetisi',
             'bannerCurrent' => 'Sponsor',
@@ -128,7 +134,7 @@ class DashboardController extends Controller
             'clubRecentMatches' => $clubMatches,
             'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
             'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, official, dan riwayat pertandingan terbaru.',
-            'seoImage' => $club->logo_url ? $club->logo_full_url : asset('android-chrome-512x512.png'),
+            'seoImage' => $this->normalizeAbsoluteUrl(asset('og-default.png')),
         ]));
     }
 
@@ -166,6 +172,7 @@ class DashboardController extends Controller
 
         return view('public.information', $this->publicPageData([
             'title' => 'Informasi Kompetisi',
+            'seoTitle' => 'Informasi Liga Anak Piaman Laweh | Panduan & Dokumen',
             'activePublicPage' => 'information',
             'bannerTitle' => 'Informasi Kompetisi',
             'bannerCurrent' => 'Informasi',
@@ -231,12 +238,12 @@ class DashboardController extends Controller
             'relatedResources' => $relatedResources,
             'previousResource' => $previousResource,
             'nextResource' => $nextResource,
-            'resourcePageUrl' => route('public.information.show', ['resourceSlug' => $resource->public_slug]),
+            'resourcePageUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
             'seoTitle' => $resource->title.' | Liga Anak Piaman Laweh',
             'seoDescription' => Str::limit($resource->description ?: 'Dokumen resmi yang dipublikasikan melalui pusat informasi Liga Anak Piaman Laweh.', 155),
-            'seoImage' => $resource->is_image ? $resource->file_url : asset('android-chrome-512x512.png'),
+            'seoImage' => $this->normalizeAbsoluteUrl(asset('og-default.png')),
             'seoType' => 'article',
-            'seoUrl' => route('public.information.show', ['resourceSlug' => $resource->public_slug]),
+            'seoUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
         ]));
     }
 
@@ -459,16 +466,42 @@ class DashboardController extends Controller
         ];
 
         $data = array_merge($defaults, $overrides);
-        $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
+        $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh') === 'Liga Anak Piaman Laweh'
+            ? 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak'
+            : ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
 
         $data['seoTitle'] = $data['seoTitle'] ?? $defaultSeoTitle;
         $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk informasi kompetisi, jadwal, hasil pertandingan, klasemen, dan data klub peserta.';
-        $data['seoImage'] = $data['seoImage'] ?? asset('android-chrome-512x512.png');
-        $data['seoUrl'] = $data['seoUrl'] ?? url()->current();
+        $data['seoImage'] = $data['seoImage'] ?? $this->normalizeAbsoluteUrl(asset('og-default.png'));
+        $data['seoUrl'] = $data['seoUrl'] ?? $this->normalizeAbsoluteUrl(url()->current());
         $data['seoType'] = $data['seoType'] ?? 'website';
         $data['seoRobots'] = $data['seoRobots'] ?? 'index,follow';
 
         return $data;
+    }
+
+    private function normalizeAbsoluteUrl(string $url): string
+    {
+        if (!$this->shouldForceHttpsUrls()) {
+            return $url;
+        }
+
+        return preg_replace('/^http:/i', 'https:', $url) ?: $url;
+    }
+
+    private function shouldForceHttpsUrls(): bool
+    {
+        if (Str::startsWith((string) config('app.url'), 'https://')) {
+            return true;
+        }
+
+        if (app()->runningInConsole() || !app()->bound('request')) {
+            return false;
+        }
+
+        $request = request();
+
+        return $request->isSecure() || $request->headers->get('x-forwarded-proto') === 'https';
     }
 
     private function publicSponsorsData(): Collection

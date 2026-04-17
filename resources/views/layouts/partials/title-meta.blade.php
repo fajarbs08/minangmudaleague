@@ -4,7 +4,7 @@
     $resolvedTitle = $seoTitle ?? (($title ?? config('app.name')).' | '.config('app.name'));
     $resolvedDescription = $seoDescription ?? ('Sistem administrasi '.config('app.name').'.');
     $resolvedUrl = $seoUrl ?? url()->current();
-    $resolvedImage = $seoImage ?? asset('android-chrome-512x512.png');
+    $resolvedImage = $seoImage ?? asset('og-default.png');
     $resolvedRobots = $seoRobots ?? 'noindex,nofollow';
     $resolvedType = $seoType ?? 'website';
 @endphp
@@ -23,6 +23,8 @@
 <meta property="og:url" content="{{ $resolvedUrl }}" />
 <meta property="og:image" content="{{ $resolvedImage }}" />
 <meta property="og:image:secure_url" content="{{ $resolvedImage }}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="{{ $resolvedTitle }}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="{{ $resolvedTitle }}" />
