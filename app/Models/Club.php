@@ -105,7 +105,7 @@ class Club extends Model
 
     public function getLogoFileUrlAttribute(): ?string
     {
-        return $this->fileUrl($this->logo_url);
+        return $this->fileUrl($this->logo_url, requireExisting: true);
     }
 
     public function getStatementFileUrlAttribute(): ?string
@@ -140,7 +140,7 @@ class Club extends Model
         }
     }
 
-    private function fileUrl(?string $path): ?string
+    private function fileUrl(?string $path, bool $requireExisting = false): ?string
     {
         if (!$path) {
             return null;
@@ -151,9 +151,14 @@ class Club extends Model
         }
 
         $path = ltrim($path, '/');
+        $disk = Storage::disk('public');
+
+        if ($requireExisting && !$disk->exists($path)) {
+            return null;
+        }
 
         if (app()->runningInConsole()) {
-            return Storage::disk('public')->url($path);
+            return $disk->url($path);
         }
 
         return url('/storage/'.$path);
