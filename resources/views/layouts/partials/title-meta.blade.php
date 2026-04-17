@@ -1,10 +1,33 @@
 <!-- Title Meta -->
 <meta charset="utf-8" />
-<title>{{ $title ?? config('app.name') }} | {{ config('app.name') }}</title>
+@php
+    $resolvedTitle = $seoTitle ?? (($title ?? config('app.name')).' | '.config('app.name'));
+    $resolvedDescription = $seoDescription ?? ('Sistem administrasi '.config('app.name').'.');
+    $resolvedUrl = $seoUrl ?? url()->current();
+    $resolvedImage = $seoImage ?? asset('android-chrome-512x512.png');
+    $resolvedRobots = $seoRobots ?? 'noindex,nofollow';
+    $resolvedType = $seoType ?? 'website';
+@endphp
+<title>{{ $resolvedTitle }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="Sistem administrasi {{ config('app.name') }}." />
+<meta name="description" content="{{ $resolvedDescription }}" />
 <meta name="author" content="{{ config('app.name') }}" />
+<meta name="robots" content="{{ $resolvedRobots }}" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<link rel="canonical" href="{{ $resolvedUrl }}">
+<meta property="og:locale" content="id_ID" />
+<meta property="og:type" content="{{ $resolvedType }}" />
+<meta property="og:site_name" content="{{ config('app.name') }}" />
+<meta property="og:title" content="{{ $resolvedTitle }}" />
+<meta property="og:description" content="{{ $resolvedDescription }}" />
+<meta property="og:url" content="{{ $resolvedUrl }}" />
+<meta property="og:image" content="{{ $resolvedImage }}" />
+<meta property="og:image:secure_url" content="{{ $resolvedImage }}" />
+<meta property="og:image:alt" content="{{ $resolvedTitle }}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ $resolvedTitle }}" />
+<meta name="twitter:description" content="{{ $resolvedDescription }}" />
+<meta name="twitter:image" content="{{ $resolvedImage }}" />
 <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">

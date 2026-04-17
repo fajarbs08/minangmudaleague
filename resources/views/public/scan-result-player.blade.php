@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
+    <meta name="description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:type" content="profile">
+    <meta property="og:site_name" content="Liga Anak Piaman Laweh">
+    <meta property="og:title" content="{{ $title }}">
+    <meta property="og:description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ $player->photo_file_url ?: asset('android-chrome-512x512.png') }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $title }}">
+    <meta name="twitter:description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
+    <meta name="twitter:image" content="{{ $player->photo_file_url ?: asset('android-chrome-512x512.png') }}">
     <style>
         :root {
             --bg: #f8fafc;

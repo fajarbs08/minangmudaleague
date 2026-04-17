@@ -14,6 +14,7 @@ use App\Models\Sponsor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -22,6 +23,7 @@ class DashboardController extends Controller
         return view('public.home', $this->publicPageData([
             'title' => 'Liga Anak Piaman Laweh',
             'activePublicPage' => 'home',
+            'seoDescription' => 'Platform resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil, klasemen, daftar klub, sponsor, dan pusat informasi kompetisi.',
         ]));
     }
 
@@ -32,6 +34,7 @@ class DashboardController extends Controller
             'activePublicPage' => 'schedule',
             'bannerTitle' => 'Jadwal Pertandingan',
             'bannerCurrent' => 'Jadwal',
+            'seoDescription' => 'Lihat jadwal pertandingan terbaru Liga Anak Piaman Laweh lengkap dengan tanggal, jam kick-off, dan klub yang bertanding.',
         ]));
     }
 
@@ -42,6 +45,7 @@ class DashboardController extends Controller
             'activePublicPage' => 'results',
             'bannerTitle' => 'Hasil Pertandingan',
             'bannerCurrent' => 'Hasil',
+            'seoDescription' => 'Pantau hasil pertandingan terbaru Liga Anak Piaman Laweh beserta skor akhir dan ringkasan laga.',
         ]));
     }
 
@@ -52,6 +56,7 @@ class DashboardController extends Controller
             'activePublicPage' => 'standings',
             'bannerTitle' => 'Klasemen Kompetisi',
             'bannerCurrent' => 'Klasemen',
+            'seoDescription' => 'Klasemen sementara Liga Anak Piaman Laweh berdasarkan hasil pertandingan resmi di setiap kelompok usia.',
         ]));
     }
 
@@ -62,6 +67,7 @@ class DashboardController extends Controller
             'activePublicPage' => 'clubs',
             'bannerTitle' => 'Daftar Klub',
             'bannerCurrent' => 'Klub',
+            'seoDescription' => 'Daftar klub peserta Liga Anak Piaman Laweh lengkap dengan profil singkat, pemain, dan official terdaftar.',
         ]));
     }
 
@@ -73,6 +79,7 @@ class DashboardController extends Controller
             'bannerTitle' => 'Sponsor Kompetisi',
             'bannerCurrent' => 'Sponsor',
             'featuredSponsors' => $this->publicSponsorsData(),
+            'seoDescription' => 'Kenali sponsor dan mitra resmi yang mendukung penyelenggaraan Liga Anak Piaman Laweh.',
         ]));
     }
 
@@ -119,6 +126,9 @@ class DashboardController extends Controller
             'clubPlayers' => $club->players,
             'clubOfficials' => $club->officials,
             'clubRecentMatches' => $clubMatches,
+            'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
+            'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, official, dan riwayat pertandingan terbaru.',
+            'seoImage' => $club->logo_url ? $club->logo_full_url : asset('android-chrome-512x512.png'),
         ]));
     }
 
@@ -164,6 +174,7 @@ class DashboardController extends Controller
             'latestResources' => $latestResources,
             'activeInformationCategory' => $category,
             'informationSearch' => $search,
+            'seoDescription' => 'Pusat informasi publik Liga Anak Piaman Laweh berisi panduan, template, alur, dan dokumen resmi kompetisi.',
         ]));
     }
 
@@ -221,6 +232,11 @@ class DashboardController extends Controller
             'previousResource' => $previousResource,
             'nextResource' => $nextResource,
             'resourcePageUrl' => route('public.information.show', ['resourceSlug' => $resource->public_slug]),
+            'seoTitle' => $resource->title.' | Liga Anak Piaman Laweh',
+            'seoDescription' => Str::limit($resource->description ?: 'Dokumen resmi yang dipublikasikan melalui pusat informasi Liga Anak Piaman Laweh.', 155),
+            'seoImage' => $resource->is_image ? $resource->file_url : asset('android-chrome-512x512.png'),
+            'seoType' => 'article',
+            'seoUrl' => route('public.information.show', ['resourceSlug' => $resource->public_slug]),
         ]));
     }
 
@@ -419,7 +435,7 @@ class DashboardController extends Controller
             ->limit(12)
             ->get();
 
-        return array_merge([
+        $defaults = [
             'title' => 'Liga Anak Piaman Laweh',
             'activePublicPage' => 'home',
             'bannerTitle' => null,
@@ -440,7 +456,19 @@ class DashboardController extends Controller
             'publicKnockoutBrackets' => $this->publicKnockoutBrackets(),
             'publishedResources' => $publishedResources,
             'featuredSponsors' => $this->publicSponsorsData(),
-        ], $overrides);
+        ];
+
+        $data = array_merge($defaults, $overrides);
+        $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
+
+        $data['seoTitle'] = $data['seoTitle'] ?? $defaultSeoTitle;
+        $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk informasi kompetisi, jadwal, hasil pertandingan, klasemen, dan data klub peserta.';
+        $data['seoImage'] = $data['seoImage'] ?? asset('android-chrome-512x512.png');
+        $data['seoUrl'] = $data['seoUrl'] ?? url()->current();
+        $data['seoType'] = $data['seoType'] ?? 'website';
+        $data['seoRobots'] = $data['seoRobots'] ?? 'index,follow';
+
+        return $data;
     }
 
     private function publicSponsorsData(): Collection

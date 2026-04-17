@@ -4,7 +4,23 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title }}</title>
+    <title>{{ $seoTitle ?? $title }}</title>
+    <meta name="description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
+    <meta name="robots" content="{{ $seoRobots ?? 'index,follow' }}">
+    <link rel="canonical" href="{{ $seoUrl ?? url()->current() }}">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:type" content="{{ $seoType ?? 'website' }}">
+    <meta property="og:site_name" content="Liga Anak Piaman Laweh">
+    <meta property="og:title" content="{{ $seoTitle ?? $title }}">
+    <meta property="og:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
+    <meta property="og:url" content="{{ $seoUrl ?? url()->current() }}">
+    <meta property="og:image" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
+    <meta property="og:image:secure_url" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
+    <meta property="og:image:alt" content="{{ $seoTitle ?? $title }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $seoTitle ?? $title }}">
+    <meta name="twitter:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
+    <meta name="twitter:image" content="{{ $seoImage ?? asset('android-chrome-512x512.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
