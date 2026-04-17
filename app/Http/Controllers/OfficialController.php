@@ -509,8 +509,10 @@ class OfficialController extends Controller
             ->get();
     }
 
-    private function ensureClubAccess(int $clubId): void
+    private function ensureClubAccess(?int $clubId): void
     {
+        abort_unless($clubId, 404);
+
         $user = auth()->user();
 
         if ($user->isAdmin()) {
