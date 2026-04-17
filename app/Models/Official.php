@@ -63,7 +63,7 @@ class Official extends Model
 
     public function ageRegistrations(): HasMany
     {
-        return $this->hasMany(OfficialAgeGroup::class)->with('ageGroup')->orderBy('age_group_id');
+        return $this->hasMany(OfficialAgeGroup::class)->orderBy('age_group_id');
     }
 
     public function registrationForAgeGroup(?int $ageGroupId): ?OfficialAgeGroup
