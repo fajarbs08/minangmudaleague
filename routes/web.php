@@ -36,6 +36,8 @@ Route::get('klub', [DashboardController::class, 'publicClubs'])->name('public.cl
 Route::get('sponsor', [DashboardController::class, 'publicSponsors'])->name('public.sponsors');
 Route::get('klub/{clubSlug}', [DashboardController::class, 'publicClubShow'])->name('public.clubs.show');
 Route::get('informasi', [DashboardController::class, 'publicInformation'])->name('public.information');
+Route::get('informasi/file/{informationResource}', [InformationResourceController::class, 'showFile'])->name('information-resources.file');
+Route::get('informasi/file/{informationResource}/unduh', [InformationResourceController::class, 'download'])->name('information-resources.download');
 Route::get('informasi/{resourceSlug}', [DashboardController::class, 'publicInformationShow'])->name('public.information.show');
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
@@ -52,7 +54,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         ->name('club-resources.index');
     Route::get('dashboard/pusat-informasi/{informationResource}/unduh', [InformationResourceController::class, 'download'])
         ->middleware('role:admin,club')
-        ->name('information-resources.download');
+        ->name('information-resources.download.legacy');
     Route::get('dashboard/panduan-admin-pdf', [DashboardController::class, 'adminManualPdf'])
         ->middleware('role:admin')
         ->name('dashboard.admin-manual-pdf');

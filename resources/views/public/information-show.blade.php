@@ -295,7 +295,7 @@
 
                                 <div class="d-flex flex-wrap gap-2 lap-resource-actions">
                                     <a href="{{ $resource->file_url }}" target="_blank" class="btn btn-primary">Buka File</a>
-                                    <a href="{{ $resource->file_url }}" target="_blank" download class="btn btn-light">Unduh File</a>
+                                    <a href="{{ $resource->download_url }}" class="btn btn-light">Unduh File</a>
                                     <button type="button" class="btn btn-light" data-copy-resource-link="{{ $resourcePageUrl }}">Copy Link</button>
                                     <a href="{{ route('public.information') }}" class="btn btn-light">Kembali ke Informasi</a>
                                 </div>
@@ -344,7 +344,7 @@
                             </div>
                             <ul class="list-none">
                                 <li><a href="{{ $resource->file_url }}" target="_blank"><i class="fal fa-angle-right"></i> Buka file</a></li>
-                                <li><a href="{{ $resource->file_url }}" target="_blank" download><i class="fal fa-angle-right"></i> Unduh file</a></li>
+                                <li><a href="{{ $resource->download_url }}"><i class="fal fa-angle-right"></i> Unduh file</a></li>
                                 <li><a href="{{ route('public.information', ['category' => $resource->category]) }}"><i class="fal fa-angle-right"></i> Lihat kategori serupa</a></li>
                                 <li><a href="{{ route('public.information') }}"><i class="fal fa-angle-right"></i> Semua informasi</a></li>
                             </ul>

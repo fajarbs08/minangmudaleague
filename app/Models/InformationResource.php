@@ -50,11 +50,12 @@ class InformationResource extends Model
 
     public function getFileUrlAttribute(): string
     {
-        if (app()->runningInConsole()) {
-            return Storage::disk('public')->url($this->file_path);
-        }
+        return route('information-resources.file', $this);
+    }
 
-        return url('/storage/'.ltrim($this->file_path, '/'));
+    public function getDownloadUrlAttribute(): string
+    {
+        return route('information-resources.download', $this);
     }
 
     public function getFileSizeBytesAttribute(): ?int

@@ -234,7 +234,7 @@
                                                         'attributes' => ['target' => '_blank'],
                                                     ])
                                                     @include('competition.partials.action-item', [
-                                                        'href' => route('information-resources.download', $item),
+                                                        'href' => $item->download_url,
                                                         'icon' => 'download',
                                                         'label' => 'Unduh',
                                                     ])

@@ -76,7 +76,7 @@
                         @endif
                         <div class="d-flex flex-wrap gap-2">
                             <a href="{{ $resource->file_url }}" target="_blank" class="btn btn-sm btn-light">Buka</a>
-                            <a href="{{ route('information-resources.download', $resource) }}" class="btn btn-sm btn-light">Download</a>
+                            <a href="{{ $resource->download_url }}" class="btn btn-sm btn-light">Download</a>
                         </div>
                     </div>
                 </div>

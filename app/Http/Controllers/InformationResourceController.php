@@ -6,6 +6,7 @@ use App\Models\InformationResource;
 use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InformationResourceController extends Controller
 {
@@ -113,8 +114,25 @@ class InformationResourceController extends Controller
         return redirect()->route('information-resources.index')->with('status', 'Dokumen pusat informasi berhasil dihapus.');
     }
 
-    public function download(InformationResource $informationResource)
+    public function showFile(InformationResource $informationResource): StreamedResponse
     {
+        $this->ensureResourceCanBeServed($informationResource);
+
+        return Storage::disk('public')->response(
+            $informationResource->file_path,
+            $informationResource->file_name,
+            [
+                'Content-Type' => $informationResource->file_mime ?: Storage::disk('public')->mimeType($informationResource->file_path),
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+            'inline'
+        );
+    }
+
+    public function download(InformationResource $informationResource): StreamedResponse
+    {
+        $this->ensureResourceCanBeServed($informationResource);
+
         return Storage::disk('public')->download($informationResource->file_path, $informationResource->file_name);
     }
 
@@ -180,5 +198,21 @@ class InformationResourceController extends Controller
             'is_published' => ['nullable', 'boolean'],
             'attachment' => [$isUpdate ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
         ]);
+    }
+
+    private function ensureResourceCanBeServed(InformationResource $informationResource): void
+    {
+        abort_if(blank($informationResource->file_path), 404);
+
+        $isPublicResource = $informationResource->is_published
+            && $informationResource->visibility === InformationResource::VISIBILITY_PUBLIC;
+
+        if (!$isPublicResource) {
+            $user = auth()->user();
+
+            abort_unless($user?->isAdmin() || $user?->isClubUser(), 404);
+        }
+
+        abort_unless(Storage::disk('public')->exists($informationResource->file_path), 404);
     }
 }
