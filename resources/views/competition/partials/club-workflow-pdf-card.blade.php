@@ -2,7 +2,7 @@
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <h4 class="card-title mb-1">Tahapan Registrasi Club</h4>
-            <p class="text-muted mb-0">Panduan alur registrasi dalam format PDF yang bisa dibuka langsung dari dashboard.</p>
+            <p class="text-muted mb-0">Panduan alur registrasi club dalam format PDF.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('dashboard.workflow-pdf') }}" target="_blank" class="btn btn-primary">

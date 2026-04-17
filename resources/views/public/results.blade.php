@@ -29,7 +29,7 @@
             @else
                 <div class="lap-summary-card">
                     <h3 class="section-title mb--20">Hasil belum tersedia</h3>
-                    <p class="lap-copy mb-0">Belum ada pertandingan selesai yang dipublikasikan.</p>
+                    <p class="lap-copy mb-0">Belum ada hasil pertandingan yang tersedia saat ini.</p>
                 </div>
             @endif
         </div>

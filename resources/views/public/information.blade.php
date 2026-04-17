@@ -607,7 +607,7 @@
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">Publikasi</span>
                 <h1 class="section-title">PUSAT INFORMASI</h1>
-                <p>Seluruh informasi di halaman ini ditarik langsung dari data yang dipublikasikan admin dan ditampilkan dengan format yang seragam dengan halaman publik lainnya.</p>
+                <p>Publikasi resmi kompetisi berisi panduan, dokumen, dan informasi penting bagi peserta dan publik.</p>
             </div>
 
             <div class="row g-4 mb-40">
@@ -697,7 +697,7 @@
                         @empty
                             <div class="lap-summary-card">
                                 <h3 class="section-title mb--20">Belum ada informasi publik</h3>
-                                <p class="lap-copy mb-0">Informasi resmi yang diterbitkan admin akan tampil di halaman ini.</p>
+                                <p class="lap-copy mb-0">Belum ada publikasi yang tersedia saat ini.</p>
                             </div>
                         @endforelse
                     </div>

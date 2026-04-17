@@ -173,7 +173,7 @@
                     <div class="col-12">
                         <div class="lap-summary-card">
                             <h3 class="section-title mb--20">Jadwal belum tersedia</h3>
-                            <p class="lap-copy mb-0">Belum ada pertandingan mendatang yang dipublikasikan dari dashboard.</p>
+                            <p class="lap-copy mb-0">Belum ada jadwal pertandingan yang tersedia saat ini.</p>
                         </div>
                     </div>
                 @endforelse

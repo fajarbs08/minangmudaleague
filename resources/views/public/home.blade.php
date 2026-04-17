@@ -400,7 +400,7 @@
                             <div class="section-title-area section-title-area1 text-start">
                                 <span class="pretitle">PORTAL</span>
                                 <h1 class="section-title"><span>TENTANG</span> <br> LIGA ANAK PIAMAN LAWEH</h1>
-                                <p>Portal publik kompetisi yang menampilkan jadwal pertandingan, hasil laga, klasemen, daftar klub, serta informasi resmi yang dipublikasikan oleh panitia.</p>
+                                <p>Portal resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil laga, klasemen, daftar klub, dan informasi kompetisi.</p>
                             </div>
                             <ul>
                                 <li class="player">
@@ -428,7 +428,7 @@
         <div class="container">
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">SPONSOR</span>
-                <h1 class="section-title">HAPPY SPONSORS</h1>
+                <h1 class="section-title">SPONSOR RESMI</h1>
                 <p>Terima kasih untuk sponsor yang mendukung kompetisi. Klik logo untuk melihat info sponsor.</p>
             </div>
             @if ($homeSponsorSlides->isNotEmpty())
@@ -460,7 +460,7 @@
                 </div>
             @else
                 <div class="lap-home-sponsor-note text-center">
-                    <p class="mb-0">Logo sponsor akan tampil otomatis di homepage setelah sponsor dipublish dari dashboard.</p>
+                    <p class="mb-0">Daftar sponsor akan diumumkan segera.</p>
                 </div>
             @endif
         </div>
@@ -563,7 +563,7 @@
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">INSIGHTS</span>
                 <h1 class="section-title">INFORMASI TERBARU</h1>
-                <p>Ringkasan informasi yang dipublikasikan oleh panitia untuk publik.</p>
+                <p>Ringkasan informasi dan publikasi terbaru seputar kompetisi.</p>
             </div>
             <div class="blog-area">
                 <div class="row">

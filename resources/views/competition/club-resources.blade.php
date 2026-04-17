@@ -6,7 +6,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h4 class="mb-1">Pusat Informasi Club</h4>
-                <p class="text-muted mb-0">Halaman ini menampilkan dokumen untuk club, termasuk yang khusus internal club dan yang juga boleh dilihat publik.</p>
+                <p class="text-muted mb-0">Dokumen resmi untuk kebutuhan registrasi dan operasional club.</p>
             </div>
         </div>
     </div>

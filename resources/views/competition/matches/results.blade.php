@@ -64,7 +64,7 @@
             </ol>
         </nav>
         <h4 class="mb-1">Hasil Pertandingan</h4>
-        <p class="text-muted mb-0">Halaman ini mengambil daftar pertandingan dari jadwal yang sudah dibuat admin.</p>
+        <p class="text-muted mb-0">Kelola hasil laga untuk pertandingan yang sudah terjadwal.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a
@@ -148,7 +148,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title mb-1">Klasemen {{ $standing['age_group']?->name ?: '-' }}</h4>
-                        <p class="text-muted mb-0">Terhitung otomatis dari pertandingan format liga yang sudah selesai.</p>
+                        <p class="text-muted mb-0">Disusun dari hasil pertandingan liga yang telah selesai.</p>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive competition-table-wrap">
@@ -199,7 +199,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title mb-1">Bracket {{ $bracket['age_group']?->name ?: '-' }}</h4>
-                        <p class="text-muted mb-0">Jalur pertandingan otomatis untuk format knockout berdasarkan babak dan urutan bracket.</p>
+                        <p class="text-muted mb-0">Jalur pertandingan knockout berdasarkan babak dan urutan bracket.</p>
                     </div>
                     <div class="card-body">
                         <div class="knockout-bracket">

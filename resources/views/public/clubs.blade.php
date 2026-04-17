@@ -277,7 +277,7 @@
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">KLUB</span>
                 <h1 class="section-title">KLUB PESERTA</h1>
-                <p>Daftar klub peserta yang telah terdaftar dalam kompetisi ditampilkan pada halaman ini untuk memudahkan publik melihat tim yang berpartisipasi.</p>
+                <p>Daftar klub peserta resmi Liga Anak Piaman Laweh.</p>
             </div>
             @if ($clubSlides->isNotEmpty())
                 <div class="sponsors-section-inner">
@@ -311,7 +311,7 @@
             @else
                 <div class="lap-summary-card">
                     <h3 class="section-title mb--20">Klub belum tersedia</h3>
-                    <p class="lap-copy mb-0">Belum ada klub peserta yang dapat ditampilkan pada halaman ini.</p>
+                    <p class="lap-copy mb-0">Belum ada klub peserta yang diumumkan saat ini.</p>
                 </div>
             @endif
         </div>

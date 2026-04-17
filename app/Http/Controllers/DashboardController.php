@@ -535,11 +535,11 @@ class DashboardController extends Controller
             'upcomingResources' => [
                 [
                     'label' => 'Rules Kompetisi',
-                    'description' => 'Slot dokumen rules/ketentuan pertandingan. Bisa dihubungkan ke file resmi saat sudah tersedia.',
+                    'description' => 'Ketentuan dan regulasi resmi kompetisi.',
                 ],
                 [
                     'label' => 'Dokumen Tambahan',
-                    'description' => 'Area untuk file briefing teknis, jadwal teknikal meeting, atau lampiran informasi lain.',
+                    'description' => 'Dokumen briefing teknis, jadwal teknikal meeting, dan lampiran pendukung lainnya.',
                 ],
             ],
         ]);
@@ -678,7 +678,7 @@ class DashboardController extends Controller
                         'Bila item rejected masih bisa diedit oleh sistem atau oleh arahan admin, club harus memperbaiki seluruh kekurangan, bukan hanya satu bagian yang paling terlihat, lalu ajukan ulang hanya setelah seluruh syarat benar-benar terpenuhi.',
                         'Jika penolakan terjadi karena dokumen tidak jelas, dokumen salah, data identitas tidak cocok, kelompok usia tidak sesuai, roster DSP tidak memenuhi aturan, atau informasi penting kosong, maka semua sumber masalah itu harus dibereskan sebelum mencoba mengajukan ulang.',
                         'Club tidak boleh menganggap approved berarti pekerjaan selesai total. Semua modul yang masih draft, submitted, revision, atau rejected tetap harus dipantau sampai seluruh kebutuhan kompetisi berstatus diterima.',
-                        'Dari dashboard dan modul detail, club juga dapat membuka atau mengunduh PDF ini, melihat status verifikasi, dan mengakses keluaran seperti ID Card pemain atau official serta lembar DSP.',
+                        'Club juga dapat membuka atau mengunduh PDF ini sebagai referensi selama proses verifikasi dan administrasi pertandingan.',
                     ],
                     'result' => 'Workflow dianggap selesai saat seluruh data yang diperlukan berstatus Diterima.',
                     'accent' => '#b5179e',

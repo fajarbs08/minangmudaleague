@@ -513,7 +513,7 @@
                     <div class="standings-overview-card">
                         <span class="standings-overview-label">Grup Liga</span>
                         <h3 class="standings-overview-value">{{ $leagueGroupCount }}</h3>
-                        <p class="standings-overview-copy">Klasemen otomatis dari pertandingan liga yang sudah selesai.</p>
+                        <p class="standings-overview-copy">Klasemen berdasarkan pertandingan liga yang telah selesai.</p>
                     </div>
                     <div class="standings-overview-card">
                         <span class="standings-overview-label">Bracket Knockout</span>

@@ -1104,7 +1104,7 @@
                             <h3 class="footer-widget-title"><span class="decorator"></span> KONTAK</h3>
                             <ul>
                                 <li class="widget-list-item"><i class="fas fa-envelope-open"></i><span>admin@ligaanakpiamanlaweh.local</span></li>
-                                <li class="widget-list-item"><i class="fas fa-phone"></i><span>Portal kompetisi internal</span></li>
+                                <li class="widget-list-item"><i class="fas fa-bullhorn"></i><span>Informasi resmi kompetisi</span></li>
                                 <li class="widget-list-item"><i class="fas fa-map-marker-alt"></i><span>Ligа Anak Piaman Laweh</span></li>
                             </ul>
                         </div>

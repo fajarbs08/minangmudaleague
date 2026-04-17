@@ -270,7 +270,7 @@
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">SPONSOR</span>
                 <h1 class="section-title">MITRA KOMPETISI</h1>
-                <p>Halaman sponsor menampilkan mitra pendukung kompetisi. Template visualnya mereuse halaman klub agar konsisten dengan identitas publik situs.</p>
+                <p>Mitra resmi yang mendukung penyelenggaraan Liga Anak Piaman Laweh.</p>
             </div>
             @if ($sponsorSlides->isNotEmpty())
                 <div class="sponsors-section-inner">
@@ -301,7 +301,7 @@
             @else
                 <div class="lap-summary-card">
                     <h3 class="section-title mb--20">Sponsor belum tersedia</h3>
-                    <p class="lap-copy mb-0">Belum ada sponsor yang dapat ditampilkan pada halaman ini.</p>
+                    <p class="lap-copy mb-0">Belum ada sponsor yang diumumkan saat ini.</p>
                 </div>
             @endif
         </div>

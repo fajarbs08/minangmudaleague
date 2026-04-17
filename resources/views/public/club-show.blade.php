@@ -193,7 +193,7 @@
                     <span class="pretitle">TEAM PROFILE</span>
                     <h1 class="section-title">{{ strtoupper($club->name) }}</h1>
                     <p class="desc">
-                        {{ $club->notes ?: 'Halaman ini menampilkan profil klub, daftar pemain terverifikasi, official aktif, dan pertandingan terbaru berdasarkan data yang tersedia di sistem kompetisi.' }}
+                        {{ $club->notes ?: 'Profil resmi klub beserta pemain terverifikasi, official aktif, dan pertandingan terbaru.' }}
                     </p>
                 </div>
                 <div class="lap-club-meta">
