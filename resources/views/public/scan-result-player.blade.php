@@ -13,11 +13,11 @@
     <meta property="og:title" content="{{ $title }}">
     <meta property="og:description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ $player->photo_file_url ?: asset('og-default.png') }}">
+    <meta property="og:image" content="{{ $player->photo_file_url ?: asset('og-share-card.jpg') }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $title }}">
     <meta name="twitter:description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
-    <meta name="twitter:image" content="{{ $player->photo_file_url ?: asset('og-default.png') }}">
+    <meta name="twitter:image" content="{{ $player->photo_file_url ?: asset('og-share-card.jpg') }}">
     <style>
         :root {
             --bg: #f8fafc;

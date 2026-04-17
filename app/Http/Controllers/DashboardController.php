@@ -134,7 +134,7 @@ class DashboardController extends Controller
             'clubRecentMatches' => $clubMatches,
             'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
             'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, official, dan riwayat pertandingan terbaru.',
-            'seoImage' => $this->normalizeAbsoluteUrl(asset('og-default.png')),
+            'seoImage' => $this->defaultSeoImageUrl(),
         ]));
     }
 
@@ -241,7 +241,7 @@ class DashboardController extends Controller
             'resourcePageUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
             'seoTitle' => $resource->title.' | Liga Anak Piaman Laweh',
             'seoDescription' => Str::limit($resource->description ?: 'Dokumen resmi yang dipublikasikan melalui pusat informasi Liga Anak Piaman Laweh.', 155),
-            'seoImage' => $this->normalizeAbsoluteUrl(asset('og-default.png')),
+            'seoImage' => $this->defaultSeoImageUrl(),
             'seoType' => 'article',
             'seoUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
         ]));
@@ -472,7 +472,7 @@ class DashboardController extends Controller
 
         $data['seoTitle'] = $data['seoTitle'] ?? $defaultSeoTitle;
         $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk informasi kompetisi, jadwal, hasil pertandingan, klasemen, dan data klub peserta.';
-        $data['seoImage'] = $data['seoImage'] ?? $this->normalizeAbsoluteUrl(asset('og-default.png'));
+        $data['seoImage'] = $data['seoImage'] ?? $this->defaultSeoImageUrl();
         $data['seoUrl'] = $data['seoUrl'] ?? $this->normalizeAbsoluteUrl(url()->current());
         $data['seoType'] = $data['seoType'] ?? 'website';
         $data['seoRobots'] = $data['seoRobots'] ?? 'index,follow';
@@ -487,6 +487,11 @@ class DashboardController extends Controller
         }
 
         return preg_replace('/^http:/i', 'https:', $url) ?: $url;
+    }
+
+    private function defaultSeoImageUrl(): string
+    {
+        return $this->normalizeAbsoluteUrl(asset('og-share-card.jpg'));
     }
 
     private function shouldForceHttpsUrls(): bool

@@ -4,7 +4,8 @@
     $resolvedTitle = $seoTitle ?? (($title ?? config('app.name')).' | '.config('app.name'));
     $resolvedDescription = $seoDescription ?? ('Sistem administrasi '.config('app.name').'.');
     $resolvedUrl = $seoUrl ?? url()->current();
-    $resolvedImage = $seoImage ?? asset('og-default.png');
+    $resolvedImage = $seoImage ?? asset('og-share-card.jpg');
+    $resolvedImageType = str_ends_with(strtolower(parse_url($resolvedImage, PHP_URL_PATH) ?: ''), '.png') ? 'image/png' : 'image/jpeg';
     $resolvedRobots = $seoRobots ?? 'noindex,nofollow';
     $resolvedType = $seoType ?? 'website';
 @endphp
@@ -23,6 +24,7 @@
 <meta property="og:url" content="{{ $resolvedUrl }}" />
 <meta property="og:image" content="{{ $resolvedImage }}" />
 <meta property="og:image:secure_url" content="{{ $resolvedImage }}" />
+<meta property="og:image:type" content="{{ $resolvedImageType }}" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="{{ $resolvedTitle }}" />

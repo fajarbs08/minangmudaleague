@@ -14,15 +14,20 @@
     <meta property="og:title" content="{{ $seoTitle ?? $title }}">
     <meta property="og:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
     <meta property="og:url" content="{{ $seoUrl ?? url()->current() }}">
-    <meta property="og:image" content="{{ $seoImage ?? asset('og-default.png') }}">
-    <meta property="og:image:secure_url" content="{{ $seoImage ?? asset('og-default.png') }}">
+    @php
+        $resolvedSeoImage = $seoImage ?? asset('og-share-card.jpg');
+        $resolvedSeoImageType = str_ends_with(strtolower(parse_url($resolvedSeoImage, PHP_URL_PATH) ?: ''), '.png') ? 'image/png' : 'image/jpeg';
+    @endphp
+    <meta property="og:image" content="{{ $resolvedSeoImage }}">
+    <meta property="og:image:secure_url" content="{{ $resolvedSeoImage }}">
+    <meta property="og:image:type" content="{{ $resolvedSeoImageType }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{{ $seoTitle ?? $title }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seoTitle ?? $title }}">
     <meta name="twitter:description" content="{{ $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.' }}">
-    <meta name="twitter:image" content="{{ $seoImage ?? asset('og-default.png') }}">
+    <meta name="twitter:image" content="{{ $resolvedSeoImage }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
