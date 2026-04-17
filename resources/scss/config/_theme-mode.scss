@@ -50,7 +50,7 @@ html[data-bs-theme="dark"],
 html.sidebar-light{
     --#{$prefix}main-nav-bg:                               #ffffff;
     --#{$prefix}main-menu-item-color:                       #5a5b70;
-    --#{$prefix}main-menu-item-hover-bg:                    #f3f1fa;
+    --#{$prefix}main-menu-item-hover-bg:                    rgba(228, 27, 35, 0.08);
     --#{$prefix}main-menu-item-hover-color:                  #{$primary};
     --#{$prefix}main-nav-border-color:                     #eaedf1;
 }
@@ -87,7 +87,7 @@ html.topbar-light {
 
 /* Topbar Dark */
 html.topbar-dark {
-    --#{$prefix}topbar-bg:                                 #22b956;
+    --#{$prefix}topbar-bg:                                 #0e1013;
     --#{$prefix}topbar-item-color:                         #e9ebf0;
     --#{$prefix}topbar-search-bg:                          transparent;
 }

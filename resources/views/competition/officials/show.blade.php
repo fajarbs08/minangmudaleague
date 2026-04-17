@@ -13,6 +13,12 @@
                 <span>Edit</span>
             </a>
         @endif
+        @if ($official->ageRegistrations->isNotEmpty())
+            <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                <i data-lucide="id-card" class="fs-14"></i>
+                <span>ID Card</span>
+            </a>
+        @endif
         <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
             <i data-lucide="arrow-left" class="fs-14"></i>
             <span>Kembali</span>
@@ -90,26 +96,27 @@
                                     <td>{{ optional($registration->status_date)->format('d M Y H:i') ?: '-' }}</td>
                                     <td>{{ $registration->notes ?: '-' }}</td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            <a href="{{ route('officials.edit', $official) }}#age-registrations" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
+                                        <div class="d-flex gap-1">
+                                            <a
+                                                href="{{ route('officials.edit', $official) }}#age-registrations"
+                                                class="btn btn-sm btn-outline-primary px-2"
+                                                title="Edit kelompok usia"
+                                                aria-label="Edit kelompok usia"
+                                            >
                                                 <i data-lucide="square-pen" class="fs-14"></i>
-                                                <span>Edit</span>
                                             </a>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-danger js-delete-official-age d-inline-flex align-items-center gap-2"
+                                                class="btn btn-sm btn-danger js-delete-official-age px-2"
+                                                title="Hapus kelompok usia"
+                                                aria-label="Hapus kelompok usia"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#deleteOfficialAgeModal"
                                                 data-action="{{ route('officials.age-registrations.destroy', [$official, $registration->age_group_id]) }}"
                                                 data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
                                             >
                                                 <i data-lucide="trash-2" class="fs-14"></i>
-                                                <span>Hapus</span>
                                             </button>
-                                            <a class="btn btn-sm btn-success d-inline-flex align-items-center gap-2" target="_blank" href="{{ route('officials.id-card', [$official, $registration->age_group_id]) }}">
-                                                <i data-lucide="id-card" class="fs-14"></i>
-                                                <span>Preview Card</span>
-                                            </a>
                                         </div>
                                     </td>
                                 </tr>

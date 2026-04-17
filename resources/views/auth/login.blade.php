@@ -6,10 +6,10 @@
           <div class="card-body">
                <div class="p-3">
                     <div class="mx-auto mb-5 auth-logo text-center">
-                         <a class="logo-dark" href="{{ route('login') }}">
+                         <a class="logo-dark" href="{{ route('public.home') }}">
                               <img alt="{{ config('app.name') }}" class="img-fluid" src="/images/logo-full-transparent.png" style="width: 220px; height: auto;" />
                          </a>
-                         <a class="logo-light" href="{{ route('login') }}">
+                         <a class="logo-light" href="{{ route('public.home') }}">
                               <img alt="{{ config('app.name') }}" class="img-fluid" src="/images/logo-full-transparent.png" style="width: 220px; height: auto;" />
                          </a>
                     </div>
@@ -52,6 +52,11 @@
                               </div>
                               <div class="text-center d-grid">
                                    <button class="btn btn-primary d-flex align-items-center justify-content-center gap-1 fw-medium" type="submit"><i class="fs-18" data-lucide="log-in"></i> Sign In</button>
+                              </div>
+                              <div class="text-center mt-3">
+                                   <a class="text-muted text-decoration-none" href="{{ route('public.home') }}">
+                                        &larr; Kembali ke beranda
+                                   </a>
                               </div>
                          </form>
                     </div>

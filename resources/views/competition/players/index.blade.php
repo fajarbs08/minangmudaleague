@@ -288,6 +288,13 @@
                 </thead>
                 <tbody>
                     @forelse ($players as $player)
+                        @php
+                            $initials = collect(explode(' ', trim($player->name)))
+                                ->filter()
+                                ->take(2)
+                                ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+                                ->implode('');
+                        @endphp
                         <tr>
                             @if (auth()->user()->isAdmin())
                             <td class="text-center">
@@ -295,10 +302,48 @@
                             </td>
                             @endif
                             <td>
-                                <div class="fw-semibold">{{ $player->name }}</div>
-                                <div class="text-muted small">{{ $player->school_name ?: '-' }}</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    @if ($player->photo_file_url)
+                                        <img
+                                            src="{{ $player->photo_file_url }}"
+                                            alt="{{ $player->name }}"
+                                            class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
+                                            width="36"
+                                            height="36"
+                                        >
+                                    @else
+                                        <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold flex-shrink-0">
+                                            {{ $initials ?: 'PL' }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="fw-semibold">{{ $player->name }}</div>
+                                        <div class="text-muted small">{{ $player->school_name ?: '-' }}</div>
+                                    </div>
+                                </div>
                             </td>
-                            <td>{{ $player->club?->name }}</td>
+                            <td>
+                                @if ($player->club)
+                                    <div class="d-flex align-items-center gap-3">
+                                        @if ($player->club->logo_file_url)
+                                            <img
+                                                src="{{ $player->club->logo_file_url }}"
+                                                alt="{{ $player->club->name }}"
+                                                class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
+                                                width="36"
+                                                height="36"
+                                            >
+                                        @else
+                                            <div class="avatar-sm bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0">
+                                                <i data-lucide="flag" class="fs-18"></i>
+                                            </div>
+                                        @endif
+                                        <div class="fw-medium">{{ $player->club->name }}</div>
+                                    </div>
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td>{{ $player->registrationForAgeGroup($selectedAgeGroupId)?->ageGroup?->name ?: $player->primaryAgeGroup?->name ?: '-' }}</td>
                             <td>{{ $player->displayPosition($selectedAgeGroupId) ?: '-' }}</td>
                             <td>{{ $player->displayJerseyNumber($selectedAgeGroupId) ?: '-' }}</td>

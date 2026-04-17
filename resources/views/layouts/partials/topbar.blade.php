@@ -145,6 +145,12 @@
                          </div>
                     </div>
 
+                    @php
+                         $contextSwitchUrl = request()->routeIs('public.*') ? route('dashboard.home') : route('public.home');
+                         $contextSwitchLabel = request()->routeIs('public.*') ? 'Dashboard' : 'Beranda';
+                         $contextSwitchIcon = request()->routeIs('public.*') ? 'layout-dashboard' : 'house';
+                    @endphp
+
                     <!-- User -->
                     <div class="dropdown topbar-item topbar-user-dropdown">
                          <a type="button" class="topbar-button p-0" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -152,7 +158,7 @@
                                    @if ($currentUser->profile_avatar_url)
                                         <img class="rounded-circle object-fit-cover" width="32" height="32" src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}">
                                    @else
-                                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold text-white" style="width: 32px; height: 32px; background: #1d4ed8; font-size: 12px;">
+                                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold text-white" style="width: 32px; height: 32px; background: var(--bs-primary); font-size: 12px;">
                                              {{ $currentUser->profile_initials }}
                                         </span>
                                    @endif
@@ -163,6 +169,10 @@
                               </span>
                          </a>
                          <div class="dropdown-menu dropdown-menu-end topbar-user-menu">
+                              <a class="dropdown-item" href="{{ $contextSwitchUrl }}">
+                                   <i data-lucide="{{ $contextSwitchIcon }}" class="fs-16 text-muted align-middle me-2"></i><span class="align-middle">{{ $contextSwitchLabel }}</span>
+                              </a>
+                              <div class="dropdown-divider"></div>
 
                               <form method="POST" action="{{ route('logout') }}">
                                    @csrf

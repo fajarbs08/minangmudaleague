@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\Club;
+use App\Services\ClubLogoService;
+use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -11,6 +13,13 @@ use Illuminate\Validation\ValidationException;
 class ClubController extends Controller
 {
     use HandlesVerificationWorkflow;
+
+    public function __construct(
+        private ClubLogoService $clubLogoService,
+        private ImageAssetService $imageAssetService
+    )
+    {
+    }
 
     public function index(Request $request)
     {
@@ -158,15 +167,19 @@ class ClubController extends Controller
         $this->authorizeClub($club);
         abort_unless(auth()->user()->isAdmin() || $club->canBeEditedByClub(), 422);
 
-        if ($request->hasFile('logo_file') && $club->logo_url && !str_starts_with($club->logo_url, 'http')) {
-            Storage::disk('public')->delete($club->logo_url);
+        $oldLogoPath = $club->logo_url;
+        $oldStatementPath = $club->statement_file_path;
+        $data = $this->validatedData($request);
+
+        $club->update($data);
+
+        if (array_key_exists('logo_url', $data) && $oldLogoPath && !str_starts_with($oldLogoPath, 'http')) {
+            Storage::disk('public')->delete($oldLogoPath);
         }
 
-        if ($request->hasFile('statement_file') && $club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
-            Storage::disk('public')->delete($club->statement_file_path);
+        if (array_key_exists('statement_file_path', $data) && $oldStatementPath && !str_starts_with($oldStatementPath, 'http')) {
+            Storage::disk('public')->delete($oldStatementPath);
         }
-
-        $club->update($this->validatedData($request));
 
         return redirect()->route('clubs.index')->with('status', 'Data klub berhasil diperbarui.');
     }
@@ -218,19 +231,19 @@ class ClubController extends Controller
             'manager_title' => ['required', 'string', 'max:255'],
             'zone' => ['nullable', 'string', 'max:255'],
             'founded_year' => ['nullable', 'integer', 'min:1900', 'max:'.date('Y')],
-            'logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'statement_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:4096'],
+            'logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072', 'dimensions:min_width=120,min_height=120'],
+            'statement_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
             'address' => ['nullable', 'string'],
             'training_address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
         ]);
 
         if ($request->hasFile('logo_file')) {
-            $data['logo_url'] = $request->file('logo_file')->store('club-logos', 'public');
+            $data['logo_url'] = $this->clubLogoService->storeNormalized($request->file('logo_file'));
         }
 
         if ($request->hasFile('statement_file')) {
-            $data['statement_file_path'] = $request->file('statement_file')->store('clubs/statements', 'public');
+            $data['statement_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('statement_file'), 'clubs/statements');
         }
 
         unset($data['logo_file'], $data['statement_file']);

@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\AgeGroup;
 use App\Models\Club;
+use App\Models\InformationResource;
 use App\Models\LineupList;
+use App\Models\MatchGoal;
 use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\OfficialAgeGroup;
@@ -128,6 +130,8 @@ class DatabaseSeeder extends Seeder
         $this->seedOfficials($admin, $garuda, $elang, $rajawali);
         $this->seedPlayers($admin, $u12, $u14, $u16, $garuda, $elang, $rajawali);
         $this->seedLineups($admin, $u12, $u14, $u16, $garuda, $elang, $rajawali);
+        $this->ensureDemoValidity($admin, collect([$garuda, $elang, $rajawali]));
+        $this->seedInformationResources($admin);
     }
 
     private function cleanupLegacyDemoData(): void
@@ -784,6 +788,314 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 
+    private function seedInformationResources(User $admin): void
+    {
+        $items = [
+            [
+                'title' => 'Panduan Dashboard Club',
+                'category' => 'manual',
+                'description' => 'Tangkapan layar annotated untuk membantu admin dan klub memahami halaman dashboard utama.',
+                'source_path' => public_path('workflow-screens/dashboard-annotated.png'),
+                'visibility' => InformationResource::VISIBILITY_PUBLIC,
+                'sort_order' => 1,
+                'is_pinned' => true,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Panduan Registrasi Official',
+                'category' => 'manual',
+                'description' => 'Panduan visual untuk pengisian data official dan alur unggah dokumen verifikasi.',
+                'source_path' => public_path('workflow-screens/official-create-annotated.png'),
+                'visibility' => InformationResource::VISIBILITY_CLUB,
+                'sort_order' => 2,
+                'is_pinned' => true,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Regulasi Pendaftaran Liga',
+                'category' => 'rules',
+                'description' => 'Ringkasan ketentuan administrasi pendaftaran klub, official, pemain, dan jadwal verifikasi.',
+                'source_path' => storage_path('app/public/demo-documents/liga-topskor-rules.pdf'),
+                'visibility' => InformationResource::VISIBILITY_PUBLIC,
+                'sort_order' => 3,
+                'is_pinned' => false,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Template Surat Pernyataan Klub',
+                'category' => 'template',
+                'description' => 'Template surat pernyataan yang dapat diunduh lalu disesuaikan oleh masing-masing klub peserta.',
+                'source_path' => public_path('documents/surat_pernyataan_liga_piaman_laweh_final.pdf'),
+                'visibility' => InformationResource::VISIBILITY_CLUB,
+                'sort_order' => 4,
+                'is_pinned' => false,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Alur Verifikasi Dokumen',
+                'category' => 'flow',
+                'description' => 'Diagram alur proses verifikasi dokumen dari draft sampai disetujui admin.',
+                'source_path' => public_path('workflow-screens/submit-annotated.png'),
+                'visibility' => InformationResource::VISIBILITY_PUBLIC,
+                'sort_order' => 5,
+                'is_pinned' => false,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Contoh DSP Garuda Muda U12',
+                'category' => 'other',
+                'description' => 'Contoh berkas DSP yang sudah tersedia di sistem untuk kebutuhan tampilan dan unduhan.',
+                'source_path' => storage_path('app/public/demo-documents/garuda-u12-pekan-1.pdf'),
+                'visibility' => InformationResource::VISIBILITY_CLUB,
+                'sort_order' => 6,
+                'is_pinned' => false,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Surat Pernyataan Garuda Muda FC',
+                'category' => 'template',
+                'description' => 'Contoh surat pernyataan klub yang sudah tersedia di storage aplikasi.',
+                'source_path' => storage_path('app/public/demo-documents/garuda-statement.pdf'),
+                'visibility' => InformationResource::VISIBILITY_CLUB,
+                'sort_order' => 7,
+                'is_pinned' => false,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Akta Pendirian Elang Nusantara',
+                'category' => 'other',
+                'description' => 'Contoh dokumen legal klub untuk pengujian pusat informasi.',
+                'source_path' => storage_path('app/public/demo-documents/elang-deed.pdf'),
+                'visibility' => InformationResource::VISIBILITY_CLUB,
+                'sort_order' => 8,
+                'is_pinned' => false,
+                'is_published' => false,
+            ],
+        ];
+
+        foreach ($items as $item) {
+            $asset = $this->seedInformationResourceAsset(
+                $item['source_path'],
+                $item['title']
+            );
+
+            $this->upsertInformationResource(
+                ['title' => $item['title']],
+                [
+                    'category' => $item['category'],
+                    'description' => $item['description'],
+                    'file_path' => $asset['file_path'],
+                    'file_name' => $asset['file_name'],
+                    'file_mime' => $asset['file_mime'],
+                    'visibility' => $item['visibility'],
+                    'sort_order' => $item['sort_order'],
+                    'is_pinned' => $item['is_pinned'],
+                    'is_published' => $item['is_published'],
+                    'created_by' => $admin->id,
+                ]
+            );
+        }
+    }
+
+    private function ensureDemoValidity(User $admin, \Illuminate\Support\Collection $clubs): void
+    {
+        $approvedAt = now()->subDays(2);
+
+        foreach ($clubs as $club) {
+            $club->forceFill([
+                'verification_status' => Club::STATUS_APPROVED,
+                'verification_notes' => 'Data klub demo valid dan siap dipakai untuk pengujian.',
+                'submitted_at' => $club->submitted_at ?: now()->subDays(5),
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => $approvedAt,
+                'notes' => 'Data klub demo valid untuk pengujian fitur kompetisi.',
+            ])->save();
+        }
+
+        Official::query()->update([
+            'verification_status' => Official::STATUS_APPROVED,
+            'verification_notes' => 'Official demo valid dan sudah diverifikasi.',
+            'submitted_at' => now()->subDays(4),
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => $approvedAt,
+            'notes' => 'Official demo valid untuk pengujian.',
+        ]);
+
+        OfficialAgeGroup::query()->update([
+            'registration_status' => Official::STATUS_APPROVED,
+            'status_date' => $approvedAt,
+        ]);
+
+        Player::query()->update([
+            'verification_status' => Player::STATUS_APPROVED,
+            'verification_notes' => 'Pemain demo valid dan sudah diverifikasi.',
+            'submitted_at' => now()->subDays(4),
+            'reviewed_at' => $approvedAt,
+            'notes' => 'Pemain demo valid untuk roster kompetisi.',
+        ]);
+
+        PlayerAgeGroup::query()->update([
+            'registration_status' => Player::STATUS_APPROVED,
+            'status_date' => $approvedAt,
+        ]);
+
+        $lineups = LineupList::query()->with(['club', 'ageGroup'])->get();
+
+        foreach ($lineups as $lineup) {
+            $lineup->forceFill([
+                'verification_status' => LineupList::STATUS_APPROVED,
+                'verification_notes' => 'DSP demo valid dan siap digunakan.',
+                'submitted_at' => now()->subDays(3),
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => $approvedAt,
+                'notes' => 'DSP demo valid untuk pengujian.',
+            ])->save();
+
+            $this->syncLineupPlayers($lineup, $this->buildValidLineupEntries($lineup->club_id, $lineup->age_group_id));
+        }
+
+        InformationResource::query()->update([
+            'is_published' => true,
+        ]);
+
+        $this->seedFinishedMatchesAndGoals();
+    }
+
+    private function buildValidLineupEntries(int $clubId, ?int $ageGroupId): array
+    {
+        $players = Player::query()
+            ->where('club_id', $clubId)
+            ->where('primary_age_group_id', $ageGroupId)
+            ->where('verification_status', Player::STATUS_APPROVED)
+            ->orderBy('jersey_number')
+            ->get();
+
+        $entries = [];
+
+        foreach ($players->take(LineupList::REQUIRED_STARTERS) as $player) {
+            $entries[] = [
+                'player' => $player,
+                'role' => LineupList::ROLE_STARTER,
+            ];
+        }
+
+        foreach ($players->slice(LineupList::REQUIRED_STARTERS, LineupList::MAX_SUBSTITUTES) as $player) {
+            $entries[] = [
+                'player' => $player,
+                'role' => LineupList::ROLE_SUBSTITUTE,
+            ];
+        }
+
+        return $entries;
+    }
+
+    private function seedFinishedMatchesAndGoals(): void
+    {
+        MatchGoal::query()->delete();
+
+        $matches = MatchSchedule::query()
+            ->with(['clubA', 'clubB', 'ageGroup'])
+            ->orderBy('age_group_id')
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time')
+            ->get()
+            ->values();
+
+        $resultPlans = [
+            [
+                'match_index' => 0,
+                'date' => now()->subDays(12)->toDateString(),
+                'score_a' => 2,
+                'score_b' => 1,
+                'goals' => [
+                    ['club_short' => 'GMF', 'scorer' => 'Adit Nugraha', 'assist' => 'Alif Ramdani'],
+                    ['club_short' => 'GMF', 'scorer' => 'Farel Saputro', 'assist' => 'Rasyid Akbar'],
+                    ['club_short' => 'ELANG', 'scorer' => 'Farhan Maulana', 'assist' => 'Bagas Praditya'],
+                ],
+            ],
+            [
+                'match_index' => 1,
+                'date' => now()->subDays(9)->toDateString(),
+                'score_a' => 1,
+                'score_b' => 1,
+                'goals' => [
+                    ['club_short' => 'ELANG', 'scorer' => 'Farhan Maulana', 'assist' => 'Fauzan Ilham'],
+                    ['club_short' => 'RJC', 'scorer' => 'Naufal Pradana', 'assist' => 'Keenan Ramadhan'],
+                ],
+            ],
+            [
+                'match_index' => 3,
+                'date' => now()->subDays(6)->toDateString(),
+                'score_a' => 3,
+                'score_b' => 1,
+                'goals' => [
+                    ['club_short' => 'RJC', 'scorer' => 'Naufal Pradana', 'assist' => 'Aqil Fadhil'],
+                    ['club_short' => 'RJC', 'scorer' => 'Keenan Ramadhan', 'assist' => 'Dzaky Pramudita'],
+                    ['club_short' => 'GMF', 'scorer' => 'Adit Nugraha', 'assist' => 'Farel Saputro'],
+                    ['club_short' => 'RJC', 'scorer' => 'Ravin Prasetya', 'assist' => null],
+                ],
+            ],
+        ];
+
+        foreach ($matches as $index => $match) {
+            $plan = collect($resultPlans)->firstWhere('match_index', $index);
+
+            if ($plan) {
+                $match->forceFill([
+                    'competition_format' => MatchSchedule::FORMAT_LEAGUE,
+                    'round_label' => null,
+                    'round_order' => null,
+                    'bracket_slot' => null,
+                    'match_date' => $plan['date'],
+                    'score_club_a' => $plan['score_a'],
+                    'score_club_b' => $plan['score_b'],
+                    'is_finished' => true,
+                ])->save();
+
+                foreach ($plan['goals'] as $order => $goal) {
+                    $club = collect([$match->clubA, $match->clubB])
+                        ->first(fn (?Club $club) => $club && $club->short_name === $goal['club_short']);
+
+                    $scorer = Player::query()
+                        ->where('club_id', $club?->id)
+                        ->where('name', $goal['scorer'])
+                        ->first();
+
+                    $assist = filled($goal['assist'])
+                        ? Player::query()
+                            ->where('club_id', $club?->id)
+                            ->where('name', $goal['assist'])
+                            ->first()
+                        : null;
+
+                    if (!$club || !$scorer) {
+                        continue;
+                    }
+
+                    MatchGoal::create([
+                        'match_id' => $match->id,
+                        'club_id' => $club->id,
+                        'player_id' => $scorer->id,
+                        'assist_player_id' => $assist?->id,
+                        'display_order' => $order + 1,
+                    ]);
+                }
+
+                continue;
+            }
+
+            $match->forceFill([
+                'competition_format' => MatchSchedule::FORMAT_LEAGUE,
+                'round_label' => null,
+                'round_order' => null,
+                'bracket_slot' => null,
+                'score_club_a' => null,
+                'score_club_b' => null,
+                'is_finished' => false,
+            ])->save();
+        }
+    }
+
     private function upsertUser(string $email, string $name, string $role, string $password): User
     {
         return User::updateOrCreate(
@@ -867,6 +1179,37 @@ class DatabaseSeeder extends Seeder
     private function upsertMatchSchedule(array $identity, array $attributes): MatchSchedule
     {
         return MatchSchedule::updateOrCreate($identity, $attributes + $identity);
+    }
+
+    private function upsertInformationResource(array $identity, array $attributes): InformationResource
+    {
+        return InformationResource::updateOrCreate($identity, $attributes);
+    }
+
+    private function seedInformationResourceAsset(string $sourcePath, string $title): array
+    {
+        if (is_file($sourcePath)) {
+            $extension = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+            $fileName = Str::slug($title).'.'.$extension;
+            $targetPath = 'information-resources/'.$fileName;
+
+            Storage::disk('public')->put($targetPath, file_get_contents($sourcePath));
+
+            return [
+                'file_path' => $targetPath,
+                'file_name' => basename($sourcePath),
+                'file_mime' => mime_content_type($sourcePath) ?: 'application/octet-stream',
+            ];
+        }
+
+        $fallbackName = Str::slug($title).'.pdf';
+        $fallbackPath = $this->seedDemoDocument($fallbackName, $title);
+
+        return [
+            'file_path' => $fallbackPath,
+            'file_name' => $fallbackName,
+            'file_mime' => 'application/pdf',
+        ];
     }
 
     private function syncLineupPlayers(LineupList $lineupList, array $entries): void

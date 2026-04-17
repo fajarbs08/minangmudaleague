@@ -7,14 +7,223 @@ use App\Models\Club as ClubModel;
 use App\Models\Club;
 use App\Models\InformationResource;
 use App\Models\LineupList;
+use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
+use App\Models\Sponsor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
+    public function publicHome()
+    {
+        return view('public.home', $this->publicPageData([
+            'title' => 'Liga Anak Piaman Laweh',
+            'activePublicPage' => 'home',
+        ]));
+    }
+
+    public function publicSchedule()
+    {
+        return view('public.schedule', $this->publicPageData([
+            'title' => 'Jadwal Pertandingan',
+            'activePublicPage' => 'schedule',
+            'bannerTitle' => 'Jadwal Pertandingan',
+            'bannerCurrent' => 'Jadwal',
+        ]));
+    }
+
+    public function publicResults()
+    {
+        return view('public.results', $this->publicPageData([
+            'title' => 'Hasil Pertandingan',
+            'activePublicPage' => 'results',
+            'bannerTitle' => 'Hasil Pertandingan',
+            'bannerCurrent' => 'Hasil',
+        ]));
+    }
+
+    public function publicStandingsPage()
+    {
+        return view('public.standings', $this->publicPageData([
+            'title' => 'Klasemen Liga',
+            'activePublicPage' => 'standings',
+            'bannerTitle' => 'Klasemen Kompetisi',
+            'bannerCurrent' => 'Klasemen',
+        ]));
+    }
+
+    public function publicClubs()
+    {
+        return view('public.clubs', $this->publicPageData([
+            'title' => 'Klub Peserta',
+            'activePublicPage' => 'clubs',
+            'bannerTitle' => 'Daftar Klub',
+            'bannerCurrent' => 'Klub',
+        ]));
+    }
+
+    public function publicSponsors()
+    {
+        return view('public.sponsors', $this->publicPageData([
+            'title' => 'Sponsor Kompetisi',
+            'activePublicPage' => 'sponsors',
+            'bannerTitle' => 'Sponsor Kompetisi',
+            'bannerCurrent' => 'Sponsor',
+            'featuredSponsors' => $this->publicSponsorsData(),
+        ]));
+    }
+
+    public function publicClubShow(string $clubSlug)
+    {
+        preg_match('/(\d+)$/', $clubSlug, $matches);
+        $clubId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $club = Club::query()->findOrFail($clubId);
+
+        abort_unless($club->verification_status === Club::STATUS_APPROVED, 404);
+
+        $club->load([
+            'players' => fn ($query) => $query
+                ->with('primaryAgeGroup')
+                ->where('verification_status', Player::STATUS_APPROVED)
+                ->orderByDesc('is_captain')
+                ->orderBy('name'),
+            'officials' => fn ($query) => $query
+                ->with('ageGroup')
+                ->where('verification_status', Official::STATUS_APPROVED)
+                ->where('is_active', true)
+                ->orderBy('role')
+                ->orderBy('name'),
+        ]);
+
+        $clubMatches = MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB'])
+            ->where(function ($query) use ($club) {
+                $query->where('club_a_id', $club->id)
+                    ->orWhere('club_b_id', $club->id);
+            })
+            ->orderByDesc('match_date')
+            ->orderByDesc('kickoff_time')
+            ->limit(6)
+            ->get();
+
+        return view('public.club-show', $this->publicPageData([
+            'title' => $club->name.' - Klub Peserta',
+            'activePublicPage' => 'clubs',
+            'bannerTitle' => $club->name,
+            'bannerCurrent' => $club->short_name ?: $club->name,
+            'club' => $club,
+            'clubPlayers' => $club->players,
+            'clubOfficials' => $club->officials,
+            'clubRecentMatches' => $clubMatches,
+        ]));
+    }
+
+    public function publicInformation()
+    {
+        $category = request()->string('category')->value();
+        $search = request()->string('search')->value();
+
+        $informationQuery = InformationResource::query()
+            ->with('creator')
+            ->where('is_published', true)
+            ->where('visibility', InformationResource::VISIBILITY_PUBLIC);
+
+        $publishedResources = (clone $informationQuery)
+            ->when($category, fn ($query, $value) => $query->where('category', $value))
+            ->when($search, fn ($query, $value) => $query->where(function ($subQuery) use ($value) {
+                $subQuery->where('title', 'like', "%{$value}%")
+                    ->orWhere('description', 'like', "%{$value}%");
+            }))
+            ->orderByDesc('is_pinned')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $resourceCategories = (clone $informationQuery)
+            ->selectRaw('category, COUNT(*) as total')
+            ->groupBy('category')
+            ->orderBy('category')
+            ->get();
+
+        $latestResources = (clone $informationQuery)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        return view('public.information', $this->publicPageData([
+            'title' => 'Informasi Kompetisi',
+            'activePublicPage' => 'information',
+            'bannerTitle' => 'Informasi Kompetisi',
+            'bannerCurrent' => 'Informasi',
+            'publishedResources' => $publishedResources,
+            'resourceCategories' => $resourceCategories,
+            'latestResources' => $latestResources,
+            'activeInformationCategory' => $category,
+            'informationSearch' => $search,
+        ]));
+    }
+
+    public function publicInformationShow(string $resourceSlug)
+    {
+        preg_match('/(\d+)$/', $resourceSlug, $matches);
+        $resourceId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $resource = InformationResource::query()
+            ->with('creator')
+            ->where('id', $resourceId)
+            ->where('is_published', true)
+            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
+            ->firstOrFail();
+
+        $relatedResources = InformationResource::query()
+            ->with('creator')
+            ->where('is_published', true)
+            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
+            ->where('id', '!=', $resource->id)
+            ->where(function ($query) use ($resource) {
+                $query->where('category', $resource->category)
+                    ->orWhere('is_pinned', true);
+            })
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $adjacentResources = InformationResource::query()
+            ->with('creator')
+            ->where('is_published', true)
+            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
+            ->orderByDesc('is_pinned')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->get()
+            ->values();
+
+        $resourceIndex = $adjacentResources->search(fn (InformationResource $item) => $item->id === $resource->id);
+        $previousResource = $resourceIndex !== false && $resourceIndex > 0
+            ? $adjacentResources->get($resourceIndex - 1)
+            : null;
+        $nextResource = $resourceIndex !== false && $resourceIndex < ($adjacentResources->count() - 1)
+            ? $adjacentResources->get($resourceIndex + 1)
+            : null;
+
+        return view('public.information-show', $this->publicPageData([
+            'title' => $resource->title,
+            'activePublicPage' => 'information',
+            'bannerTitle' => 'Informasi Kompetisi',
+            'bannerCurrent' => $resource->title,
+            'resource' => $resource,
+            'relatedResources' => $relatedResources,
+            'previousResource' => $previousResource,
+            'nextResource' => $nextResource,
+            'resourcePageUrl' => route('public.information.show', ['resourceSlug' => $resource->public_slug]),
+        ]));
+    }
+
     public function index()
     {
         $user = auth()->user();
@@ -46,6 +255,210 @@ class DashboardController extends Controller
         ]);
     }
 
+    private function publicStandings(): Collection
+    {
+        return MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB'])
+            ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->orderBy('age_group_id')
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time')
+            ->get()
+            ->groupBy('age_group_id')
+            ->map(function (Collection $matches) {
+                $table = collect();
+
+                foreach ($matches as $match) {
+                    foreach ([
+                        [
+                            'club' => $match->clubA,
+                            'goals_for' => (int) $match->score_club_a,
+                            'goals_against' => (int) $match->score_club_b,
+                        ],
+                        [
+                            'club' => $match->clubB,
+                            'goals_for' => (int) $match->score_club_b,
+                            'goals_against' => (int) $match->score_club_a,
+                        ],
+                    ] as $entry) {
+                        if (!$entry['club']) {
+                            continue;
+                        }
+
+                        $clubId = $entry['club']->id;
+                        $row = $table->get($clubId, [
+                            'club_id' => $clubId,
+                            'club_name' => $entry['club']->name,
+                            'club_short_name' => $entry['club']->short_name ?: $entry['club']->name,
+                            'played' => 0,
+                            'won' => 0,
+                            'drawn' => 0,
+                            'lost' => 0,
+                            'goals_for' => 0,
+                            'goals_against' => 0,
+                            'goal_difference' => 0,
+                            'points' => 0,
+                        ]);
+
+                        $row['played']++;
+                        $row['goals_for'] += $entry['goals_for'];
+                        $row['goals_against'] += $entry['goals_against'];
+
+                        if ($entry['goals_for'] > $entry['goals_against']) {
+                            $row['won']++;
+                            $row['points'] += 3;
+                        } elseif ($entry['goals_for'] === $entry['goals_against']) {
+                            $row['drawn']++;
+                            $row['points'] += 1;
+                        } else {
+                            $row['lost']++;
+                        }
+
+                        $row['goal_difference'] = $row['goals_for'] - $row['goals_against'];
+
+                        $table->put($clubId, $row);
+                    }
+                }
+
+                return [
+                    'age_group' => $matches->first()?->ageGroup,
+                    'rows' => $table
+                        ->sortBy([
+                            ['points', 'desc'],
+                            ['goal_difference', 'desc'],
+                            ['goals_for', 'desc'],
+                            ['club_name', 'asc'],
+                        ])
+                        ->values()
+                        ->map(function (array $row, int $index) {
+                            $row['position'] = $index + 1;
+
+                            return $row;
+                        })
+                        ->take(5)
+                        ->values(),
+                ];
+            })
+            ->values();
+    }
+
+    private function publicKnockoutBrackets(): Collection
+    {
+        return MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->orderBy('age_group_id')
+            ->orderBy('round_order')
+            ->orderBy('bracket_slot')
+            ->orderBy('match_date')
+            ->get()
+            ->groupBy('age_group_id')
+            ->map(function (Collection $matches) {
+                return [
+                    'age_group' => $matches->first()?->ageGroup,
+                    'rounds' => $matches
+                        ->groupBy(fn (MatchSchedule $match) => $match->round_order ?: 1)
+                        ->map(function (Collection $roundMatches) {
+                            return [
+                                'label' => $roundMatches->first()?->round_display_label ?: 'Babak Knockout',
+                                'matches' => $roundMatches
+                                    ->sortBy(fn (MatchSchedule $match) => $match->bracket_slot ?: PHP_INT_MAX)
+                                    ->values(),
+                            ];
+                        })
+                        ->sortKeys()
+                        ->values(),
+                ];
+            })
+            ->values();
+    }
+
+    private function publicPageData(array $overrides = []): array
+    {
+        $upcomingMatches = MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB'])
+            ->whereDate('match_date', '>=', now()->toDateString())
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time')
+            ->limit(12)
+            ->get();
+
+        $recentResults = MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->orderByDesc('match_date')
+            ->orderByDesc('kickoff_time')
+            ->limit(12)
+            ->get();
+
+        $featuredClubs = Club::query()
+            ->where('verification_status', Club::STATUS_APPROVED)
+            ->latest('updated_at')
+            ->limit(12)
+            ->get();
+
+        $featuredPlayers = Player::query()
+            ->with(['club', 'primaryAgeGroup'])
+            ->where('verification_status', Player::STATUS_APPROVED)
+            ->latest('updated_at')
+            ->limit(12)
+            ->get();
+
+        $publishedResources = InformationResource::query()
+            ->with('creator')
+            ->where('is_published', true)
+            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
+            ->orderByDesc('is_pinned')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->limit(12)
+            ->get();
+
+        return array_merge([
+            'title' => 'Liga Anak Piaman Laweh',
+            'activePublicPage' => 'home',
+            'bannerTitle' => null,
+            'bannerCurrent' => null,
+            'publicStats' => [
+                'clubs' => Club::query()->count(),
+                'officials' => Official::query()->count(),
+                'players' => Player::query()->count(),
+                'lineups' => LineupList::query()->count(),
+            ],
+            'featuredClubs' => $featuredClubs,
+            'featuredPlayers' => $featuredPlayers,
+            'upcomingMatches' => $upcomingMatches,
+            'recentResults' => $recentResults,
+            'headlineMatch' => $upcomingMatches->first(),
+            'featuredResult' => $recentResults->first(),
+            'publicStandings' => $this->publicStandings(),
+            'publicKnockoutBrackets' => $this->publicKnockoutBrackets(),
+            'publishedResources' => $publishedResources,
+            'featuredSponsors' => $this->publicSponsorsData(),
+        ], $overrides);
+    }
+
+    private function publicSponsorsData(): Collection
+    {
+        return Sponsor::query()
+            ->where('is_published', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Sponsor $sponsor) => [
+                'name' => $sponsor->name,
+                'short_name' => $sponsor->short_name,
+                'logo_url' => $sponsor->logo_url,
+                'website_url' => $sponsor->website_url,
+                'tier' => $sponsor->tier,
+            ]);
+    }
+
     public function clubResources(Request $request)
     {
         abort_unless($request->user()?->isClubUser(), 403);
@@ -55,6 +468,10 @@ class DashboardController extends Controller
             'title' => 'Pusat Informasi Club',
             'managedResources' => InformationResource::query()
                 ->where('is_published', true)
+                ->whereIn('visibility', [
+                    InformationResource::VISIBILITY_PUBLIC,
+                    InformationResource::VISIBILITY_CLUB,
+                ])
                 ->when($category, fn ($query, $value) => $query->where('category', $value))
                 ->orderByDesc('is_pinned')
                 ->orderBy('sort_order')

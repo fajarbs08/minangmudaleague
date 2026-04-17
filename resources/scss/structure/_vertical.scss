@@ -70,14 +70,29 @@
 
           .menu-title {
                cursor: default;
-               font-size: 11px;
-               color: $main-menu-item-color;
-               font-weight: $font-weight-medium;
-               padding: $main-menu-item-padding-y calc($main-menu-item-padding-x * 1.25);
+               display: flex;
+               align-items: center;
+               gap: 10px;
+               font-size: 10px;
+               letter-spacing: .08em;
+               text-transform: uppercase;
+               color: rgba($main-menu-item-color, .72);
+               font-weight: $font-weight-semibold;
+               padding: calc($main-menu-item-padding-y * 1.4) calc($main-menu-item-padding-x * 1.25) calc($main-menu-item-padding-y * .85);
+
+               .menu-title-text {
+                    flex: 0 0 auto;
+               }
+
+               .menu-title-line {
+                    height: 1px;
+                    flex: 1 1 auto;
+                    background: rgba($main-menu-item-color, .14);
+               }
           }
 
           .navbar-nav {
-               padding-top: $spacer;
+               padding-top: calc($spacer * .65);
 
                .menu-item {
                     padding: calc($main-menu-item-padding-y * 0.1) 0;

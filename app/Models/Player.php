@@ -82,6 +82,16 @@ class Player extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    public function scoredGoals(): HasMany
+    {
+        return $this->hasMany(MatchGoal::class, 'player_id');
+    }
+
+    public function assistedGoals(): HasMany
+    {
+        return $this->hasMany(MatchGoal::class, 'assist_player_id');
+    }
+
     public function canBeEditedByClub(): bool
     {
         return in_array($this->verification_status, [

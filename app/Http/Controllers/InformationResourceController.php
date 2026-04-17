@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\InformationResource;
+use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class InformationResourceController extends Controller
 {
+    public function __construct(private ImageAssetService $imageAssetService)
+    {
+    }
+
     public function index()
     {
         $category = request()->string('category')->value();
@@ -16,6 +21,7 @@ class InformationResourceController extends Controller
         $direction = request()->string('direction')->value() === 'asc' ? 'asc' : 'desc';
 
         $resources = InformationResource::query()
+            ->with('creator')
             ->when($category, fn ($query, $value) => $query->where('category', $value))
             ->when($search, fn ($query, $value) => $query->where('title', 'like', "%{$value}%"))
             ->get();
@@ -42,8 +48,10 @@ class InformationResourceController extends Controller
             'search' => $search,
             'sort' => $sort,
             'direction' => $direction,
+            'visibilityOptions' => InformationResource::visibilityOptions(),
             'resource' => new InformationResource([
                 'category' => 'other',
+                'visibility' => InformationResource::VISIBILITY_CLUB,
                 'sort_order' => InformationResource::max('sort_order') + 1,
                 'is_pinned' => false,
                 'is_published' => true,
@@ -56,9 +64,10 @@ class InformationResourceController extends Controller
         $data = $this->validatedData($request);
         $file = $request->file('attachment');
 
-        $data['file_path'] = $file->store('information-resources', 'public');
+        $data['file_path'] = $this->imageAssetService->storeResourceUpload($file, 'information-resources');
         $data['file_name'] = $file->getClientOriginalName();
-        $data['file_mime'] = $file->getClientMimeType();
+        $data['file_mime'] = Storage::disk('public')->mimeType($data['file_path']) ?: $file->getClientMimeType();
+        $data['created_by'] = $request->user()?->id;
 
         InformationResource::create($data);
 
@@ -70,6 +79,7 @@ class InformationResourceController extends Controller
         return view('pages/information-resources/edit', [
             'title' => 'Edit Pusat Informasi',
             'resource' => $informationResource,
+            'visibilityOptions' => InformationResource::visibilityOptions(),
         ]);
     }
 
@@ -81,9 +91,13 @@ class InformationResourceController extends Controller
             Storage::disk('public')->delete($informationResource->file_path);
 
             $file = $request->file('attachment');
-            $data['file_path'] = $file->store('information-resources', 'public');
+            $data['file_path'] = $this->imageAssetService->storeResourceUpload($file, 'information-resources');
             $data['file_name'] = $file->getClientOriginalName();
-            $data['file_mime'] = $file->getClientMimeType();
+            $data['file_mime'] = Storage::disk('public')->mimeType($data['file_path']) ?: $file->getClientMimeType();
+        }
+
+        if (!$informationResource->created_by && $request->user()) {
+            $data['created_by'] = $request->user()->id;
         }
 
         $informationResource->update($data);
@@ -160,10 +174,11 @@ class InformationResourceController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'category' => ['required', 'in:template,flow,rules,manual,other'],
             'description' => ['nullable', 'string'],
+            'visibility' => ['required', 'in:'.implode(',', array_keys(InformationResource::visibilityOptions()))],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_pinned' => ['nullable', 'boolean'],
             'is_published' => ['nullable', 'boolean'],
-            'attachment' => [$isUpdate ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:2048'],
+            'attachment' => [$isUpdate ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
         ]);
     }
 }

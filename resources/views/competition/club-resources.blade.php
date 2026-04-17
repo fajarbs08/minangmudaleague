@@ -6,7 +6,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h4 class="mb-1">Pusat Informasi Club</h4>
-                <p class="text-muted mb-0">Semua file panduan, template, flow alur, dan dokumen pendukung akun club dikumpulkan di halaman ini.</p>
+                <p class="text-muted mb-0">Halaman ini menampilkan dokumen untuk club, termasuk yang khusus internal club dan yang juga boleh dilihat publik.</p>
             </div>
         </div>
     </div>
@@ -33,14 +33,15 @@
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                        <div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="badge {{ $resource->badge_class }}">{{ $resource->badge_label }}</span>
-                                @if ($resource->is_pinned)
-                                    <span class="badge bg-dark-subtle text-dark">Prioritas</span>
-                                @endif
-                                <span class="badge bg-light text-dark border">{{ $resource->type_label }}</span>
-                            </div>
+                            <div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge {{ $resource->badge_class }}">{{ $resource->badge_label }}</span>
+                                    @if ($resource->is_pinned)
+                                        <span class="badge bg-dark-subtle text-dark">Prioritas</span>
+                                    @endif
+                                    <span class="badge {{ $resource->visibility === 'public' ? 'bg-info-subtle text-info' : 'bg-warning-subtle text-warning' }}">{{ $resource->visibility_label }}</span>
+                                    <span class="badge bg-light text-dark border">{{ $resource->type_label }}</span>
+                                </div>
                             <h5 class="mt-3 mb-2">{{ $resource->title }}</h5>
                         </div>
                         <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">

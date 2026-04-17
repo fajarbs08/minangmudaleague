@@ -275,9 +275,19 @@
                             @endif
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold">
-                                        {{ $initials ?: 'OF' }}
-                                    </div>
+                                    @if ($official->photo_file_url)
+                                        <img
+                                            src="{{ $official->photo_file_url }}"
+                                            alt="{{ $official->name }}"
+                                            class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
+                                            width="36"
+                                            height="36"
+                                        >
+                                    @else
+                                        <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold flex-shrink-0">
+                                            {{ $initials ?: 'OF' }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <div class="fw-semibold">{{ $official->name }}</div>
                                         <div class="text-muted small">{{ $official->email ?: 'Email belum tersedia' }}</div>
@@ -285,7 +295,26 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="fw-medium">{{ $official->club?->name ?: '-' }}</div>
+                                @if ($official->club)
+                                    <div class="d-flex align-items-center gap-3">
+                                        @if ($official->club->logo_file_url)
+                                            <img
+                                                src="{{ $official->club->logo_file_url }}"
+                                                alt="{{ $official->club->name }}"
+                                                class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
+                                                width="36"
+                                                height="36"
+                                            >
+                                        @else
+                                            <div class="avatar-sm bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0">
+                                                <i data-lucide="flag" class="fs-18"></i>
+                                            </div>
+                                        @endif
+                                        <div class="fw-medium">{{ $official->club->name }}</div>
+                                    </div>
+                                @else
+                                    <div class="fw-medium">-</div>
+                                @endif
                             </td>
                             <td>
                                 <span class="badge bg-secondary-subtle text-secondary">{{ $official->role }}</span>

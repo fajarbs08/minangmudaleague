@@ -31,7 +31,9 @@
                 @if ($club->logo_file_url)
                     <div class="mb-3">
                         <div class="text-muted small">Logo</div>
-                        <img src="{{ $club->logo_file_url }}" alt="Logo klub" class="img-fluid rounded border mt-1" style="max-height: 120px;">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded border bg-white p-3 mt-1" style="width: 140px; height: 140px;">
+                            <img src="{{ $club->logo_file_url }}" alt="Logo klub" class="img-fluid" style="max-width: 112px; max-height: 112px; width: auto; height: auto; object-fit: contain;">
+                        </div>
                     </div>
                 @endif
                 <div class="mb-3">

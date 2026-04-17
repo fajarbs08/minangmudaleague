@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
+use App\Services\ImageAssetService;
 use App\Services\IdCards\IdentityCardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,12 @@ use Illuminate\Validation\ValidationException;
 class OfficialController extends Controller
 {
     use HandlesVerificationWorkflow;
+
+    public function __construct(
+        private IdentityCardService $identityCardService,
+        private ImageAssetService $imageAssetService
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -355,9 +362,9 @@ class OfficialController extends Controller
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'license_number' => ['nullable', 'string', 'max:255'],
             'license_levels' => ['nullable', 'string', 'max:255'],
-            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
-            'identity_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'identity_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'is_active' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'age_registrations' => ['nullable', 'array'],
@@ -373,15 +380,15 @@ class OfficialController extends Controller
         ];
 
         if ($request->hasFile('photo_file')) {
-            $data['photo_path'] = $request->file('photo_file')->store('officials/photos', 'public');
+            $data['photo_path'] = $this->imageAssetService->storePhoto($request->file('photo_file'), 'officials/photos');
         }
 
         if ($request->hasFile('license_file')) {
-            $data['license_file_path'] = $request->file('license_file')->store('officials/licenses', 'public');
+            $data['license_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('license_file'), 'officials/licenses');
         }
 
         if ($request->hasFile('identity_file')) {
-            $data['identity_file_path'] = $request->file('identity_file')->store('officials/identity', 'public');
+            $data['identity_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('identity_file'), 'officials/identity');
         }
 
         unset($data['photo_file'], $data['license_file'], $data['identity_file']);

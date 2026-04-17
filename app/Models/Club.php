@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Club extends Model
@@ -110,6 +111,13 @@ class Club extends Model
     public function getStatementFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->statement_file_path);
+    }
+
+    public function getPublicSlugAttribute(): string
+    {
+        $base = $this->name ?: $this->short_name ?: 'klub';
+
+        return Str::slug($base).'-'.$this->id;
     }
 
     public function validateForSubmission(): void

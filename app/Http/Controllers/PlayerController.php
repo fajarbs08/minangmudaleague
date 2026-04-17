@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Player;
+use App\Services\ImageAssetService;
 use App\Services\IdCards\IdentityCardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,12 @@ use Illuminate\Validation\ValidationException;
 class PlayerController extends Controller
 {
     use HandlesVerificationWorkflow;
+
+    public function __construct(
+        private IdentityCardService $identityCardService,
+        private ImageAssetService $imageAssetService
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -422,11 +429,11 @@ class PlayerController extends Controller
             'position' => ['nullable', 'string', 'max:255'],
             'citizenship' => ['nullable', 'in:WNI,WNA'],
             'birth_place' => ['nullable', 'string', 'max:255'],
-            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'diploma_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
-            'report_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
-            'birth_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
-            'family_card_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'diploma_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'report_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'birth_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'family_card_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
             'weight_kg' => ['nullable', 'integer', 'min:10', 'max:200'],
@@ -453,23 +460,23 @@ class PlayerController extends Controller
         ];
 
         if ($request->hasFile('photo_file')) {
-            $data['photo_path'] = $request->file('photo_file')->store('players/photos', 'public');
+            $data['photo_path'] = $this->imageAssetService->storePhoto($request->file('photo_file'), 'players/photos');
         }
 
         if ($request->hasFile('diploma_file')) {
-            $data['diploma_file_path'] = $request->file('diploma_file')->store('players/diplomas', 'public');
+            $data['diploma_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('diploma_file'), 'players/diplomas');
         }
 
         if ($request->hasFile('report_file')) {
-            $data['report_file_path'] = $request->file('report_file')->store('players/reports', 'public');
+            $data['report_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('report_file'), 'players/reports');
         }
 
         if ($request->hasFile('birth_certificate_file')) {
-            $data['birth_certificate_file_path'] = $request->file('birth_certificate_file')->store('players/birth-certificates', 'public');
+            $data['birth_certificate_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('birth_certificate_file'), 'players/birth-certificates');
         }
 
         if ($request->hasFile('family_card_file')) {
-            $data['family_card_file_path'] = $request->file('family_card_file')->store('players/family-cards', 'public');
+            $data['family_card_file_path'] = $this->imageAssetService->storeDocumentUpload($request->file('family_card_file'), 'players/family-cards');
         }
 
         unset($data['photo_file'], $data['diploma_file'], $data['report_file'], $data['birth_certificate_file'], $data['family_card_file']);

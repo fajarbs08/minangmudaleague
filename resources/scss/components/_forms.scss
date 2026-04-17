@@ -23,6 +23,25 @@ input.form-control[type="range"] {
     min-height: 39px;
 }
 
+input.form-control[data-time-picker-24h] {
+    color: $input-color;
+    -webkit-text-fill-color: $input-color;
+    caret-color: $input-color;
+
+    &::placeholder {
+        color: $input-placeholder-color;
+        -webkit-text-fill-color: $input-placeholder-color;
+        opacity: 1;
+    }
+
+    &:focus,
+    &:active {
+        color: $input-focus-color;
+        -webkit-text-fill-color: $input-focus-color;
+        caret-color: $input-focus-color;
+    }
+}
+
 
 // Search box
 .search-bar {

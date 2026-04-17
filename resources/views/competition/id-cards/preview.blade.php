@@ -52,8 +52,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h4 class="card-title mb-1">Preview Presisi</h4>
-        <p class="text-muted mb-0">Preview ini memakai source layout yang sama dengan export PDF Chromium agar hasil browser dan hasil PDF tetap sinkron.</p>
+        <h4 class="card-title mb-0">Preview Kartu</h4>
     </div>
     <div class="card-body">
         @if (empty($document['cards']))

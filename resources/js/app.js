@@ -17,6 +17,8 @@ import { createIcons, icons } from "lucide";
 
 import Inputmask from 'inputmask';
 import Choices from 'choices.js';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
 // Components
 class Components {
@@ -122,10 +124,29 @@ class Components {
     }
   }
 
+  initFlatpickrInputs() {
+    document.querySelectorAll('[data-time-picker-24h]').forEach((input) => {
+      if (input.dataset.flatpickrReady === '1') return
+
+      flatpickr(input, {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: 'H:i',
+        time_24hr: true,
+        disableMobile: true,
+        minuteIncrement: 5,
+        allowInput: true,
+      })
+
+      input.dataset.flatpickrReady = '1'
+    })
+  }
+
   init() {
     this.initBootstrapComponents();
     this.initfullScreenListener();
     this.initCounter();
+    this.initFlatpickrInputs();
   }
 }
 

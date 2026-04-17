@@ -3,10 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class InformationResource extends Model
 {
+    public const VISIBILITY_PUBLIC = 'public';
+
+    public const VISIBILITY_CLUB = 'club';
+
     protected $fillable = [
         'title',
         'category',
@@ -14,9 +20,11 @@ class InformationResource extends Model
         'file_path',
         'file_name',
         'file_mime',
+        'visibility',
         'sort_order',
         'is_pinned',
         'is_published',
+        'created_by',
     ];
 
     protected function casts(): array
@@ -27,9 +35,28 @@ class InformationResource extends Model
         ];
     }
 
+    public static function visibilityOptions(): array
+    {
+        return [
+            self::VISIBILITY_PUBLIC => 'Publik',
+            self::VISIBILITY_CLUB => 'Hanya Club',
+        ];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function getFileUrlAttribute(): string
     {
-        return Storage::disk('public')->url($this->file_path);
+        if (app()->runningInConsole()) {
+            return Storage::disk('public')->url($this->file_path);
+        }
+
+        $base = request()->getSchemeAndHttpHost();
+
+        return $base.'/storage/'.ltrim($this->file_path, '/');
     }
 
     public function getFileSizeBytesAttribute(): ?int
@@ -100,5 +127,35 @@ class InformationResource extends Model
     public function getIsPdfAttribute(): bool
     {
         return strtolower(pathinfo($this->file_name, PATHINFO_EXTENSION)) === 'pdf';
+    }
+
+    public function getIsWordAttribute(): bool
+    {
+        return in_array(strtolower(pathinfo($this->file_name, PATHINFO_EXTENSION)), ['doc', 'docx'], true);
+    }
+
+    public function getVisibilityLabelAttribute(): string
+    {
+        return self::visibilityOptions()[$this->visibility ?? self::VISIBILITY_CLUB] ?? 'Hanya Club';
+    }
+
+    public function getPublicSlugAttribute(): string
+    {
+        return Str::slug($this->title).'-'.$this->id;
+    }
+
+    public function getAuthorNameAttribute(): string
+    {
+        return $this->creator?->name ?: 'Admin';
+    }
+
+    public function getAuthorAvatarUrlAttribute(): ?string
+    {
+        return $this->creator?->profile_avatar_url;
+    }
+
+    public function getAuthorInitialsAttribute(): string
+    {
+        return $this->creator?->profile_initials ?: 'AD';
     }
 }

@@ -13,6 +13,12 @@
                 <span>Edit</span>
             </a>
         @endif
+        @if ($player->ageRegistrations->isNotEmpty())
+            <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                <i data-lucide="id-card" class="fs-14"></i>
+                <span>ID Card</span>
+            </a>
+        @endif
         @if (auth()->user()->isAdmin() || $player->canBeSubmittedByClub())
             <button
                 type="button"
@@ -127,26 +133,32 @@
                                         <div class="text-danger small mt-1 d-none" data-age-error></div>
                                     </td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-sm btn-outline-primary js-edit-age d-inline-flex align-items-center gap-2" data-age-group-id="{{ $registration->age_group_id }}" data-season="{{ $registration->season }}" data-jersey-number="{{ $registration->jersey_number }}" data-position="{{ $registration->position }}" data-notes="{{ $registration->notes }}">
+                                        <div class="d-flex gap-1">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary js-edit-age px-2"
+                                                title="Edit kelompok usia"
+                                                aria-label="Edit kelompok usia"
+                                                data-age-group-id="{{ $registration->age_group_id }}"
+                                                data-season="{{ $registration->season }}"
+                                                data-jersey-number="{{ $registration->jersey_number }}"
+                                                data-position="{{ $registration->position }}"
+                                                data-notes="{{ $registration->notes }}"
+                                            >
                                                 <i data-lucide="square-pen" class="fs-14"></i>
-                                                <span>Edit</span>
                                             </button>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-danger js-delete-player-age d-inline-flex align-items-center gap-2"
+                                                class="btn btn-sm btn-danger js-delete-player-age px-2"
+                                                title="Hapus kelompok usia"
+                                                aria-label="Hapus kelompok usia"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#deletePlayerAgeModal"
                                                 data-action="{{ route('players.age-registrations.destroy', [$player, $registration->age_group_id]) }}"
                                                 data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
                                             >
                                                 <i data-lucide="trash-2" class="fs-14"></i>
-                                                <span>Hapus</span>
                                             </button>
-                                            <a class="btn btn-sm btn-success d-inline-flex align-items-center gap-2" target="_blank" href="{{ route('players.id-card', [$player, $registration->age_group_id]) }}">
-                                                <i data-lucide="id-card" class="fs-14"></i>
-                                                <span>Preview Card</span>
-                                            </a>
                                         </div>
                                     </td>
                                 </tr>

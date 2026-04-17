@@ -1,7 +1,7 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @php
-    $filterCount = collect(request()->only(['club_id', 'age_group_id', 'lineup_status']))->filter(fn ($value) => filled($value))->count();
+    $filterCount = collect(request()->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format']))->filter(fn ($value) => filled($value))->count();
 @endphp
 
 @section('content')
@@ -57,13 +57,21 @@
                 </select>
             </div>
             <div class="col-lg-2">
+                <select name="competition_format" class="form-select">
+                    <option value="">Semua format</option>
+                    @foreach ($formatOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-lg-2">
                 <select name="lineup_status" class="form-select">
                     <option value="">Semua status DSP</option>
                     <option value="pending" @selected(request('lineup_status') === 'pending')>Belum lengkap DSP</option>
                     <option value="complete" @selected(request('lineup_status') === 'complete')>Lengkap DSP</option>
                 </select>
             </div>
-            <div class="col-lg-2 d-flex gap-2">
+            <div class="col-lg-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Filter</button>
                 <a href="{{ route('matches.index') }}" class="btn btn-light">Reset</a>
             </div>
@@ -74,14 +82,16 @@
             <table class="table competition-table align-middle text-nowrap">
                 <thead>
                     <tr>
-                        <th>Matchday</th>
-                        <th>Pertandingan</th>
-                        <th>Kelompok Usia</th>
-                        <th>Venue</th>
-                        <th>Tanggal</th>
-                        <th>Jam</th>
+                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Matchday', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'matchup', 'label' => 'Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'competition_format', 'label' => 'Format', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'round_order', 'label' => 'Babak', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'venue', 'label' => 'Venue', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'match_date', 'label' => 'Tanggal', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'kickoff_time', 'label' => 'Jam', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         <th>Status DSP</th>
-                        <th class="text-end">Aksi</th>
+                        <th class="text-end">Tindakan</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,6 +108,12 @@
                             <td>{{ $match->match_day }}</td>
                             <td>{{ $match->clubA?->name }} vs {{ $match->clubB?->name }}</td>
                             <td>{{ $match->ageGroup?->name }}</td>
+                            <td>
+                                <span class="badge {{ $match->competition_format === 'knockout' ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary' }}">
+                                    {{ $match->competition_format_label }}
+                                </span>
+                            </td>
+                            <td>{{ $match->round_display_label }}</td>
                             <td>{{ $match->venue }}</td>
                             <td>{{ optional($match->match_date)->format('d M Y') }}</td>
                             <td>{{ optional($match->kickoff_time)->format('H:i') }} WIB</td>
@@ -124,25 +140,42 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-2">
-                                    <a href="{{ route('matches.edit', $match) }}" class="btn btn-sm btn-light">Edit</a>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-danger js-delete-match"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#deleteMatchModal"
-                                        data-action="{{ route('matches.destroy', $match) }}"
-                                        data-name="{{ $match->clubA?->name }} vs {{ $match->clubB?->name }}"
-                                    >
-                                        Hapus
+                            <td class="text-end competition-table-actions">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span>Tindakan</span>
+                                        <svg class="competition-action-toggle-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                            <path d="M4 6.5L8 10L12 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
                                     </button>
+                                    <div class="dropdown-menu dropdown-menu-end p-2 competition-action-menu">
+                                        <div class="competition-action-section">
+                                            <div class="competition-action-label px-2 pb-2">Jadwal Pertandingan</div>
+                                            <div class="small text-muted px-2 pb-2 text-wrap">Kelola detail jadwal atau hapus jadwal yang belum dipakai DSP.</div>
+                                            @include('competition.partials.action-item', [
+                                                'href' => route('matches.edit', $match),
+                                                'icon' => 'square-pen',
+                                                'label' => 'Edit Jadwal',
+                                            ])
+                                            @include('competition.partials.action-item', [
+                                                'icon' => 'trash-2',
+                                                'label' => 'Hapus Jadwal',
+                                                'class' => 'text-danger js-delete-match',
+                                                'attributes' => [
+                                                    'data-bs-toggle' => 'modal',
+                                                    'data-bs-target' => '#deleteMatchModal',
+                                                    'data-action' => route('matches.destroy', $match),
+                                                    'data-name' => $match->clubA?->name.' vs '.$match->clubB?->name,
+                                                ],
+                                            ])
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="competition-table-empty">Belum ada jadwal pertandingan.</td>
+                            <td colspan="10" class="competition-table-empty">Belum ada jadwal pertandingan.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -8,14 +8,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MatchSchedule extends Model
 {
+    public const FORMAT_LEAGUE = 'league';
+    public const FORMAT_KNOCKOUT = 'knockout';
+
     protected $fillable = [
         'age_group_id',
+        'competition_format',
+        'round_label',
+        'round_order',
+        'bracket_slot',
         'club_a_id',
         'club_b_id',
         'match_day',
         'venue',
         'match_date',
         'kickoff_time',
+        'score_club_a',
+        'score_club_b',
+        'is_finished',
         'notes',
     ];
 
@@ -24,6 +34,7 @@ class MatchSchedule extends Model
         return [
             'match_date' => 'date',
             'kickoff_time' => 'datetime:H:i',
+            'is_finished' => 'boolean',
         ];
     }
 
@@ -45,6 +56,11 @@ class MatchSchedule extends Model
     public function lineupLists(): HasMany
     {
         return $this->hasMany(LineupList::class, 'match_id');
+    }
+
+    public function goalEvents(): HasMany
+    {
+        return $this->hasMany(MatchGoal::class, 'match_id')->orderBy('display_order');
     }
 
     public function includesClub(?int $clubId): bool
@@ -85,5 +101,64 @@ class MatchSchedule extends Model
             optional($this->match_date)->format('d M Y'),
             optional($this->kickoff_time)->format('H:i'),
         ])->filter()->implode(' '));
+    }
+
+    public function getCompetitionFormatLabelAttribute(): string
+    {
+        return match ($this->competition_format) {
+            self::FORMAT_KNOCKOUT => 'Knockout',
+            default => 'Liga',
+        };
+    }
+
+    public function getRoundDisplayLabelAttribute(): string
+    {
+        if (filled($this->round_label)) {
+            return $this->round_label;
+        }
+
+        return $this->competition_format === self::FORMAT_KNOCKOUT ? 'Babak Knockout' : 'Liga';
+    }
+
+    public function getScoreLabelAttribute(): string
+    {
+        if ($this->score_club_a === null || $this->score_club_b === null) {
+            return '-';
+        }
+
+        return $this->score_club_a.' - '.$this->score_club_b;
+    }
+
+    public function getResultSummaryAttribute(): string
+    {
+        if (!$this->is_finished || $this->score_club_a === null || $this->score_club_b === null) {
+            return 'Belum ada hasil';
+        }
+
+        if ($this->score_club_a === $this->score_club_b) {
+            return 'Imbang';
+        }
+
+        return $this->score_club_a > $this->score_club_b
+            ? (($this->clubA?->short_name ?: $this->clubA?->name ?: 'Klub A').' menang')
+            : (($this->clubB?->short_name ?: $this->clubB?->name ?: 'Klub B').' menang');
+    }
+
+    public function goalReportForClub(?int $clubId): array
+    {
+        if (!$clubId) {
+            return [];
+        }
+
+        return $this->goalEvents
+            ->where('club_id', (int) $clubId)
+            ->values()
+            ->map(function (MatchGoal $goal) {
+                $scorer = $goal->scorer?->name ?: 'Pemain tidak ditemukan';
+                $assist = $goal->assistPlayer?->name;
+
+                return $assist ? $scorer.' (assist: '.$assist.')' : $scorer;
+            })
+            ->all();
     }
 }

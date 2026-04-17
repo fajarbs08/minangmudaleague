@@ -18,8 +18,8 @@
 
 @php
     $selectedClubId = old('club_id', $official->club_id ?: $clubs->first()?->id);
-    $imageUploadHelp = 'Format: JPG, JPEG, PNG. Maks. 2 MB.';
-    $documentUploadHelp = 'Format: PDF, JPG, JPEG, PNG. Maks. 4 MB.';
+    $imageUploadHelp = 'Format: JPG, JPEG, PNG, atau WebP. Maks. 3 MB. Foto akan disesuaikan otomatis agar ukuran tampil konsisten.';
+    $documentUploadHelp = 'Format: PDF, JPG, JPEG, PNG, atau WebP. Maks. 4 MB. Jika file berupa gambar, sistem akan menormalkan ukuran tanpa crop agar dokumen tetap jelas.';
 @endphp
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
@@ -62,7 +62,7 @@
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Pas Foto 3x4</label>
-        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png">
+        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp">
         <small class="text-muted d-block mt-2">{{ $imageUploadHelp }}</small>
         @if ($official->photo_file_url)
             <a href="{{ $official->photo_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
@@ -73,7 +73,7 @@
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Bukti Lisensi</label>
-        <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
         <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
         @if ($official->license_file_url)
             <a href="{{ $official->license_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
@@ -84,7 +84,7 @@
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">KTP / Identitas</label>
-        <input type="file" name="identity_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        <input type="file" name="identity_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
         <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
         @if ($official->identity_file_url)
             <a href="{{ $official->identity_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">

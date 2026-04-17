@@ -112,7 +112,11 @@
 
      <div class="h-100" data-simplebar>
           <ul class="navbar-nav" id="navbar-nav">
-               <li class="menu-title">Fitur Aplikasi</li>
+               <li class="menu-title">
+                    <span class="menu-title-line" aria-hidden="true"></span>
+                    <span class="menu-title-text">Ringkasan</span>
+                    <span class="menu-title-line" aria-hidden="true"></span>
+               </li>
 
                <li class="menu-item">
                     <a class="menu-link" href="{{ route('dashboard.index') }}">
@@ -121,6 +125,12 @@
                          </span>
                          <span class="nav-text">Dashboard</span>
                     </a>
+               </li>
+
+               <li class="menu-title">
+                    <span class="menu-title-line" aria-hidden="true"></span>
+                    <span class="menu-title-text">Data Kompetisi</span>
+                    <span class="menu-title-line" aria-hidden="true"></span>
                </li>
 
                @if (auth()->user()->isAdmin())
@@ -181,6 +191,12 @@
                     </a>
                </li>
 
+               <li class="menu-title">
+                    <span class="menu-title-line" aria-hidden="true"></span>
+                    <span class="menu-title-text">Pertandingan</span>
+                    <span class="menu-title-line" aria-hidden="true"></span>
+               </li>
+
                @if (auth()->user()->isAdmin())
                <li class="menu-item">
                     <a class="menu-link" href="{{ route('matches.index') }}">
@@ -188,15 +204,6 @@
                               <i data-lucide="calendar-range"></i>
                          </span>
                          <span class="nav-text">Jadwal Match</span>
-                    </a>
-               </li>
-
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('information-resources.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="folder-kanban"></i>
-                         </span>
-                         <span class="nav-text">Pusat Informasi</span>
                     </a>
                </li>
                @endif
@@ -212,6 +219,40 @@
                          @endif
                     </a>
                </li>
+
+               <li class="menu-item">
+                    <a class="menu-link" href="{{ route('match-results.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="trophy"></i>
+                         </span>
+                         <span class="nav-text">Hasil Pertandingan</span>
+                    </a>
+               </li>
+
+               <li class="menu-title">
+                    <span class="menu-title-line" aria-hidden="true"></span>
+                    <span class="menu-title-text">Informasi</span>
+                    <span class="menu-title-line" aria-hidden="true"></span>
+               </li>
+
+               @if (auth()->user()->isAdmin())
+               <li class="menu-item">
+                    <a class="menu-link" href="{{ route('information-resources.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="folder-kanban"></i>
+                         </span>
+                         <span class="nav-text">Pusat Informasi</span>
+                    </a>
+               </li>
+               <li class="menu-item">
+                    <a class="menu-link" href="{{ route('sponsors.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="badge-dollar-sign"></i>
+                         </span>
+                         <span class="nav-text">Sponsor</span>
+                    </a>
+               </li>
+               @endif
 
                @if (auth()->user()->isClubUser())
                <li class="menu-item">

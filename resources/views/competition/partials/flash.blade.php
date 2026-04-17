@@ -6,8 +6,13 @@
 @endif
 
 @if ($errors->any())
+    @php
+        $alertTitle = $errors->has('match') && count($errors->all()) === 1
+            ? 'Tindakan ini tidak dapat diproses:'
+            : 'Periksa kembali input berikut:';
+    @endphp
     <div class="alert alert-danger" role="alert">
-        <div class="fw-semibold mb-2">Periksa kembali input berikut:</div>
+        <div class="fw-semibold mb-2">{{ $alertTitle }}</div>
         <ul class="mb-0 ps-3">
             @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>

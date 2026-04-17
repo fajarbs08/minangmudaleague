@@ -281,15 +281,32 @@
                             </td>
                             @endif
                             <td>
-                                <div class="fw-semibold">{{ $club->name }}</div>
-                                <div class="text-muted small">{{ $club->short_name ?: '-' }}</div>
-                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                    @if ($club->statement_file_url)
-                                        <a href="{{ $club->statement_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
-                                            <i data-lucide="file-text" class="fs-14"></i>
-                                            <span>Pernyataan</span>
-                                        </a>
+                                <div class="d-flex align-items-start gap-3">
+                                    @if ($club->logo_file_url)
+                                        <div class="rounded border bg-white d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; padding: 6px;">
+                                            <img
+                                                src="{{ $club->logo_file_url }}"
+                                                alt="{{ $club->name }}"
+                                                style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;"
+                                            >
+                                        </div>
+                                    @else
+                                        <div class="avatar-sm bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0">
+                                            <i data-lucide="flag" class="fs-18"></i>
+                                        </div>
                                     @endif
+                                    <div>
+                                        <div class="fw-semibold">{{ $club->name }}</div>
+                                        <div class="text-muted small">{{ $club->short_name ?: '-' }}</div>
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            @if ($club->statement_file_url)
+                                                <a href="{{ $club->statement_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
+                                                    <i data-lucide="file-text" class="fs-14"></i>
+                                                    <span>Pernyataan</span>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                             <td>{{ $club->zone ?: '-' }}</td>

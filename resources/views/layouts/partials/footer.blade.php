@@ -16,7 +16,7 @@
     <div class="container">
         <div class="row">
             <div class="col-12 text-center">
-                <script>document.write(new Date().getFullYear())</script> &copy; <a href="https://fajarlabs.com/id/fajar-budi-setiawan" target="_blank" rel="noopener" class="footer-link">FajarLabs</a>. Seluruh hak cipta dilindungi.
+                <script>document.write(new Date().getFullYear())</script> &copy; <a href="https://fajarlabs.com/id/fajar-budi-setiawan" target="_blank" rel="noopener" class="footer-link">Fajarlabs</a>. Seluruh hak cipta dilindungi.
             </div>
         </div>
     </div>
