@@ -18,11 +18,16 @@
             'is_starter' => false,
             'is_substitute' => false,
         ]]);
-    $imageUploadHelp = 'Format: JPG, JPEG, PNG, atau WebP. Maks. 3 MB. Foto akan disesuaikan otomatis agar ukuran tampil konsisten.';
-    $documentUploadHelp = 'Format: PDF, JPG, JPEG, PNG, atau WebP. Maks. 4 MB. Jika file berupa gambar, sistem akan menormalkan ukuran tanpa crop agar dokumen tetap jelas.';
+    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 3 MB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
+    $requiresPhotoUpload = blank($player->photo_path);
+    $requiresBirthCertificateUpload = blank($player->birth_certificate_file_path);
+    $requiresFamilyCardUpload = blank($player->family_card_file_path);
+    $requiresDiplomaUpload = blank($player->diploma_file_path);
+    $requiresReportUpload = blank($player->report_file_path);
 @endphp
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
+<div class="text-muted small mb-3">{{ $uploadHelp }}</div>
 <div class="row">
     <div class="col-lg-6 mb-3">
         <label class="form-label">Klub <span class="text-danger">*</span></label>
@@ -38,17 +43,16 @@
         <input type="text" name="name" class="form-control" value="{{ old('name', $player->name) }}" required>
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Nama Ibu Kandung</label>
-        <input type="text" name="mother_name" class="form-control" value="{{ old('mother_name', $player->mother_name) }}">
+        <label class="form-label">Nama Ibu Kandung <span class="text-danger">*</span></label>
+        <input type="text" name="mother_name" class="form-control" value="{{ old('mother_name', $player->mother_name) }}" required>
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Sekolah</label>
-        <input type="text" name="school_name" class="form-control" value="{{ old('school_name', $player->school_name) }}">
+        <label class="form-label">Sekolah <span class="text-danger">*</span></label>
+        <input type="text" name="school_name" class="form-control" value="{{ old('school_name', $player->school_name) }}" required>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Pas Foto 3x4</label>
-        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $imageUploadHelp }}</small>
+        <label class="form-label">Pas Foto 3x4 <span class="text-danger">*</span></label>
+        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp" {{ $requiresPhotoUpload ? 'required' : '' }}>
         @if ($player->photo_file_url)
             <a href="{{ $player->photo_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="image" class="fs-14"></i>
@@ -57,9 +61,8 @@
         @endif
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">File KK</label>
-        <input type="file" name="family_card_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <label class="form-label">File KK <span class="text-danger">*</span></label>
+        <input type="file" name="family_card_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" {{ $requiresFamilyCardUpload ? 'required' : '' }}>
         @if ($player->family_card_file_url)
             <a href="{{ $player->family_card_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -68,9 +71,8 @@
         @endif
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">File Ijazah</label>
-        <input type="file" name="diploma_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <label class="form-label">File Ijazah <span class="text-danger">*</span></label>
+        <input type="file" name="diploma_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" {{ $requiresDiplomaUpload ? 'required' : '' }}>
         @if ($player->diploma_file_url)
             <a href="{{ $player->diploma_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -79,9 +81,8 @@
         @endif
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">File Rapor</label>
-        <input type="file" name="report_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <label class="form-label">File Rapor <span class="text-danger">*</span></label>
+        <input type="file" name="report_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" {{ $requiresReportUpload ? 'required' : '' }}>
         @if ($player->report_file_url)
             <a href="{{ $player->report_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -90,9 +91,8 @@
         @endif
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Akta Kelahiran</label>
-        <input type="file" name="birth_certificate_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <label class="form-label">Akta Kelahiran <span class="text-danger">*</span></label>
+        <input type="file" name="birth_certificate_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" {{ $requiresBirthCertificateUpload ? 'required' : '' }}>
         @if ($player->birth_certificate_file_url)
             <a href="{{ $player->birth_certificate_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -109,20 +109,20 @@
         <input type="number" name="weight_kg" class="form-control" value="{{ old('weight_kg', $player->weight_kg) }}">
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Kewarganegaraan</label>
-        <select name="citizenship" class="form-select">
+        <label class="form-label">Kewarganegaraan <span class="text-danger">*</span></label>
+        <select name="citizenship" class="form-select" required>
             <option value="">Pilih status</option>
             <option value="WNI" @selected(old('citizenship', $player->citizenship) === 'WNI')>WNI</option>
             <option value="WNA" @selected(old('citizenship', $player->citizenship) === 'WNA')>WNA</option>
         </select>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Tempat Lahir</label>
-        <input type="text" name="birth_place" class="form-control" value="{{ old('birth_place', $player->birth_place) }}">
+        <label class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
+        <input type="text" name="birth_place" class="form-control" value="{{ old('birth_place', $player->birth_place) }}" required>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Tanggal Lahir</label>
-        <input type="date" name="birth_date" class="form-control" value="{{ old('birth_date', optional($player->birth_date)->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}">
+        <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
+        <input type="date" name="birth_date" class="form-control" value="{{ old('birth_date', optional($player->birth_date)->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" required>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Dominant Foot</label>

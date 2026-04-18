@@ -3,7 +3,7 @@
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h4 class="mb-1">Detail Official</h4>
+        <h4 class="mb-1">Detail Ofisial</h4>
         <p class="text-muted mb-0">{{ $official->name }}</p>
     </div>
     <div class="d-flex gap-2">
@@ -16,7 +16,7 @@
         @if ($official->ageRegistrations->isNotEmpty())
             <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                 <i data-lucide="id-card" class="fs-14"></i>
-                <span>ID Card</span>
+                <span>Lihat ID Card</span>
             </a>
         @endif
         <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
@@ -48,7 +48,7 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header">
-                <h4 class="card-title mb-0">Data Official</h4>
+                <h4 class="card-title mb-0">Data Ofisial</h4>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -133,7 +133,7 @@
 
         <div class="card mt-4">
             <div class="card-header">
-                <h4 class="card-title mb-0">Berkas Official</h4>
+                <h4 class="card-title mb-0">Berkas Ofisial</h4>
             </div>
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2">
@@ -170,7 +170,7 @@
     'formId' => 'delete-official-age-form',
     'nameClass' => 'js-delete-official-age-name',
     'messagePrefix' => 'Kelompok usia',
-    'messageSuffix' => 'akan dihapus dari official ini. Tindakan ini tidak bisa dibatalkan.',
+    'messageSuffix' => 'akan dihapus dari ofisial ini. Tindakan ini tidak bisa dibatalkan.',
 ])
 @endsection
 

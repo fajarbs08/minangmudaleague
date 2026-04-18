@@ -8,7 +8,7 @@
           $pendingCounts = \Illuminate\Support\Facades\Cache::remember('admin_notification_counts', $cacheTtl, function () {
                return [
                     ['label' => 'Klub', 'count' => \App\Models\Club::query()->where('verification_status', \App\Models\Club::STATUS_SUBMITTED)->count(), 'route' => route('clubs.index', ['status' => 'submitted']), 'message' => 'Pengajuan klub menunggu verifikasi.'],
-                    ['label' => 'Official', 'count' => \App\Models\Official::query()->where('verification_status', \App\Models\Official::STATUS_SUBMITTED)->count(), 'route' => route('officials.index', ['status' => 'submitted']), 'message' => 'Data official menunggu verifikasi.'],
+                    ['label' => 'Ofisial', 'count' => \App\Models\Official::query()->where('verification_status', \App\Models\Official::STATUS_SUBMITTED)->count(), 'route' => route('officials.index', ['status' => 'submitted']), 'message' => 'Data ofisial menunggu verifikasi.'],
                     ['label' => 'Pemain', 'count' => \App\Models\Player::query()->where('verification_status', \App\Models\Player::STATUS_SUBMITTED)->count(), 'route' => route('players.index', ['status' => 'submitted']), 'message' => 'Data pemain menunggu verifikasi.'],
                     ['label' => 'DSP', 'count' => \App\Models\LineupList::query()->where('verification_status', \App\Models\LineupList::STATUS_SUBMITTED)->count(), 'route' => route('lineup-lists.index', ['status' => 'submitted']), 'message' => 'DSP menunggu verifikasi.'],
                ];
@@ -44,7 +44,7 @@
                $clubId = $club->id;
                $clubCounts = \Illuminate\Support\Facades\Cache::remember("club_notification_counts_{$clubId}", $cacheTtl, function () use ($clubId, $needsAttentionStatuses) {
                     return [
-                         ['label' => 'Official', 'count' => \App\Models\Official::query()->where('club_id', $clubId)->whereIn('verification_status', $needsAttentionStatuses)->count(), 'route' => route('officials.index', ['status' => 'revision']), 'message' => 'Beberapa official perlu revisi.'],
+                         ['label' => 'Ofisial', 'count' => \App\Models\Official::query()->where('club_id', $clubId)->whereIn('verification_status', $needsAttentionStatuses)->count(), 'route' => route('officials.index', ['status' => 'revision']), 'message' => 'Beberapa ofisial perlu revisi.'],
                          ['label' => 'Pemain', 'count' => \App\Models\Player::query()->where('club_id', $clubId)->whereIn('verification_status', $needsAttentionStatuses)->count(), 'route' => route('players.index', ['status' => 'revision']), 'message' => 'Beberapa pemain perlu revisi.'],
                          ['label' => 'DSP', 'count' => \App\Models\LineupList::query()->where('club_id', $clubId)->whereIn('verification_status', $needsAttentionStatuses)->count(), 'route' => route('lineup-lists.index', ['status' => 'revision']), 'message' => 'Beberapa DSP perlu revisi.'],
                     ];
@@ -92,7 +92,7 @@
                                    type="search"
                                    class="form-control"
                                    name="q"
-                                   placeholder="Cari klub, pemain, official, atau DSP..."
+                                   placeholder="Cari klub, pemain, ofisial, atau DSP..."
                                    autocomplete="off"
                                    value="{{ request('q') }}"
                                    aria-label="Cari data"

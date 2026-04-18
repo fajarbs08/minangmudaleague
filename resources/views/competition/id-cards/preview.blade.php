@@ -10,8 +10,8 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="{{ $backUrl }}" class="btn btn-light">Kembali</a>
-        <a href="{{ $pdfUrl }}" target="_blank" class="btn btn-outline-primary">Stream PDF</a>
-        <a href="{{ $downloadUrl }}" target="_blank" class="btn btn-primary">Download PDF</a>
+        <a href="{{ $pdfUrl }}" target="_blank" class="btn btn-outline-primary">Buka PDF</a>
+        <a href="{{ $downloadUrl }}" target="_blank" class="btn btn-primary">Unduh PDF</a>
     </div>
 </div>
 
@@ -52,7 +52,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h4 class="card-title mb-0">Preview Kartu</h4>
+        <h4 class="card-title mb-0">Pratinjau Kartu</h4>
     </div>
     <div class="card-body">
         @if (empty($document['cards']))

@@ -7,15 +7,18 @@ use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class IdentityCardService
 {
+    private const PDF_TEMPLATE_VERSION = 'idc-template-v2';
+
     public function buildOfficialDocument(Club $club, AgeGroup $ageGroup, iterable $officials): array
     {
         return $this->buildDocument(
@@ -54,7 +57,8 @@ class IdentityCardService
     {
         $disk = Storage::disk('local');
         $cacheDir = 'id-cards-cache';
-        $cacheFile = $cacheDir.'/'.sha1($cacheKey).'.pdf';
+        $versionedCacheKey = self::PDF_TEMPLATE_VERSION.'|'.$cacheKey;
+        $cacheFile = $cacheDir.'/'.sha1($versionedCacheKey).'.pdf';
 
         if ($disk->exists($cacheFile)) {
             return response()->file($disk->path($cacheFile), [
@@ -226,7 +230,7 @@ class IdentityCardService
         $role = $registration?->role ?: $official->role ?: 'Official';
         $license = $registration?->license_levels ?: $official->license_levels ?: $official->license_number ?: '-';
         $identifier = $official->identity_number ?: $official->license_number ?: 'OFF-'.str_pad((string) $official->id, 4, '0', STR_PAD_LEFT);
-        $qrPayload = $this->absoluteRoute('officials.scan-result', $official);
+        $qrPayload = $this->absoluteRoute('public.officials.show', ['officialSlug' => $official->public_slug]);
 
         return [
             'id' => 'official-'.$official->id.'-'.$ageGroup->id,
@@ -287,7 +291,7 @@ class IdentityCardService
         $position = $player->displayPosition($ageGroup->id) ?: 'Player';
         $jersey = $player->displayJerseyNumber($ageGroup->id);
         $identifier = 'PLY-'.str_pad((string) $player->id, 4, '0', STR_PAD_LEFT);
-        $qrPayload = $this->absoluteRoute('players.scan-result', $player);
+        $qrPayload = $this->absoluteRoute('public.players.show', ['playerSlug' => $player->public_slug]);
 
         return [
             'id' => 'player-'.$player->id.'-'.$ageGroup->id,
@@ -347,7 +351,7 @@ class IdentityCardService
     private function qrSource(string $payload): string
     {
         return 'data:image/svg+xml;base64,'.base64_encode(
-            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+            QrCode::format('svg')
                 ->size(320)
                 ->margin(1)
                 ->generate($payload)

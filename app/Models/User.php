@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -36,6 +37,10 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    protected bool $latestClubResolved = false;
+
+    protected ?Club $latestClubCache = null;
 
     /**
      * Get the attributes that should be cast.
@@ -68,11 +73,11 @@ class User extends Authenticatable
 
     public function getProfileAvatarUrlAttribute(): ?string
     {
-        if (!$this->isClubUser()) {
+        if (! $this->isClubUser()) {
             return null;
         }
 
-        $club = $this->clubs()->latest('id')->first();
+        $club = $this->latestClub();
 
         return $club?->logo_file_url;
     }
@@ -82,7 +87,7 @@ class User extends Authenticatable
         $source = $this->name;
 
         if ($this->isClubUser()) {
-            $club = $this->clubs()->latest('id')->first();
+            $club = $this->latestClub();
             $source = $club?->name ?: $this->name;
         }
 
@@ -95,5 +100,19 @@ class User extends Authenticatable
             ->implode('');
 
         return $initials !== '' ? $initials : 'U';
+    }
+
+    private function latestClub(): ?Club
+    {
+        if ($this->relationLoaded('clubs')) {
+            return $this->getRelation('clubs')->sortByDesc('id')->first();
+        }
+
+        if (! $this->latestClubResolved) {
+            $this->latestClubCache = $this->clubs()->latest('id')->first();
+            $this->latestClubResolved = true;
+        }
+
+        return $this->latestClubCache;
     }
 }

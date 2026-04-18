@@ -22,11 +22,11 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Official</li>
+                <li class="breadcrumb-item active" aria-current="page">Ofisial</li>
             </ol>
         </nav>
-        <h4 class="mb-1">Official</h4>
-        <p class="text-muted mb-0">Kelola data official tiap klub dengan panel yang lebih rapi untuk filter, review, dan export ID card.</p>
+        <h4 class="mb-1">Ofisial</h4>
+        <p class="text-muted mb-0">Kelola data ofisial tiap klub, status aktif, dan verifikasi dari satu halaman kerja.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <button
@@ -45,7 +45,7 @@
         <div class="dropdown">
             <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i data-lucide="id-card" class="fs-14"></i>
-                <span>Preview ID Card</span>
+                <span>Lihat ID Card</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 @foreach ($ageGroups as $ageGroup)
@@ -60,7 +60,7 @@
         @include('competition.partials.icon-button', [
             'href' => route('officials.create'),
             'icon' => 'user-plus',
-            'label' => 'Tambah Official',
+            'label' => 'Tambah Ofisial',
             'class' => 'btn-primary',
         ])
     </div>
@@ -74,9 +74,9 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-primary-subtle text-primary mb-2">Table</span>
+                        <span class="badge bg-primary-subtle text-primary mb-2">Ofisial</span>
                         <h3 class="mb-1">{{ $officials->total() }}</h3>
-                        <p class="text-muted mb-0">Total official terdaftar</p>
+                        <p class="text-muted mb-0">Total ofisial terdaftar</p>
                     </div>
                     <div class="avatar-md bg-light rounded-circle d-flex align-items-center justify-content-center">
                         <i data-lucide="users" class="fs-22 text-primary"></i>
@@ -90,7 +90,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-success-subtle text-success mb-2">Badge</span>
+                        <span class="badge bg-success-subtle text-success mb-2">Aktif</span>
                         <h3 class="mb-1">{{ $activeCount }}</h3>
                         <p class="text-muted mb-2">Aktif di halaman ini</p>
                     </div>
@@ -116,7 +116,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-info-subtle text-info mb-2">Progress</span>
+                        <span class="badge bg-info-subtle text-info mb-2">Disetujui</span>
                         <h3 class="mb-1">{{ $approvedCount }}</h3>
                         <p class="text-muted mb-2">Sudah disetujui</p>
                     </div>
@@ -142,7 +142,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-warning-subtle text-warning mb-2">Review</span>
+                        <span class="badge bg-warning-subtle text-warning mb-2">Menunggu Review</span>
                         <h3 class="mb-1">{{ $needsReviewCount }}</h3>
                         <p class="text-muted mb-0">Perlu tindak lanjut admin</p>
                     </div>
@@ -158,7 +158,7 @@
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-            <h4 class="card-title mb-1">Daftar Official</h4>
+            <h4 class="card-title mb-1">Daftar Ofisial</h4>
             <p class="text-muted mb-0">Gunakan filter cepat, cek status verifikasi, lalu jalankan aksi dari menu per baris.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -190,7 +190,7 @@
                             aria-expanded="false"
                             aria-controls="bulkReviewCollapse"
                         >
-                            Bulk Action Admin
+                            Tindakan Massal Admin
                         </button>
                     </h2>
                     <div
@@ -205,15 +205,15 @@
                                     <label for="bulk-status" class="form-label">Aksi</label>
                                     <select id="bulk-status" name="status" class="form-select" data-choices data-choices-search-false data-bulk-choices required>
                                         <option value="">Pilih aksi</option>
-                                        <option value="approved">Approve</option>
+                                        <option value="approved">Setujui</option>
                                         <option value="revision">Minta revisi</option>
-                                        <option value="rejected">Reject</option>
+                                        <option value="rejected">Tolak</option>
                                         <option value="deleted">Hapus</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-6">
                                     <label for="bulk-notes" class="form-label">Catatan verifikasi</label>
-                                    <textarea id="bulk-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
+                                    <textarea id="bulk-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau penolakan."></textarea>
                                 </div>
                                 <div class="col-lg-3">
                                     <label class="form-label d-block">&nbsp;</label>
@@ -245,7 +245,7 @@
                             <input type="checkbox" class="form-check-input js-check-all" data-target=".js-official-row">
                         </th>
                         @endif
-                        @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Official', 'defaultSort' => 'created_at'])
+                        @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Ofisial', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'club', 'label' => 'Klub', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'role', 'label' => 'Peran', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Usia', 'defaultSort' => 'created_at'])
@@ -362,12 +362,12 @@
                             @php
                                 $isAdmin = auth()->user()->isAdmin();
                                 $actionHint = match ($official->verification_status) {
-                                    'draft' => $isAdmin ? 'Buka detail atau edit manual admin.' : 'Lengkapi data official lalu ajukan verifikasi.',
-                                    'submitted' => $isAdmin ? 'Review pengajuan admin.' : 'Menunggu review admin.',
+                                    'draft' => $isAdmin ? 'Buka detail atau edit manual admin.' : 'Lengkapi data ofisial lalu ajukan verifikasi.',
+                                    'submitted' => $isAdmin ? 'Tinjau pengajuan lalu beri keputusan.' : 'Menunggu review admin.',
                                     'revision' => $isAdmin ? 'Minta revisi atau edit manual admin.' : 'Perbaiki data lalu submit ulang.',
-                                    'approved' => $isAdmin ? 'Official sudah diterima. Edit manual tetap tersedia.' : 'Official sudah diterima admin.',
+                                    'approved' => $isAdmin ? 'Ofisial sudah diterima. Edit manual tetap tersedia.' : 'Ofisial sudah diterima admin.',
                                     'rejected' => $isAdmin ? 'Tindak lanjuti lewat revisi atau edit manual.' : 'Periksa catatan admin.',
-                                    default => 'Lanjutkan sesuai status official.',
+                                    default => 'Lanjutkan sesuai status ofisial.',
                                 };
                             @endphp
                             <td class="text-end competition-table-actions">
@@ -403,7 +403,7 @@
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('officials.edit', $official),
                                                     'icon' => 'square-pen',
-                                                    'label' => $isAdmin ? 'Edit Manual Admin' : 'Edit',
+                                                    'label' => $isAdmin ? 'Edit oleh Admin' : 'Edit',
                                                 ])
                                             @endif
                                         </div>
@@ -411,18 +411,18 @@
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 @if ($isAdmin && $official->canBeReviewedByAdmin())
-                                                    <div class="competition-action-label px-2 pb-2">Review Admin</div>
+                                                    <div class="competition-action-label px-2 pb-2">Verifikasi Admin</div>
                                                     @if ($official->verification_status !== 'approved')
                                                         @include('competition.partials.action-item', [
                                                             'icon' => 'check',
-                                                            'label' => 'Approve',
+                                                            'label' => 'Setujui',
                                                             'class' => 'text-success',
                                                             'attributes' => [
                                                                 'data-bs-toggle' => 'modal',
                                                                 'data-bs-target' => '#officialReviewModal',
                                                                 'data-review-route' => route('officials.review', $official),
                                                                 'data-review-status' => 'approved',
-                                                                'data-review-label' => 'Approve Official',
+                                                                'data-review-label' => 'Setujui Ofisial',
                                                                 'data-review-title' => $official->name,
                                                                 'data-review-notes-required' => '0',
                                                                 'data-review-placeholder' => 'Catatan admin opsional.',
@@ -438,7 +438,7 @@
                                                             'data-bs-target' => '#officialReviewModal',
                                                             'data-review-route' => route('officials.review', $official),
                                                             'data-review-status' => 'revision',
-                                                            'data-review-label' => 'Minta Revisi Official',
+                                                            'data-review-label' => 'Minta Revisi Ofisial',
                                                             'data-review-title' => $official->name,
                                                             'data-review-notes-required' => '1',
                                                             'data-review-placeholder' => 'Catatan admin wajib diisi untuk revisi.',
@@ -447,17 +447,17 @@
                                                     @if ($official->verification_status !== 'approved')
                                                         @include('competition.partials.action-item', [
                                                             'icon' => 'x',
-                                                            'label' => 'Reject',
+                                                            'label' => 'Tolak',
                                                             'class' => 'text-danger',
                                                             'attributes' => [
                                                                 'data-bs-toggle' => 'modal',
                                                                 'data-bs-target' => '#officialReviewModal',
                                                                 'data-review-route' => route('officials.review', $official),
                                                                 'data-review-status' => 'rejected',
-                                                                'data-review-label' => 'Reject Official',
+                                                                'data-review-label' => 'Tolak Ofisial',
                                                                 'data-review-title' => $official->name,
                                                                 'data-review-notes-required' => '1',
-                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk reject.',
+                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk penolakan.',
                                                             ],
                                                         ])
                                                     @endif
@@ -466,7 +466,7 @@
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2">
                                                             <i data-lucide="send" class="review-actions-icon" aria-hidden="true"></i>
-                                                            <span>Submit Verifikasi</span>
+                                                            <span>Ajukan Verifikasi</span>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -500,8 +500,8 @@
                                     <div class="avatar-md bg-light rounded-circle d-flex align-items-center justify-content-center">
                                         <i data-lucide="inbox" class="fs-22"></i>
                                     </div>
-                                    <div class="fw-semibold text-dark">Belum ada data official.</div>
-                                    <div class="small">Ubah filter atau tambahkan official baru untuk mulai mengisi daftar ini.</div>
+                                    <div class="fw-semibold text-dark">Belum ada data ofisial.</div>
+                                    <div class="small">Ubah filter atau tambahkan ofisial baru untuk mulai mengisi daftar ini.</div>
                                 </div>
                             </td>
                         </tr>
@@ -515,7 +515,7 @@
     @endif
 
     <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <p class="text-muted mb-0">Menampilkan {{ $officials->firstItem() ?? 0 }}-{{ $officials->lastItem() ?? 0 }} dari {{ $officials->total() }} official.</p>
+        <p class="text-muted mb-0">Menampilkan {{ $officials->firstItem() ?? 0 }}-{{ $officials->lastItem() ?? 0 }} dari {{ $officials->total() }} ofisial.</p>
         <div>{{ $officials->links() }}</div>
     </div>
 </div>
@@ -523,7 +523,7 @@
 <div class="offcanvas offcanvas-end" tabindex="-1" id="officialFilterCanvas" aria-labelledby="officialFilterCanvasLabel">
     <div class="offcanvas-header">
         <div>
-            <h5 class="offcanvas-title" id="officialFilterCanvasLabel">Filter Official</h5>
+            <h5 class="offcanvas-title" id="officialFilterCanvasLabel">Filter Ofisial</h5>
             <p class="text-muted mb-0 small">Pakai filter detail tanpa memenuhi area tabel.</p>
         </div>
         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -576,10 +576,10 @@
 
 @include('competition.partials.delete-modal', [
     'modalId' => 'deleteOfficialModal',
-    'title' => 'Hapus Official',
+    'title' => 'Hapus Ofisial',
     'formId' => 'delete-official-form',
     'nameClass' => 'js-delete-official-name',
-    'messagePrefix' => 'Official',
+    'messagePrefix' => 'Ofisial',
     'messageSuffix' => 'akan dihapus. Tindakan ini tidak bisa dibatalkan.',
 ])
 
@@ -607,7 +607,7 @@
                 @csrf
                 <div class="modal-header">
                     <div>
-                        <h5 class="modal-title" id="officialReviewModalLabel">Review Official</h5>
+                        <h5 class="modal-title" id="officialReviewModalLabel">Review Ofisial</h5>
                         <div class="small text-muted mt-1" id="official-review-title">-</div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -634,6 +634,14 @@
         </div>
     </div>
 </div>
+
+@include('layouts.partials.action-confirm-modal', [
+    'modalId' => 'bulkOfficialActionConfirmModal',
+    'title' => 'Konfirmasi Aksi Massal',
+    'message' => 'Aksi ini akan diterapkan ke data terpilih.',
+    'submitLabel' => 'Lanjutkan',
+    'submitClass' => 'btn-danger',
+])
 @endsection
 
 @push('scripts')
@@ -648,6 +656,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const checkAll = bulkForm.querySelector('.js-check-all');
         const bulkSubmit = bulkForm.querySelector('[data-bulk-submit]');
         const bulkCount = bulkForm.querySelector('[data-bulk-selected-count]');
+        const bulkStatus = bulkForm.querySelector('[name=status]');
+        const bulkConfirmModal = document.getElementById('bulkOfficialActionConfirmModal');
 
         if (checkAll) {
             const getRows = () => Array.from(bulkForm.querySelectorAll('.js-official-row'));
@@ -684,11 +694,41 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             bulkForm.addEventListener('submit', function (event) {
+                if (bulkForm.dataset.confirmAccepted === '1') {
+                    delete bulkForm.dataset.confirmAccepted;
+                    return;
+                }
+
                 const selectedCount = getRows().filter((checkbox) => checkbox.checked).length;
 
                 if (selectedCount === 0) {
                     event.preventDefault();
+                    return;
                 }
+
+                const bulkAction = bulkStatus?.value;
+
+                if (!['deleted', 'rejected'].includes(bulkAction || '')) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (!bulkConfirmModal) {
+                    return;
+                }
+
+                const isDelete = bulkAction === 'deleted';
+
+                bulkConfirmModal.setAttribute('data-confirm-form', '#bulk-official-review-form');
+                bulkConfirmModal.setAttribute('data-confirm-title', isDelete ? 'Hapus Ofisial' : 'Tolak Ofisial');
+                bulkConfirmModal.setAttribute('data-confirm-message', isDelete
+                    ? `Hapus ${selectedCount} ofisial terpilih? Data yang sudah dihapus tidak bisa dikembalikan.`
+                    : `Tolak ${selectedCount} ofisial terpilih? Status akan berubah menjadi ditolak dan catatan admin wajib diisi.`);
+                bulkConfirmModal.setAttribute('data-confirm-submit-label', isDelete ? 'Hapus' : 'Tolak');
+                bulkConfirmModal.setAttribute('data-confirm-submit-class', 'btn-danger');
+
+                bootstrap.Modal.getOrCreateInstance(bulkConfirmModal).show();
             });
 
             syncBulkState();
@@ -713,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const route = trigger.getAttribute('data-review-route') || '';
             const status = trigger.getAttribute('data-review-status') || '';
-            const label = trigger.getAttribute('data-review-label') || 'Review Official';
+            const label = trigger.getAttribute('data-review-label') || 'Review Ofisial';
             const title = trigger.getAttribute('data-review-title') || '-';
             const notesRequired = trigger.getAttribute('data-review-notes-required') === '1';
             const placeholder = trigger.getAttribute('data-review-placeholder') || 'Catatan admin';

@@ -236,11 +236,11 @@
         <input type="text" class="form-control" value="{{ $lineupList->opponent()?->name ?? '-' }}" readonly data-lineup-opponent>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Matchday</label>
+        <label class="form-label">Hari Pertandingan</label>
         <input type="text" class="form-control" value="{{ old('match_day', $lineupList->match_day) }}" readonly data-lineup-matchday>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Venue</label>
+        <label class="form-label">Lokasi</label>
         <input type="text" class="form-control" value="{{ old('played_at', $lineupList->played_at) }}" readonly data-lineup-venue>
     </div>
     <div class="col-lg-4 mb-3">
@@ -248,7 +248,7 @@
         <input type="text" class="form-control" value="{{ old('match_date', optional($lineupList->match_date)->format('d M Y')) }}" readonly data-lineup-date>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Jam Kick-off</label>
+        <label class="form-label">Jam Kickoff</label>
         <input type="text" class="form-control" value="{{ old('played_time', optional($lineupList->played_time)->format('H:i')) }}" readonly data-lineup-kickoff>
     </div>
     <div class="col-lg-6 mb-3">
@@ -262,16 +262,16 @@
         <input type="text" name="coach_name" class="form-control" value="{{ old('coach_name', $lineupList->coach_name) }}">
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Jersey Colour</label>
+        <label class="form-label">Warna Jersey</label>
         <input type="text" name="jersey_color" class="form-control" value="{{ old('jersey_color', $lineupList->jersey_color) }}">
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">GK Jersey Colour</label>
+        <label class="form-label">Warna Jersey Kiper</label>
         <input type="text" name="goalkeeper_jersey_color" class="form-control" value="{{ old('goalkeeper_jersey_color', $lineupList->goalkeeper_jersey_color) }}">
     </div>
     <div class="col-lg-12 mb-3">
         <div class="alert alert-light border mb-0">
-            Detail lawan, venue, tanggal, dan jam pertandingan mengikuti jadwal resmi yang dibuat admin. Klub hanya memilih match lalu menyusun roster DSP.
+            Detail lawan, lokasi, tanggal, dan jam pertandingan mengikuti jadwal resmi yang dibuat admin. Klub hanya memilih pertandingan lalu menyusun DSP.
         </div>
     </div>
     <div class="col-lg-12 mb-3">
@@ -284,14 +284,14 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
             <div>
-                <h5 class="mb-1">Roster DSP</h5>
-                <div class="text-muted">Pilih role pemain satu kali. Susunan DSP otomatis mengikuti urutan di panel Starter dan Cadangan, lalu bisa dirapikan dengan tombol naik atau turun.</div>
+                <h5 class="mb-1">Susunan DSP</h5>
+                <div class="text-muted">Pilih peran pemain satu kali. Susunan DSP otomatis mengikuti urutan di panel Starter dan Cadangan, lalu bisa dirapikan dengan tombol naik atau turun.</div>
             </div>
             <div class="text-muted small"><span data-lineup-count>0</span> pemain tersedia</div>
         </div>
 
         <div class="alert alert-light border mb-3" data-lineup-guide>
-            Pilih pertandingan terlebih dahulu untuk menampilkan roster pemain sesuai klub dan kelompok usia.
+            Pilih pertandingan terlebih dahulu untuk menampilkan daftar pemain sesuai klub dan kelompok usia.
         </div>
 
         <div class="alert alert-info mb-3">
@@ -326,7 +326,7 @@
                 <div class="border rounded p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
                         <div>
-                            <h6 class="mb-1">Roster Pemain</h6>
+                            <h6 class="mb-1">Daftar Pemain</h6>
                             <div class="text-muted small">Klik `Starter` atau `Cadangan`. Jika belum dipakai, biarkan `Belum dipilih`.</div>
                         </div>
                     </div>

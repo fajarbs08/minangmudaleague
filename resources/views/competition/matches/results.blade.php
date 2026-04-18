@@ -55,6 +55,9 @@
 @endphp
 
 @section('content')
+@php
+    $overviewColClass = auth()->user()->isAdmin() ? 'col-lg-4' : 'col-lg-6';
+@endphp
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
         <nav aria-label="breadcrumb">
@@ -67,68 +70,25 @@
         <p class="text-muted mb-0">Kelola hasil laga untuk pertandingan yang sudah terjadwal.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a
-            href="#result-filter-panel"
+        <button
+            type="button"
             class="btn btn-outline-secondary position-relative d-inline-flex align-items-center gap-2"
-            data-bs-toggle="collapse"
-            role="button"
-            aria-expanded="{{ $filterCount ? 'true' : 'false' }}"
-            aria-controls="result-filter-panel"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#resultFilterCanvas"
+            aria-controls="resultFilterCanvas"
         >
             <i data-lucide="filter" class="fs-14"></i>
             <span>Filter</span>
             @if ($filterCount)
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
-        </a>
+        </button>
     </div>
 </div>
 
 @include('competition.partials.flash')
 
 <style>
-    .knockout-bracket {
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(240px, 1fr);
-        gap: 1rem;
-        overflow-x: auto;
-        padding-bottom: .5rem;
-    }
-
-    .knockout-round {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .knockout-match {
-        border: 1px solid #dee2e6;
-        border-radius: 1rem;
-        background: #fff;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-        padding: 1rem;
-    }
-
-    .knockout-team {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-    }
-
-    .knockout-team + .knockout-team {
-        margin-top: .65rem;
-        padding-top: .65rem;
-        border-top: 1px dashed rgba(100, 116, 139, 0.3);
-    }
-
-    .knockout-score {
-        min-width: 24px;
-        text-align: right;
-        font-weight: 700;
-    }
-
     .match-report-line + .match-report-line {
         margin-top: .25rem;
     }
@@ -141,119 +101,54 @@
     }
 </style>
 
-@if ($standings->isNotEmpty())
-    <div class="row g-4 mb-4">
-        @foreach ($standings as $standing)
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-1">Klasemen {{ $standing['age_group']?->name ?: '-' }}</h4>
-                        <p class="text-muted mb-0">Disusun dari hasil pertandingan liga yang telah selesai.</p>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive competition-table-wrap">
-                            <table class="table competition-table align-middle text-nowrap mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Pos</th>
-                                        <th>Klub</th>
-                                        <th>Main</th>
-                                        <th>Menang</th>
-                                        <th>Imbang</th>
-                                        <th>Kalah</th>
-                                        <th>GM</th>
-                                        <th>GK</th>
-                                        <th>SG</th>
-                                        <th>Poin</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($standing['rows'] as $row)
-                                        <tr>
-                                            <td>{{ $row['position'] }}</td>
-                                            <td class="fw-semibold">{{ $row['club_short_name'] }}</td>
-                                            <td>{{ $row['played'] }}</td>
-                                            <td>{{ $row['won'] }}</td>
-                                            <td>{{ $row['drawn'] }}</td>
-                                            <td>{{ $row['lost'] }}</td>
-                                            <td>{{ $row['goals_for'] }}</td>
-                                            <td>{{ $row['goals_against'] }}</td>
-                                            <td>{{ $row['goal_difference'] > 0 ? '+' : '' }}{{ $row['goal_difference'] }}</td>
-                                            <td><span class="fw-bold">{{ $row['points'] }}</span></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+<div class="row g-3 mb-4">
+    <div class="{{ $overviewColClass }} col-md-6">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <span class="badge bg-primary-subtle text-primary align-self-start mb-3">Klasemen</span>
+                <h5 class="mb-2">Buka klasemen dari modul laporan</h5>
+                <p class="text-muted mb-4">Tabel klasemen dipisah dari input hasil supaya pemantauan posisi klub lebih fokus.</p>
+                <a href="{{ route('reports.standings', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Klasemen</a>
             </div>
-        @endforeach
+        </div>
     </div>
-@endif
-
-@if ($brackets->isNotEmpty())
-    <div class="row g-4 mb-4">
-        @foreach ($brackets as $bracket)
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-1">Bracket {{ $bracket['age_group']?->name ?: '-' }}</h4>
-                        <p class="text-muted mb-0">Jalur pertandingan knockout berdasarkan babak dan urutan bracket.</p>
-                    </div>
-                    <div class="card-body">
-                        <div class="knockout-bracket">
-                            @foreach ($bracket['rounds'] as $round)
-                                <div class="knockout-round">
-                                    <div class="small fw-semibold text-uppercase text-muted">{{ $round['label'] }}</div>
-                                    @foreach ($round['matches'] as $match)
-                                        <div class="knockout-match">
-                                            <div class="small text-muted mb-3">
-                                                {{ $match->match_day }} • {{ optional($match->match_date)->format('d M Y') ?: '-' }}
-                                            </div>
-                                            <div class="knockout-team">
-                                                <span>{{ $match->clubA?->name ?: 'TBD' }}</span>
-                                                <span class="knockout-score">{{ $match->score_club_a ?? '-' }}</span>
-                                            </div>
-                                            <div class="knockout-team">
-                                                <span>{{ $match->clubB?->name ?: 'TBD' }}</span>
-                                                <span class="knockout-score">{{ $match->score_club_b ?? '-' }}</span>
-                                            </div>
-                                            <div class="small text-muted mt-3">
-                                                {{ $match->is_finished ? $match->result_summary : 'Belum selesai' }}
-                                            </div>
-                                            @if ($match->goalEvents->isNotEmpty())
-                                                <div class="small text-muted mt-2">
-                                                    @foreach ([$match->clubA, $match->clubB] as $club)
-                                                        @php
-                                                            $goalReport = $match->goalReportForClub($club?->id);
-                                                        @endphp
-                                                        @if ($club && !empty($goalReport))
-                                                            <div class="match-report-line">
-                                                                <span class="fw-semibold">{{ $club->short_name ?: $club->name }}:</span>
-                                                                {{ implode(', ', $goalReport) }}
-                                                            </div>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
+    <div class="{{ $overviewColClass }} col-md-6">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <span class="badge bg-success-subtle text-success align-self-start mb-3">Top Skor</span>
+                <h5 class="mb-2">Pantau pencetak gol terbanyak</h5>
+                <p class="text-muted mb-4">Laporan top skor sekarang punya page khusus agar rekap gol tidak bercampur dengan input hasil.</p>
+                <a href="{{ route('reports.top-scorers', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Top Skor</a>
             </div>
-        @endforeach
+        </div>
     </div>
-@endif
+    <div class="{{ $overviewColClass }} col-md-6">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <span class="badge bg-info-subtle text-info align-self-start mb-3">Top Assist</span>
+                <h5 class="mb-2">Pisahkan laporan assist</h5>
+                <p class="text-muted mb-4">Daftar pemberi assist terbanyak tersedia di page khusus supaya analisis pemain lebih rapi.</p>
+                <a href="{{ route('reports.top-assists', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Top Assist</a>
+            </div>
+        </div>
+    </div>
+    <div class="{{ $overviewColClass }} col-md-6">
+        <div class="card h-100 border-primary border-opacity-25">
+            <div class="card-body d-flex flex-column">
+                <span class="badge bg-dark-subtle text-dark align-self-start mb-3">Rekap PDF</span>
+                <h5 class="mb-2">Generate report gabungan dan PDF</h5>
+                <p class="text-muted mb-4">Buka modul laporan untuk rekap klasemen, top skor, top assist, dan unduh PDF per halaman atau gabungan.</p>
+                <a href="{{ route('reports.overview', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-primary mt-auto">Buka Rekap</a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <h4 class="card-title mb-1">Daftar Hasil Pertandingan</h4>
-            <p class="text-muted mb-0">Pantau hasil, status DSP, dan tindak lanjut admin dari panel dengan format yang seragam.</p>
+            <p class="text-muted mb-0">Pantau hasil pertandingan, status DSP, dan tindak lanjut admin dari satu halaman.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if (filled(request('competition_format')))
@@ -265,42 +160,18 @@
             <span class="badge bg-light text-dark border">{{ $matches->total() }} data</span>
         </div>
     </div>
-    <div class="card-body border-bottom collapse {{ $filterCount ? 'show' : '' }}" id="result-filter-panel">
-        <form class="row g-3">
-            <div class="col-lg-4">
-                <select name="age_group_id" class="form-select">
-                    <option value="">Semua kelompok usia</option>
-                    @foreach ($ageGroups as $ageGroup)
-                        <option value="{{ $ageGroup->id }}" @selected((string) request('age_group_id') === (string) $ageGroup->id)>{{ $ageGroup->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-lg-4">
-                <select name="competition_format" class="form-select">
-                    <option value="">Semua format</option>
-                    @foreach ($formatOptions as $value => $label)
-                        <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-lg-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a href="{{ route('match-results.index') }}" class="btn btn-light">Reset</a>
-            </div>
-        </form>
-    </div>
     <div class="card-body p-0">
         <div class="table-responsive competition-table-wrap">
             <table class="table competition-table align-middle text-nowrap">
                 <thead>
                     <tr>
-                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Matchday', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
+                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Hari Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'matchup', 'label' => 'Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'competition_format', 'label' => 'Format', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'round_order', 'label' => 'Babak', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'match_date', 'label' => 'Tanggal', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
-                        @include('competition.partials.sortable-th', ['key' => 'venue', 'label' => 'Venue', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
+                        @include('competition.partials.sortable-th', ['key' => 'venue', 'label' => 'Lokasi', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         <th>Status DSP</th>
                         @include('competition.partials.sortable-th', ['key' => 'is_finished', 'label' => 'Hasil', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         <th class="text-end">Tindakan</th>
@@ -395,6 +266,42 @@
     </div>
 </div>
 
+<div class="offcanvas offcanvas-end" tabindex="-1" id="resultFilterCanvas" aria-labelledby="resultFilterCanvasLabel">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title" id="resultFilterCanvasLabel">Filter Hasil Pertandingan</h5>
+            <p class="text-muted mb-0 small">Pakai filter detail tanpa memenuhi area tabel.</p>
+        </div>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form class="d-flex flex-column gap-3">
+            <div>
+                <label for="result-age-group-id" class="form-label">Kelompok usia</label>
+                <select id="result-age-group-id" name="age_group_id" class="form-select">
+                    <option value="">Semua kelompok usia</option>
+                    @foreach ($ageGroups as $ageGroup)
+                        <option value="{{ $ageGroup->id }}" @selected((string) request('age_group_id') === (string) $ageGroup->id)>{{ $ageGroup->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="result-competition-format" class="form-label">Format pertandingan</label>
+                <select id="result-competition-format" name="competition_format" class="form-select">
+                    <option value="">Semua format</option>
+                    @foreach ($formatOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="d-grid gap-2 mt-2">
+                <button type="submit" class="btn btn-primary">Terapkan Filter</button>
+                <a href="{{ route('match-results.index') }}" class="btn btn-light">Reset Filter</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 @if (auth()->user()->isAdmin())
     <div class="modal fade" id="matchResultModal" tabindex="-1" aria-labelledby="matchResultModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -449,11 +356,14 @@
     </div>
 </div>
 
+<script type="application/json" id="match-results-payload">{{ json_encode($resultModalPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modal = document.getElementById('matchResultModal');
         if (!modal) return;
-        const payloadByMatch = @json($resultModalPayload);
+        const payloadElement = document.getElementById('match-results-payload');
+        const payloadByMatch = payloadElement ? JSON.parse(payloadElement.textContent || '{}') : {};
         const goalEventList = document.getElementById('goal-event-list');
         const addGoalEventButton = document.getElementById('add-goal-event-row');
         const emptyState = document.getElementById('goal-event-empty-state');

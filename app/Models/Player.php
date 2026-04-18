@@ -2,19 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Player extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVISION = 'revision';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -139,9 +144,16 @@ class Player extends Model
         return $this->fileUrl($this->family_card_file_path);
     }
 
+    public function getPublicSlugAttribute(): string
+    {
+        $base = $this->name ?: 'pemain';
+
+        return $this->id.'-'.Str::slug($base);
+    }
+
     public function registrationForAgeGroup(?int $ageGroupId): ?PlayerAgeGroup
     {
-        if (!$ageGroupId) {
+        if (! $ageGroupId) {
             return null;
         }
 
@@ -178,15 +190,38 @@ class Player extends Model
     {
         $errors = [];
 
-        if (blank($this->name)) $errors['name'] = 'Nama pemain wajib diisi sebelum submit verifikasi.';
-        if (blank($this->birth_place)) $errors['birth_place'] = 'Tempat lahir pemain wajib diisi sebelum submit verifikasi.';
-        if (blank($this->birth_date)) $errors['birth_date'] = 'Tanggal lahir pemain wajib diisi sebelum submit verifikasi.';
-        if (blank($this->citizenship)) $errors['citizenship'] = 'Kewarganegaraan pemain wajib diisi sebelum submit verifikasi.';
-        if (blank($this->photo_path)) $errors['photo_path'] = 'Foto pemain wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->birth_certificate_file_path)) $errors['birth_certificate_file_path'] = 'Akte kelahiran wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->family_card_file_path)) $errors['family_card_file_path'] = 'File KK wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->diploma_file_path) && blank($this->report_file_path)) {
-            $errors['school_document'] = 'Minimal satu dokumen sekolah pemain wajib diunggah sebelum submit verifikasi.';
+        if (blank($this->name)) {
+            $errors['name'] = 'Nama pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->mother_name)) {
+            $errors['mother_name'] = 'Nama ibu kandung pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->school_name)) {
+            $errors['school_name'] = 'Sekolah pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->birth_place)) {
+            $errors['birth_place'] = 'Tempat lahir pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->birth_date)) {
+            $errors['birth_date'] = 'Tanggal lahir pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->citizenship)) {
+            $errors['citizenship'] = 'Kewarganegaraan pemain wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->photo_path)) {
+            $errors['photo_path'] = 'Foto pemain wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->birth_certificate_file_path)) {
+            $errors['birth_certificate_file_path'] = 'Akte kelahiran wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->family_card_file_path)) {
+            $errors['family_card_file_path'] = 'File KK wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->diploma_file_path)) {
+            $errors['diploma_file_path'] = 'Ijazah wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->report_file_path)) {
+            $errors['report_file_path'] = 'Rapor wajib diunggah sebelum submit verifikasi.';
         }
 
         $registrations = $this->ageRegistrations()->get();
@@ -194,6 +229,11 @@ class Player extends Model
             $errors['age_registrations'] = 'Pemain harus memiliki minimal satu kelompok usia sebelum submit verifikasi.';
         } else {
             foreach ($registrations as $registration) {
+                if (! $registration->ageGroup || ! $registration->ageGroup->is_active || ! in_array($registration->ageGroup->code, AgeGroup::COMPETITION_CODES, true)) {
+                    $errors['age_registrations'] = 'Pemain hanya dapat disubmit untuk kelompok umur U-10, U-12, U-14, atau U-16.';
+                    break;
+                }
+
                 if (blank($registration->jersey_number) || blank($registration->position)) {
                     $errors['age_registrations'] = 'Setiap kelompok usia pemain harus memiliki nomor punggung dan posisi sebelum submit verifikasi.';
                     break;
@@ -201,14 +241,14 @@ class Player extends Model
             }
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
     }
 
     private function fileUrl(?string $path): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 

@@ -17,7 +17,7 @@
                         type="search"
                         name="q"
                         class="form-control"
-                        placeholder="Cari klub, pemain, official, atau DSP..."
+                        placeholder="Cari klub, pemain, ofisial, atau DSP..."
                         value="{{ $query }}"
                         autocomplete="off"
                         data-search-autocomplete
@@ -67,7 +67,7 @@
         <div class="col-xl-6">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Official</h5>
+                    <h5 class="mb-0">Ofisial</h5>
                 </div>
                 <div class="card-body">
                     @forelse ($officials as $official)
@@ -79,7 +79,7 @@
                             <a href="{{ route('officials.show', $official) }}" class="btn btn-sm btn-light">Lihat</a>
                         </div>
                     @empty
-                        <div class="text-muted">Tidak ada official ditemukan.</div>
+                        <div class="text-muted">Tidak ada ofisial ditemukan.</div>
                     @endforelse
                 </div>
             </div>

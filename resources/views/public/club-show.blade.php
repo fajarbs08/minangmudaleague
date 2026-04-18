@@ -197,7 +197,7 @@
                     </p>
                 </div>
                 <div class="lap-club-meta">
-                    <span class="item">{{ strtoupper($club->short_name ?: $club->name) }}</span>
+                    <span class="item">{{ strtoupper($club->name ?: $club->short_name) }}</span>
                     <span class="item">{{ strtoupper($club->zone ?: 'ZONA BELUM DIISI') }}</span>
                     <span class="item">{{ $club->founded_year ? 'FOUNDED '.$club->founded_year : 'FOUNDED YEAR TBD' }}</span>
                     <span class="item">{{ $clubPlayers->count() }} PLAYERS</span>
@@ -255,7 +255,7 @@
     <div class="rts-team-member-details">
         <div class="container">
             <div class="team-details-single">
-                <h3 class="title">ABOUT {{ strtoupper($club->short_name ?: $club->name) }}</h3>
+                <h3 class="title">ABOUT {{ strtoupper($club->name ?: $club->short_name) }}</h3>
                 <div class="row">
                     <div class="col-lg-3">
                         <div class="team-picture">

@@ -11,7 +11,7 @@
             </ol>
         </nav>
         <h4 class="mb-1">{{ $club->name }}</h4>
-        <p class="text-muted mb-0">Informasi klub dan kelengkapan berkas.</p>
+        <p class="text-muted mb-0">Profil klub dan kelengkapan berkas.</p>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         @include('competition.partials.status-badge', ['status' => $club->verification_status])
@@ -89,7 +89,7 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted">Official</span>
+                    <span class="text-muted">Ofisial</span>
                     <span class="fw-semibold">{{ $club->officials_count }}</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">

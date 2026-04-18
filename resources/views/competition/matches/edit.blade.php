@@ -19,7 +19,7 @@
             @include('competition.matches._form')
             <div class="mt-4 d-flex justify-content-end gap-2">
                 <a href="{{ route('matches.index') }}" class="btn btn-light">Batal</a>
-                <button type="submit" class="btn btn-primary">Update</button>
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
             </div>
         </form>
     </div>

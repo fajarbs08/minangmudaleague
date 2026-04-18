@@ -5,7 +5,7 @@
     <div class="col-12">
         <div>
             <h4 class="mb-1">Dashboard Registrasi Liga</h4>
-            <p class="text-muted mb-0">Ringkasan data klub, official, pemain, dan daftar susunan pemain.</p>
+        <p class="text-muted mb-0">Pantau progres verifikasi klub, ofisial, pemain, dan DSP dari satu tempat.</p>
         </div>
     </div>
 </div>
@@ -27,7 +27,7 @@
         <a href="{{ route('officials.index') }}" class="text-decoration-none text-reset d-block">
             <div class="card">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Official</p>
+                    <p class="text-muted mb-2">Ofisial</p>
                     <h3 class="mb-0">{{ $stats['officials'] }}</h3>
                 </div>
             </div>
@@ -77,8 +77,8 @@
             <div class="card h-100" id="queue-admin">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h4 class="card-title mb-1">Queue Admin</h4>
-                        <p class="text-muted mb-0">Shortcut ke pekerjaan review yang masih terbuka.</p>
+                        <h4 class="card-title mb-1">Antrian Verifikasi Admin</h4>
+                        <p class="text-muted mb-0">Masuk cepat ke daftar yang masih menunggu keputusan admin.</p>
                     </div>
                 </div>
                 <div class="card-body">
@@ -90,7 +90,7 @@
                                         <div class="d-flex justify-content-between align-items-start gap-3">
                                             <div>
                                                 <div class="fw-semibold">{{ $queue['label'] }}</div>
-                                                <div class="text-muted small">Buka daftar terfilter</div>
+                                                <div class="text-muted small">{{ $queue['hint'] }}</div>
                                             </div>
                                             <span class="badge bg-primary-subtle text-primary fs-6">{{ $queue['count'] }}</span>
                                         </div>
@@ -105,16 +105,16 @@
         <div class="col-xl-5">
             <div class="card h-100">
                 <div class="card-header">
-                    <h4 class="card-title mb-1">Resource Admin</h4>
-                    <p class="text-muted mb-0">Ringkasan akun club yang tersedia untuk operasional admin.</p>
+                    <h4 class="card-title mb-1">Kesiapan Akun Klub</h4>
+                    <p class="text-muted mb-0">Pantau stok akun klub yang masih bisa dipakai untuk registrasi.</p>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                        <span>Total akun club</span>
+                        <span>Total akun klub</span>
                         <span class="fw-semibold">{{ $adminResources['club_accounts'] }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-2">
-                        <span>Akun belum dipakai</span>
+                        <span>Siap dipakai</span>
                         <span class="fw-semibold">{{ $adminResources['unused_club_accounts'] }}</span>
                     </div>
                 </div>
@@ -126,8 +126,8 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title mb-1">Pending Paling Lama</h4>
-                    <p class="text-muted mb-0">Item submitted yang paling lama belum disentuh admin.</p>
+                    <h4 class="card-title mb-1">Paling Lama Menunggu Review</h4>
+                    <p class="text-muted mb-0">Prioritas review untuk data yang paling lama belum ditangani.</p>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive competition-table-wrap">
@@ -137,8 +137,8 @@
                                     <th>Jenis</th>
                                     <th>Nama</th>
                                     <th>Klub</th>
-                                    <th>Submit</th>
-                                    <th>Usia Pending</th>
+                                    <th>Diajukan</th>
+                                    <th>Lama Menunggu</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -163,7 +163,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="competition-table-empty">Tidak ada submission pending.</td>
+                                        <td colspan="6" class="competition-table-empty">Tidak ada data yang sedang menunggu review.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -178,7 +178,7 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-warning border-opacity-25">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Klub Dalam Proses</p>
+                    <p class="text-muted mb-2">Klub Menunggu Review</p>
                     <h3 class="mb-0">{{ $stats['pending_clubs'] }}</h3>
                 </div>
             </div>
@@ -186,7 +186,7 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-warning border-opacity-25">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Official Dalam Proses</p>
+                    <p class="text-muted mb-2">Ofisial Menunggu Review</p>
                     <h3 class="mb-0">{{ $stats['pending_officials'] }}</h3>
                 </div>
             </div>
@@ -194,7 +194,7 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-warning border-opacity-25">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Pemain Dalam Proses</p>
+                    <p class="text-muted mb-2">Pemain Menunggu Review</p>
                     <h3 class="mb-0">{{ $stats['pending_players'] }}</h3>
                 </div>
             </div>
@@ -202,7 +202,7 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-warning border-opacity-25">
                 <div class="card-body">
-                    <p class="text-muted mb-2">DSP Dalam Proses</p>
+                    <p class="text-muted mb-2">DSP Menunggu Review</p>
                     <h3 class="mb-0">{{ $stats['pending_lineups'] }}</h3>
                 </div>
             </div>
@@ -214,11 +214,11 @@
 @if ($clubSummary)
 @php
     $clubNextAction = match ($clubSummary->verification_status) {
-        'draft' => 'Lengkapi data klub lalu ajukan verifikasi ke admin.',
-        'submitted' => 'Data klub sedang diverifikasi admin. Anda tinggal menunggu hasil review.',
-        'revision' => 'Admin meminta revisi. Perbaiki data klub sesuai catatan lalu submit ulang.',
-        'rejected' => 'Data klub ditolak. Hubungi admin atau panitia untuk membuka kembali pengeditan data.',
-        'approved' => 'Data klub sudah diterima dan terkunci untuk menjaga hasil verifikasi.',
+        'draft' => 'Lengkapi profil klub dan dokumen pendukung, lalu ajukan verifikasi saat semua data sudah siap.',
+        'submitted' => 'Data klub sudah diajukan dan sedang menunggu review admin.',
+        'revision' => 'Ada catatan revisi dari admin. Perbaiki bagian yang diminta lalu ajukan ulang.',
+        'rejected' => 'Data klub belum diterima. Hubungi admin atau panitia bila perlu dibuka ulang.',
+        'approved' => 'Data klub sudah diterima dan dikunci agar hasil verifikasi tetap konsisten.',
         default => '-',
     };
 @endphp
@@ -254,8 +254,8 @@
         <div class="card" id="submission-terbaru">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="card-title mb-1">Submission Terbaru</h4>
-                    <p class="text-muted mb-0">Gabungan klub, official, pemain, dan DSP yang terakhir masuk workflow.</p>
+                    <h4 class="card-title mb-1">Pengajuan Terbaru</h4>
+                    <p class="text-muted mb-0">Gabungan klub, ofisial, pemain, dan DSP yang terakhir masuk antrean verifikasi.</p>
                 </div>
             </div>
             <div class="card-body">
@@ -267,7 +267,7 @@
                                 <th>Nama</th>
                                 <th>Klub</th>
                                 <th>Status</th>
-                                <th>Submit</th>
+                                    <th>Diajukan</th>
                                 <th>Reviewer</th>
                                 <th>Aksi</th>
                             </tr>
@@ -290,7 +290,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="competition-table-empty">Belum ada submission yang masuk ke workflow.</td>
+                                    <td colspan="7" class="competition-table-empty">Belum ada pengajuan yang masuk ke antrean verifikasi.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -370,7 +370,7 @@
                                     <td>
                                         <a href="{{ route('lineup-lists.show', $lineup) }}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
                                             <i data-lucide="file-output" class="fs-14"></i>
-                                            <span>Generate</span>
+                                            <span>Buka DSP</span>
                                         </a>
                                     </td>
                                 </tr>

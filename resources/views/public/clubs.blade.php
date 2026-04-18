@@ -301,7 +301,7 @@
                                             @endif
                                         </div>
                                         <div class="lap-club-line">{{ $club->name }}</div>
-                                        <span class="lap-club-tier">{{ $club->zone ?: ($club->short_name ?: 'KLUB PESERTA') }}</span>
+                                        <span class="lap-club-tier">{{ $club->zone ?: ($club->name ?: 'KLUB PESERTA') }}</span>
                                     </a>
                                 </div>
                             @endforeach

@@ -9,12 +9,83 @@
         --idc-card-gap: 6mm;
         --idc-primary: #3f5f88;
         --idc-primary-deep: #28415f;
+        --idc-primary-rgb: 63, 95, 136;
         --idc-accent: #c58a4b;
         --idc-accent-soft: #f4e6d6;
         --idc-primary-soft: #e7eef6;
         --idc-text: #0f172a;
         --idc-muted: #64748b;
         --idc-line: rgba(63, 95, 136, 0.12);
+        --idc-card-glow: rgba(63, 95, 136, 0.08);
+        --idc-card-bg-start: #f8fafc;
+        --idc-card-bg-end: #e7eef6;
+        --idc-card-border: #d8e0ea;
+        --idc-back-glow: rgba(70, 165, 237, 0.16);
+        --idc-back-bg-end: #f4f8ff;
+        --idc-back-banner-start: #496fd7;
+        --idc-back-banner-end: #46a5ed;
+        --idc-back-shell-border: rgba(73, 111, 215, 0.12);
+        --idc-back-shell-shadow: rgba(21, 53, 112, 0.12);
+        --idc-back-title: #3158c3;
+        --idc-back-subtitle: #6e7f99;
+        --idc-back-fact-bg: #f5f9ff;
+        --idc-back-fact-border: rgba(73, 111, 215, 0.14);
+        --idc-back-fact-label: #6e7f99;
+        --idc-back-fact-value: #183b70;
+        --idc-back-qr-border: rgba(26, 183, 89, 0.24);
+        --idc-back-qr-ring: rgba(26, 183, 89, 0.08);
+        --idc-back-qr-label: #1ab759;
+        --idc-back-chip-bg: rgba(73, 111, 215, 0.08);
+        --idc-back-chip-border: rgba(73, 111, 215, 0.14);
+        --idc-back-chip-text: #496fd7;
+        --idc-back-note-bg: rgba(73, 111, 215, 0.05);
+        --idc-back-note-border: rgba(73, 111, 215, 0.1);
+        --idc-back-note-text: #2d4369;
+        --idc-back-disclaimer: #6e7f99;
+        --idc-back-footer-line: rgba(73, 111, 215, 0.12);
+        --idc-back-footer-label: #3158c3;
+        --idc-back-footer-text: #6e7f99;
+        --idc-back-url: #496fd7;
+    }
+
+    .idc-card--official {
+        --idc-primary: #0f766e;
+        --idc-primary-deep: #134e4a;
+        --idc-primary-rgb: 15, 118, 110;
+        --idc-accent: #d97706;
+        --idc-accent-soft: #fef3c7;
+        --idc-primary-soft: #dff7f2;
+        --idc-line: rgba(15, 118, 110, 0.14);
+        --idc-card-glow: rgba(20, 184, 166, 0.12);
+        --idc-card-bg-start: #f7fcfb;
+        --idc-card-bg-end: #dff7f2;
+        --idc-card-border: #cceae4;
+        --idc-back-glow: rgba(20, 184, 166, 0.14);
+        --idc-back-bg-end: #f0fdf9;
+        --idc-back-banner-start: #0f766e;
+        --idc-back-banner-end: #14b8a6;
+        --idc-back-shell-border: rgba(15, 118, 110, 0.12);
+        --idc-back-shell-shadow: rgba(19, 78, 74, 0.12);
+        --idc-back-title: #0f5c56;
+        --idc-back-subtitle: #557d77;
+        --idc-back-fact-bg: #f0fdf8;
+        --idc-back-fact-border: rgba(15, 118, 110, 0.16);
+        --idc-back-fact-label: #5b827c;
+        --idc-back-fact-value: #134e4a;
+        --idc-back-qr-border: rgba(217, 119, 6, 0.22);
+        --idc-back-qr-ring: rgba(217, 119, 6, 0.08);
+        --idc-back-qr-label: #b45309;
+        --idc-back-chip-bg: rgba(15, 118, 110, 0.08);
+        --idc-back-chip-border: rgba(15, 118, 110, 0.16);
+        --idc-back-chip-text: #0f766e;
+        --idc-back-note-bg: rgba(15, 118, 110, 0.05);
+        --idc-back-note-border: rgba(15, 118, 110, 0.12);
+        --idc-back-note-text: #245651;
+        --idc-back-disclaimer: #557d77;
+        --idc-back-footer-line: rgba(15, 118, 110, 0.12);
+        --idc-back-footer-label: #0f5c56;
+        --idc-back-footer-text: #557d77;
+        --idc-back-url: #0f766e;
     }
 
     * {
@@ -75,9 +146,9 @@
         overflow: hidden;
         border-radius: 3.8mm;
         background:
-            radial-gradient(circle at top right, rgba(63, 95, 136, 0.08), transparent 28%),
-            linear-gradient(135deg, #f8fafc 0%, #e7eef6 100%);
-        border: 0.25mm solid #d8e0ea;
+            radial-gradient(circle at top right, var(--idc-card-glow), transparent 28%),
+            linear-gradient(135deg, var(--idc-card-bg-start) 0%, var(--idc-card-bg-end) 100%);
+        border: 0.25mm solid var(--idc-card-border);
     }
 
     .idc-card::before {
@@ -99,11 +170,11 @@
         pointer-events: none;
         opacity: 0.08;
         background:
-            radial-gradient(circle at 50% 50%, rgba(63, 95, 136, 0.16) 0 0.28mm, transparent 0.32mm),
-            radial-gradient(circle at 50% 50%, transparent 0 7.6mm, rgba(63, 95, 136, 0.14) 7.75mm 8.1mm, transparent 8.2mm),
-            linear-gradient(90deg, transparent 49.7%, rgba(63, 95, 136, 0.14) 49.7% 50.3%, transparent 50.3%),
-            radial-gradient(circle at 0 50%, transparent 0 7.8mm, rgba(63, 95, 136, 0.12) 7.95mm 8.3mm, transparent 8.4mm),
-            radial-gradient(circle at 100% 50%, transparent 0 7.8mm, rgba(63, 95, 136, 0.12) 7.95mm 8.3mm, transparent 8.4mm);
+            radial-gradient(circle at 50% 50%, rgba(var(--idc-primary-rgb), 0.16) 0 0.28mm, transparent 0.32mm),
+            radial-gradient(circle at 50% 50%, transparent 0 7.6mm, rgba(var(--idc-primary-rgb), 0.14) 7.75mm 8.1mm, transparent 8.2mm),
+            linear-gradient(90deg, transparent 49.7%, rgba(var(--idc-primary-rgb), 0.14) 49.7% 50.3%, transparent 50.3%),
+            radial-gradient(circle at 0 50%, transparent 0 7.8mm, rgba(var(--idc-primary-rgb), 0.12) 7.95mm 8.3mm, transparent 8.4mm),
+            radial-gradient(circle at 100% 50%, transparent 0 7.8mm, rgba(var(--idc-primary-rgb), 0.12) 7.95mm 8.3mm, transparent 8.4mm);
         background-repeat: no-repeat;
         background-position: center center, center center, center center, left center, right center;
         background-size: 100% 100%, 100% 100%, 100% 100%, 18mm 100%, 18mm 100%;
@@ -325,8 +396,8 @@
 
     .idc-card--back {
         background:
-            radial-gradient(circle at top right, rgba(70, 165, 237, 0.16), transparent 28%),
-            linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+            radial-gradient(circle at top right, var(--idc-back-glow), transparent 28%),
+            linear-gradient(180deg, #ffffff 0%, var(--idc-back-bg-end) 100%);
     }
 
     .idc-card--back::before {
@@ -335,7 +406,7 @@
         inset: 0 0 auto 0;
         width: 100%;
         height: 12.5mm;
-        background: linear-gradient(90deg, #496fd7 0%, #46a5ed 100%);
+        background: linear-gradient(90deg, var(--idc-back-banner-start) 0%, var(--idc-back-banner-end) 100%);
     }
 
     .idc-back-shell {
@@ -346,8 +417,8 @@
         padding: 3.4mm 3.6mm 3.2mm;
         background: rgba(255, 255, 255, 0.985);
         border-radius: 2.8mm;
-        box-shadow: 0 2.4mm 5.2mm rgba(21, 53, 112, 0.12);
-        border: 0.25mm solid rgba(73, 111, 215, 0.12);
+        box-shadow: 0 2.4mm 5.2mm var(--idc-back-shell-shadow);
+        border: 0.25mm solid var(--idc-back-shell-border);
     }
 
     .idc-back-head {
@@ -362,14 +433,14 @@
         font-size: 3.7mm;
         line-height: 1;
         font-weight: 800;
-        color: #3158c3;
+        color: var(--idc-back-title);
     }
 
     .idc-back-subtitle {
         margin-top: 0.9mm;
         font-size: 1.95mm;
         line-height: 1.28;
-        color: #6e7f99;
+        color: var(--idc-back-subtitle);
     }
 
     .idc-club-mark {
@@ -395,8 +466,8 @@
     .idc-fact {
         padding: 1.1mm 1.2mm;
         border-radius: 1.7mm;
-        background: #f5f9ff;
-        border: 0.25mm solid rgba(73, 111, 215, 0.14);
+        background: var(--idc-back-fact-bg);
+        border: 0.25mm solid var(--idc-back-fact-border);
         min-height: 6.4mm;
     }
 
@@ -405,7 +476,7 @@
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: #6e7f99;
+        color: var(--idc-back-fact-label);
     }
 
     .idc-fact-value {
@@ -413,7 +484,7 @@
         font-size: 1.55mm;
         line-height: 1.2;
         font-weight: 700;
-        color: #183b70;
+        color: var(--idc-back-fact-value);
         word-break: break-word;
     }
 
@@ -427,9 +498,9 @@
         padding: 1.6mm;
         border-radius: 2.3mm;
         background: #fff;
-        border: 0.3mm solid rgba(26, 183, 89, 0.24);
+        border: 0.3mm solid var(--idc-back-qr-border);
         text-align: center;
-        box-shadow: inset 0 0 0 0.2mm rgba(26, 183, 89, 0.08);
+        box-shadow: inset 0 0 0 0.2mm var(--idc-back-qr-ring);
     }
 
     .idc-qr {
@@ -445,7 +516,7 @@
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: #1ab759;
+        color: var(--idc-back-qr-label);
     }
 
     .idc-chip {
@@ -455,9 +526,9 @@
         min-height: 3.8mm;
         padding: 0.65mm 1.35mm;
         border-radius: 999px;
-        background: rgba(73, 111, 215, 0.08);
-        border: 0.3mm solid rgba(73, 111, 215, 0.14);
-        color: #496fd7;
+        background: var(--idc-back-chip-bg);
+        border: 0.3mm solid var(--idc-back-chip-border);
+        color: var(--idc-back-chip-text);
         font-size: 1.45mm;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -473,14 +544,14 @@
         margin-top: 2mm;
         padding: 1.7mm 1.8mm;
         border-radius: 2.2mm;
-        background: rgba(73, 111, 215, 0.05);
-        border: 0.25mm solid rgba(73, 111, 215, 0.1);
+        background: var(--idc-back-note-bg);
+        border: 0.25mm solid var(--idc-back-note-border);
     }
 
     .idc-note-line {
         font-size: 1.75mm;
         line-height: 1.3;
-        color: #2d4369;
+        color: var(--idc-back-note-text);
     }
 
     .idc-note-line + .idc-note-line {
@@ -491,7 +562,7 @@
         margin-top: 1.2mm;
         font-size: 1.65mm;
         line-height: 1.28;
-        color: #6e7f99;
+        color: var(--idc-back-disclaimer);
     }
 
     .idc-back-footer {
@@ -505,14 +576,14 @@
         align-items: flex-end;
         gap: 3mm;
         padding-top: 1.6mm;
-        border-top: 0.25mm solid rgba(73, 111, 215, 0.12);
+        border-top: 0.25mm solid var(--idc-back-footer-line);
     }
 
     .idc-verify,
     .idc-organizer {
         font-size: 1.5mm;
         line-height: 1.2;
-        color: #6e7f99;
+        color: var(--idc-back-footer-text);
     }
 
     .idc-verify strong,
@@ -522,7 +593,7 @@
         font-size: 1.45mm;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #3158c3;
+        color: var(--idc-back-footer-label);
     }
 
     .idc-back-footer-right {
@@ -534,7 +605,7 @@
         font-size: 1.9mm;
         line-height: 1.2;
         word-break: break-word;
-        color: #496fd7;
+        color: var(--idc-back-url);
         font-weight: 700;
     }
 </style>

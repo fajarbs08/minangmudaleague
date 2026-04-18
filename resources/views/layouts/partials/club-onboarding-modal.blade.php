@@ -16,7 +16,7 @@
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header">
                     <div>
-                        <span class="badge bg-primary-subtle text-primary mb-2">Flow Informasi</span>
+                        <span class="badge bg-primary-subtle text-primary mb-2">Alur Registrasi</span>
                         <h5 class="modal-title mb-1" id="clubOnboardingModalLabel">Alur Registrasi Akun Club</h5>
                         <p class="text-muted mb-0">Ikuti urutan ini agar proses verifikasi dan penyusunan DSP berjalan rapi.</p>
                     </div>
@@ -47,10 +47,10 @@
                             <div class="border rounded-3 p-3 h-100 bg-light-subtle">
                                 <div class="d-flex align-items-center gap-3 mb-2">
                                     <span class="badge rounded-pill bg-info text-white">3</span>
-                                    <h6 class="mb-0">Input Data Official</h6>
+                                    <h6 class="mb-0">Input Data Ofisial</h6>
                                 </div>
-                                <p class="text-muted small mb-3">Masukkan pelatih, manajer, dan official lain berikut identitas atau lisensinya.</p>
-                                <a href="{{ route('officials.index') }}" class="btn btn-sm btn-outline-info">Buka Data Official</a>
+                                <p class="text-muted small mb-3">Masukkan pelatih, manajer, dan ofisial lain berikut identitas atau lisensinya.</p>
+                                <a href="{{ route('officials.index') }}" class="btn btn-sm btn-outline-info">Buka Data Ofisial</a>
                             </div>
                         </div>
                         <div class="col-md-6">

@@ -6,13 +6,13 @@
     <title>{{ $title }}</title>
     <meta name="description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
     <meta name="robots" content="index,follow">
-    <link rel="canonical" href="{{ url()->current() }}">
+    <link rel="canonical" href="{{ $canonicalUrl }}">
     <meta property="og:locale" content="id_ID">
     <meta property="og:type" content="profile">
     <meta property="og:site_name" content="Liga Anak Piaman Laweh">
     <meta property="og:title" content="{{ $title }}">
     <meta property="og:description" content="Verifikasi publik data pemain {{ $player->name }} di Liga Anak Piaman Laweh.">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     <meta property="og:image" content="{{ $player->photo_file_url ?: asset('og-share-card.jpg') }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $title }}">
@@ -105,6 +105,12 @@
             gap: 14px;
             margin-top: 22px;
         }
+        .note {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
         .item {
             padding: 14px 16px;
             border: 1px solid var(--line);
@@ -149,10 +155,11 @@
                     <div class="name">{{ $player->name }}</div>
                     <div class="sub">{{ $player->club?->name ?: '-' }} · {{ $player->primaryAgeGroup?->name ?: '-' }}</div>
                     <div class="badge">Terverifikasi untuk dilihat publik</div>
+                    <div class="note">Halaman QR publik ini hanya menampilkan ringkasan verifikasi pemain. Data pribadi dan dokumen pendukung tidak ditampilkan.</div>
 
                     <div class="grid">
-                        <div class="item"><div class="label">Tempat, Tanggal Lahir</div><div class="value">{{ trim(($player->birth_place ?: '-').', '.(optional($player->birth_date)->format('d M Y') ?: '-')) }}</div></div>
-                        <div class="item"><div class="label">Sekolah</div><div class="value">{{ $player->school_name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Klub</div><div class="value">{{ $player->club?->name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Kelompok Usia</div><div class="value">{{ $player->primaryAgeGroup?->name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Posisi</div><div class="value">{{ $player->displayPosition($player->primary_age_group_id) ?: $player->position ?: '-' }}</div></div>
                         <div class="item"><div class="label">Nomor Punggung</div><div class="value">{{ $player->displayJerseyNumber($player->primary_age_group_id) ?: '-' }}</div></div>
                     </div>

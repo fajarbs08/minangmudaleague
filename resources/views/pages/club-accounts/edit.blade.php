@@ -27,7 +27,7 @@
     <div class="col-xl-8">
         <div class="card">
             <div class="card-header">
-                <h4 class="card-title mb-1">Informasi Akun</h4>
+                <h4 class="card-title mb-1">Detail Akun</h4>
                 <p class="text-muted mb-0">Ubah nama, email login, atau generate password baru.</p>
             </div>
             <div class="card-body">

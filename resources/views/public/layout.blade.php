@@ -44,6 +44,7 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('kester-assets/css/rtsmenu.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('kester-assets/css/variables/variable1.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('kester-assets/css/main.css') }}">
+    @vite(['resources/css/public-tailwind.css'])
     <style>
         .lap-public .logo img,
         .lap-public .logo-sticky img,
@@ -1029,7 +1030,6 @@
                                     <li><a class="menu-item {{ $activePublicPage === 'standings' ? 'active1' : '' }}" href="{{ route('public.standings') }}">Klasemen</a></li>
                                     <li><a class="menu-item {{ $activePublicPage === 'clubs' ? 'active1' : '' }}" href="{{ route('public.clubs') }}">Klub</a></li>
                                     <li><a class="menu-item {{ $activePublicPage === 'sponsors' ? 'active1' : '' }}" href="{{ route('public.sponsors') }}">Sponsor</a></li>
-                                    <li><a class="menu-item {{ $activePublicPage === 'information' ? 'active1' : '' }}" href="{{ route('public.information') }}">Informasi</a></li>
                                 </ul>
                             </nav>
                         </div>
@@ -1144,7 +1144,6 @@
                         <li><a class="mm-link {{ $activePublicPage === 'standings' ? 'active' : '' }}" href="{{ route('public.standings') }}">Klasemen</a></li>
                         <li><a class="mm-link {{ $activePublicPage === 'clubs' ? 'active' : '' }}" href="{{ route('public.clubs') }}">Klub</a></li>
                         <li><a class="mm-link {{ $activePublicPage === 'sponsors' ? 'active' : '' }}" href="{{ route('public.sponsors') }}">Sponsor</a></li>
-                        <li><a class="mm-link {{ $activePublicPage === 'information' ? 'active' : '' }}" href="{{ route('public.information') }}">Informasi</a></li>
                         @auth
                             <li class="lap-mobile-account-action">
                                 <a class="mm-link lap-mobile-account-link" href="{{ $publicContextUrl }}">
@@ -1206,7 +1205,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="footer-widget">
                             <div class="footer-logo"><img src="{{ asset('images/logo-full-transparent.png') }}" alt="footer-logo"></div>
-                            <p class="footer-text">Portal publik kompetisi yang menampilkan jadwal pertandingan, hasil laga, klasemen, daftar klub, dan informasi resmi kompetisi.</p>
+                            <p class="footer-text">Portal publik kompetisi yang menampilkan jadwal pertandingan, hasil laga, klasemen, daftar klub, sponsor, dan kontak panitia.</p>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6 col-sm-6">
@@ -1218,41 +1217,58 @@
                                 <li class="widget-list-item"><a href="{{ route('public.standings') }}">KLASEMEN</a></li>
                                 <li class="widget-list-item"><a href="{{ route('public.clubs') }}">KLUB</a></li>
                                 <li class="widget-list-item"><a href="{{ route('public.sponsors') }}">SPONSOR</a></li>
-                                <li class="widget-list-item"><a href="{{ route('public.information') }}">INFORMASI</a></li>
                             </ul>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
-                        <div class="footer-widget address-widget">
+                        <div class="footer-widget address-widget" id="footer-kontak">
                             <h3 class="footer-widget-title"><span class="decorator"></span> KONTAK</h3>
                             <ul>
-                                <li class="widget-list-item"><i class="fas fa-envelope-open"></i><span>admin@ligaanakpiamanlaweh.local</span></li>
-                                <li class="widget-list-item"><i class="fas fa-bullhorn"></i><span>Informasi resmi kompetisi</span></li>
-                                <li class="widget-list-item"><i class="fas fa-map-marker-alt"></i><span>Ligа Anak Piaman Laweh</span></li>
+                                <li class="widget-list-item">
+                                    <i class="fab fa-whatsapp"></i>
+                                    <a href="https://wa.me/6282181761383" target="_blank" rel="noopener">082181761383</a>
+                                </li>
+                                <li class="widget-list-item">
+                                    <i class="fab fa-instagram"></i>
+                                    <a href="https://www.instagram.com/liga.anakpariaman" target="_blank" rel="noopener">@liga.anakpariaman</a>
+                                </li>
                             </ul>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="footer-widget news-widget lap-footer-club-gallery">
                             <h3 class="footer-widget-title"><span class="decorator"></span> GALERI KLUB</h3>
-                            <div class="recent-post">
-                                @foreach ($featuredClubs->take(3) as $club)
-                                    <div class="picture">
-                                        <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}">
-                                            <img src="{{ $club->logo_file_url ?: asset('kester-assets/images/footer/news1.png') }}" alt="{{ $club->name }}">
-                                        </a>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <div class="recent-post post2">
-                                @foreach ($featuredClubs->slice(3, 3) as $club)
-                                    <div class="picture">
-                                        <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}">
-                                            <img src="{{ $club->logo_file_url ?: asset('kester-assets/images/footer/news4.png') }}" alt="{{ $club->name }}">
-                                        </a>
-                                    </div>
-                                @endforeach
-                            </div>
+                            @php
+                                $footerClubRows = [
+                                    [
+                                        'items' => $featuredClubs->take(3)->pad(3, null),
+                                        'fallbacks' => ['news1.png', 'news2.png', 'news3.png'],
+                                        'class' => '',
+                                    ],
+                                    [
+                                        'items' => $featuredClubs->slice(3, 3)->pad(3, null),
+                                        'fallbacks' => ['news4.png', 'news5.png', 'news6.png'],
+                                        'class' => 'post2',
+                                    ],
+                                ];
+                            @endphp
+                            @foreach ($footerClubRows as $row)
+                                <div class="recent-post {{ $row['class'] }}">
+                                    @foreach ($row['items'] as $index => $club)
+                                        <div class="picture">
+                                            @if ($club)
+                                                <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}">
+                                                    <img src="{{ $club->logo_file_url ?: asset('kester-assets/images/footer/'.$row['fallbacks'][$index]) }}" alt="{{ $club->name }}">
+                                                </a>
+                                            @else
+                                                <a href="{{ route('public.clubs') }}">
+                                                    <img src="{{ asset('kester-assets/images/footer/'.$row['fallbacks'][$index]) }}" alt="Galeri klub">
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -1264,7 +1280,8 @@
                     <span class="copyright">COPYRIGHT {{ now()->year }} &copy; <a href="https://fajarlabs.com/id/fajar-budi-setiawan" target="_blank" rel="noopener">Fajarlabs</a></span>
                     <div class="footer-bottom-links">
                         <a href="{{ route('public.home') }}">HOME</a>
-                        <a href="{{ route('public.information') }}">INFORMASI</a>
+                        <a href="https://wa.me/6282181761383" target="_blank" rel="noopener">WHATSAPP</a>
+                        <a href="https://www.instagram.com/liga.anakpariaman" target="_blank" rel="noopener">INSTAGRAM</a>
                         <a href="{{ $publicAuthUrl }}">{{ strtoupper($publicAuthLabel) }}</a>
                     </div>
                 </div>

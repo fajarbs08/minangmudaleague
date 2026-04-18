@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class MatchSchedule extends Model
 {
     public const FORMAT_LEAGUE = 'league';
+
     public const FORMAT_KNOCKOUT = 'knockout';
 
     protected $fillable = [
@@ -65,7 +67,7 @@ class MatchSchedule extends Model
 
     public function includesClub(?int $clubId): bool
     {
-        if (!$clubId) {
+        if (! $clubId) {
             return false;
         }
 
@@ -74,7 +76,7 @@ class MatchSchedule extends Model
 
     public function opponentForClub(?int $clubId): ?Club
     {
-        if (!$clubId) {
+        if (! $clubId) {
             return null;
         }
 
@@ -129,9 +131,35 @@ class MatchSchedule extends Model
         return $this->score_club_a.' - '.$this->score_club_b;
     }
 
+    public function getTotalGoalsAttribute(): int
+    {
+        return (int) ($this->score_club_a ?? 0) + (int) ($this->score_club_b ?? 0);
+    }
+
+    public function getHasCleanSheetAttribute(): bool
+    {
+        if ($this->score_club_a === null || $this->score_club_b === null) {
+            return false;
+        }
+
+        return (int) $this->score_club_a === 0 || (int) $this->score_club_b === 0;
+    }
+
+    public function getPublicSlugAttribute(): string
+    {
+        $base = Str::slug(collect([
+            $this->clubA?->short_name ?: $this->clubA?->name ?: 'klub-a',
+            'vs',
+            $this->clubB?->short_name ?: $this->clubB?->name ?: 'klub-b',
+            optional($this->match_date)->format('d-m-Y'),
+        ])->filter()->implode(' '));
+
+        return trim(($base ?: 'hasil-pertandingan').'-'.$this->id, '-');
+    }
+
     public function getResultSummaryAttribute(): string
     {
-        if (!$this->is_finished || $this->score_club_a === null || $this->score_club_b === null) {
+        if (! $this->is_finished || $this->score_club_a === null || $this->score_club_b === null) {
             return 'Belum ada hasil';
         }
 
@@ -146,7 +174,7 @@ class MatchSchedule extends Model
 
     public function goalReportForClub(?int $clubId): array
     {
-        if (!$clubId) {
+        if (! $clubId) {
             return [];
         }
 

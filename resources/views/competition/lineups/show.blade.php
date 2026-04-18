@@ -252,14 +252,14 @@
 <div class="dsp-page">
     <div class="dsp-toolbar">
         <div>
-            <h4 class="mb-1">Generate DSP</h4>
+            <h4 class="mb-1">Lembar DSP</h4>
             <p class="text-muted mb-0">{{ $lineupList->title }}</p>
         </div>
         <div class="d-flex gap-2">
             @if ($isAdmin || $lineupList->canBeEditedByClub())
-                <a href="{{ route('lineup-lists.edit', $lineupList) }}" class="btn btn-light">{{ $isAdmin ? 'Edit Manual Admin' : 'Edit DSP' }}</a>
+                <a href="{{ route('lineup-lists.edit', $lineupList) }}" class="btn btn-light">{{ $isAdmin ? 'Edit oleh Admin' : 'Edit DSP' }}</a>
             @endif
-            <button type="button" class="btn btn-primary" onclick="window.print()">Print DSP</button>
+            <button type="button" class="btn btn-primary" onclick="window.print()">Cetak DSP</button>
         </div>
     </div>
 

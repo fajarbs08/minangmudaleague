@@ -18,11 +18,13 @@
 
 @php
     $selectedClubId = old('club_id', $official->club_id ?: $clubs->first()?->id);
-    $imageUploadHelp = 'Format: JPG, JPEG, PNG, atau WebP. Maks. 3 MB. Foto akan disesuaikan otomatis agar ukuran tampil konsisten.';
-    $documentUploadHelp = 'Format: PDF, JPG, JPEG, PNG, atau WebP. Maks. 4 MB. Jika file berupa gambar, sistem akan menormalkan ukuran tanpa crop agar dokumen tetap jelas.';
+    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 3 MB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
+    $requiresPhotoUpload = blank($official->photo_path);
+    $requiresIdentityUpload = blank($official->identity_file_path);
 @endphp
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
+<div class="text-muted small mb-3">{{ $uploadHelp }}</div>
 <div class="row">
     <div class="col-lg-6 mb-3">
         <label class="form-label">Klub <span class="text-danger">*</span></label>
@@ -49,7 +51,7 @@
             <option value="Pelatih Kiper" @selected($roleValue === 'Pelatih Kiper')>Pelatih Kiper</option>
             <option value="Fisioterapis" @selected($roleValue === 'Fisioterapis')>Fisioterapis</option>
             <option value="Dokter" @selected($roleValue === 'Dokter')>Dokter</option>
-            <option value="Official" @selected($roleValue === 'Official')>Official</option>
+            <option value="Official" @selected($roleValue === 'Official')>Ofisial</option>
         </select>
     </div>
     <div class="col-lg-6 mb-3">
@@ -59,11 +61,11 @@
     <div class="col-lg-6 mb-3">
         <label class="form-label">No. Lisensi</label>
         <input type="text" name="license_number" class="form-control" value="{{ old('license_number', $official->license_number) }}">
+        <small class="text-muted d-block mt-2">Isi jika ada.</small>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Pas Foto 3x4</label>
-        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $imageUploadHelp }}</small>
+        <label class="form-label">Pas Foto 3x4 <span class="text-danger">*</span></label>
+        <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp" {{ $requiresPhotoUpload ? 'required' : '' }}>
         @if ($official->photo_file_url)
             <a href="{{ $official->photo_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="image" class="fs-14"></i>
@@ -74,7 +76,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Bukti Lisensi</label>
         <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <small class="text-muted d-block mt-1">Wajib salah satu dengan No. Lisensi.</small>
         @if ($official->license_file_url)
             <a href="{{ $official->license_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -83,9 +85,8 @@
         @endif
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">KTP / Identitas</label>
-        <input type="file" name="identity_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-2">{{ $documentUploadHelp }}</small>
+        <label class="form-label">KTP / Identitas <span class="text-danger">*</span></label>
+        <input type="file" name="identity_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" {{ $requiresIdentityUpload ? 'required' : '' }}>
         @if ($official->identity_file_url)
             <a href="{{ $official->identity_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -102,11 +103,11 @@
         <input type="email" name="email" class="form-control" value="{{ old('email', $official->email) }}">
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Tempat Lahir</label>
-        <input type="text" name="birth_place" class="form-control" value="{{ old('birth_place', $official->birth_place) }}">
+        <label class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
+        <input type="text" name="birth_place" class="form-control" value="{{ old('birth_place', $official->birth_place) }}" required>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Tanggal Lahir</label>
+        <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
         <input
             type="date"
             name="birth_date"
@@ -114,19 +115,20 @@
             value="{{ old('birth_date', optional($official->birth_date)->format('Y-m-d')) }}"
             max="{{ now()->format('Y-m-d') }}"
             data-native-picker
+            required
         >
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Kewarganegaraan</label>
-        <select name="citizenship" class="form-select">
+        <label class="form-label">Kewarganegaraan <span class="text-danger">*</span></label>
+        <select name="citizenship" class="form-select" required>
             <option value="">Pilih status</option>
             <option value="WNI" @selected(old('citizenship', $official->citizenship) === 'WNI')>WNI</option>
             <option value="WNA" @selected(old('citizenship', $official->citizenship) === 'WNA')>WNA</option>
         </select>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">NIK / Identitas</label>
-        <input type="text" name="identity_number" class="form-control" value="{{ old('identity_number', $official->identity_number) }}">
+        <label class="form-label">NIK / Identitas <span class="text-danger">*</span></label>
+        <input type="text" name="identity_number" class="form-control" value="{{ old('identity_number', $official->identity_number) }}" required>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Level Lisensi</label>
@@ -142,7 +144,7 @@
     <div class="col-12 mb-3">
         <div class="form-check">
             <input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="1" @checked(old('is_active', $official->exists ? $official->is_active : true))>
-            <label class="form-check-label" for="is_active">Official aktif</label>
+            <label class="form-check-label" for="is_active">Ofisial aktif</label>
         </div>
     </div>
     <div class="col-12">
@@ -172,7 +174,7 @@
         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
             <div>
                 <h5 class="mb-1">Kelompok Usia</h5>
-                <div class="text-muted">Satu official bisa terdaftar di lebih dari satu kelompok usia dengan detail jabatan dan lisensi yang berbeda.</div>
+                <div class="text-muted">Satu ofisial bisa terdaftar di lebih dari satu kelompok usia dengan detail jabatan dan lisensi yang berbeda.</div>
             </div>
             <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" data-add-age-row>
                 <i data-lucide="plus" class="fs-14"></i>
@@ -208,7 +210,7 @@
                                 <option value="Pelatih Kiper" @selected($ageRoleValue === 'Pelatih Kiper')>Pelatih Kiper</option>
                                 <option value="Fisioterapis" @selected($ageRoleValue === 'Fisioterapis')>Fisioterapis</option>
                                 <option value="Dokter" @selected($ageRoleValue === 'Dokter')>Dokter</option>
-                                <option value="Official" @selected($ageRoleValue === 'Official')>Official</option>
+                                <option value="Official" @selected($ageRoleValue === 'Official')>Ofisial</option>
                             </select>
                         </div>
                         <div class="col-lg-2">
@@ -262,7 +264,7 @@
                     <option value="Pelatih Kiper">Pelatih Kiper</option>
                     <option value="Fisioterapis">Fisioterapis</option>
                     <option value="Dokter">Dokter</option>
-                    <option value="Official">Official</option>
+                    <option value="Official">Ofisial</option>
                 </select>
             </div>
             <div class="col-lg-2">

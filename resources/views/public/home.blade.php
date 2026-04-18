@@ -90,6 +90,105 @@
             padding: 28px;
         }
 
+        .lap-public .lap-home-results .lap-home-result-card {
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: 24px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, .08);
+            height: 100%;
+            padding: 28px;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-meta {
+            color: rgba(15, 23, 42, .62);
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 12px;
+            font-weight: 700;
+            gap: 10px;
+            letter-spacing: .08em;
+            margin-bottom: 22px;
+            text-transform: uppercase;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-meta span {
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: 999px;
+            padding: 8px 12px;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-matchup {
+            align-items: center;
+            display: grid;
+            gap: 18px;
+            grid-template-columns: 1fr auto 1fr;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-team {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-team img {
+            height: 72px;
+            object-fit: contain;
+            width: 72px;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-team-name {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-score {
+            color: var(--theme-color);
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            white-space: nowrap;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-summary {
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 24px 0 10px;
+            text-align: center;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-detail {
+            color: rgba(15, 23, 42, .68);
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        .lap-public .lap-home-results .lap-home-result-card .btn-1 {
+            width: 100%;
+        }
+
+        .lap-public .lap-home-cta-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .lap-public .lap-home-cta-actions .btn {
+            min-width: 190px;
+        }
+
+        .lap-public .lap-home-cta-note {
+            color: rgba(255, 255, 255, .78);
+            font-size: 15px;
+            line-height: 1.7;
+            margin-top: 18px;
+            max-width: 560px;
+        }
+
         @media (max-width: 768px) {
             .lap-public .rts-latest-match .club-area .club-logo {
                 max-width: 60px;
@@ -126,6 +225,24 @@
             .lap-public .lap-home-sponsors .lap-home-sponsor-note {
                 padding: 22px 18px;
             }
+
+            .lap-public .lap-home-results .lap-home-result-card {
+                padding: 22px 18px;
+            }
+
+            .lap-public .lap-home-results .lap-home-result-matchup {
+                gap: 12px;
+                grid-template-columns: 1fr;
+            }
+
+            .lap-public .lap-home-results .lap-home-result-score {
+                font-size: 30px;
+            }
+
+            .lap-public .lap-home-cta-actions .btn {
+                min-width: 0;
+                width: 100%;
+            }
         }
     </style>
 @endpush
@@ -143,12 +260,12 @@
                             <div class="container">
                                 <div class="banner-content">
                                     <span class="pretitle">PORTAL PUBLIK KOMPETISI SEPAK BOLA ANAK</span>
-                                    <h1 class="banner-heading">{{ strtoupper($match->clubA?->short_name ?: $match->clubA?->name ?: 'TBD') }} &amp; {{ strtoupper($match->clubB?->short_name ?: $match->clubB?->name ?: 'TBD') }}</h1>
+                                    <h1 class="banner-heading">{{ strtoupper($match->clubA?->name ?: $match->clubA?->short_name ?: 'MENYUSUL') }} &amp; {{ strtoupper($match->clubB?->name ?: $match->clubB?->short_name ?: 'MENYUSUL') }}</h1>
                                     <div class="banner-btn-area">
                                         <a href="{{ route('public.schedule') }}" class="team-btn banner-btn">JADWAL <i class="far fa-long-arrow-right ml--5"></i></a>
                                         <a href="{{ route('public.standings') }}" class="nxt-match-btn banner-btn">KLASEMEN <i class="far fa-long-arrow-right ml--5"></i></a>
                                     </div>
-                                    <p class="lap-muted mt--20">{{ $match->ageGroup?->name ?: '-' }} · {{ $match->match_day ?: 'Matchday' }} · {{ $match->venue ?: 'Venue menyusul' }} · {{ optional($match->match_date)->translatedFormat('d F Y') }} {{ optional($match->kickoff_time)->format('H:i') }} WIB</p>
+                                    <p class="lap-muted mt--20">{{ $match->ageGroup?->name ?: '-' }} · {{ $match->match_day ?: 'Pekan pertandingan' }} · {{ $match->venue ?: 'Venue menyusul' }} · {{ optional($match->match_date)->translatedFormat('d F Y') }} {{ optional($match->kickoff_time)->format('H:i') }} WIB</p>
                                 </div>
                             </div>
                         </div>
@@ -161,8 +278,8 @@
                                     <span class="pretitle">PORTAL PUBLIK KOMPETISI SEPAK BOLA ANAK</span>
                                     <h1 class="banner-heading">LIGA ANAK PIAMAN LAWEH</h1>
                                     <div class="banner-btn-area">
-                                        <a href="{{ route('public.information') }}" class="team-btn banner-btn">INFORMASI <i class="far fa-long-arrow-right ml--5"></i></a>
-                                        <a href="{{ auth()->check() ? route('dashboard.home') : route('login') }}" class="nxt-match-btn banner-btn">{{ auth()->check() ? 'DASHBOARD' : 'MASUK' }} <i class="far fa-long-arrow-right ml--5"></i></a>
+                                        <a href="#footer-kontak" class="team-btn banner-btn">KONTAK <i class="far fa-long-arrow-right ml--5"></i></a>
+                                        <a href="{{ auth()->check() ? route('dashboard.home') : route('login') }}" class="nxt-match-btn banner-btn">{{ auth()->check() ? 'BUKA DASHBOARD' : 'MASUK DASHBOARD' }} <i class="far fa-long-arrow-right ml--5"></i></a>
                                     </div>
                                 </div>
                             </div>
@@ -193,14 +310,10 @@
             )->timestamp * 1000;
         }
 
-        $homeGalleryResources = $publishedResources->take(3)->values();
-        $homeBlogResources = $publishedResources->slice(3, 3)->values();
+        $homeFeaturedClubs = $featuredClubs->take(3)->values();
+        $homeRecentResults = $recentResults->take(3)->values();
         $homeSponsorSlides = collect($featuredSponsors)->values();
         $minimumHomeSponsorSlides = 6;
-
-        if ($homeBlogResources->isEmpty()) {
-            $homeBlogResources = $homeGalleryResources;
-        }
 
         if ($homeSponsorSlides->isNotEmpty() && $homeSponsorSlides->count() < $minimumHomeSponsorSlides) {
             $homeSponsorSlides = collect(range(1, (int) ceil($minimumHomeSponsorSlides / $homeSponsorSlides->count())))
@@ -215,11 +328,6 @@
             ['full' => asset('kester-assets/images/gallery/full2.png'), 'small' => asset('kester-assets/images/gallery/2.png')],
             ['full' => asset('kester-assets/images/gallery/full3.png'), 'small' => asset('kester-assets/images/gallery/3.png')],
         ];
-        $fallbackBlogImages = [
-            asset('kester-assets/images/blog/blog1.jpg'),
-            asset('kester-assets/images/blog/blog2.jpg'),
-            asset('kester-assets/images/blog/blog3.jpg'),
-        ];
     @endphp
 
     <div class="rts-latest-match">
@@ -231,7 +339,7 @@
                     </div>
                     <div class="content">
                         <h3 class="club-text">
-                            {{ strtoupper($headlineMatch?->clubA?->short_name ?: $headlineMatch?->clubA?->name ?: 'KLUB A') }}
+                            {{ strtoupper($headlineMatch?->clubA?->name ?: $headlineMatch?->clubA?->short_name ?: 'KLUB A') }}
                         </h3>
                         <span class="match-type">{{ strtoupper($headlineMatch?->round_display_label ?: 'PERTANDINGAN BERIKUTNYA') }}</span>
                     </div>
@@ -259,7 +367,7 @@
                 <div class="club-area">
                     <div class="content text-end ml--40 mr--0">
                         <h3 class="club-text">
-                            {{ strtoupper($headlineMatch?->clubB?->short_name ?: $headlineMatch?->clubB?->name ?: 'KLUB B') }}
+                            {{ strtoupper($headlineMatch?->clubB?->name ?: $headlineMatch?->clubB?->short_name ?: 'KLUB B') }}
                         </h3>
                         <span class="match-type">
                             {{ $headlineMatch ? (optional($headlineMatch->match_date)->translatedFormat('d F Y').' · '.optional($headlineMatch->kickoff_time)->format('H:i').' WIB') : 'DATA AKAN MUNCUL SAAT JADWAL TERSEDIA' }}
@@ -276,24 +384,24 @@
     <div class="rts-gallery-section">
         <div class="container">
             <div class="gallery-area">
-                @forelse ($homeGalleryResources as $resource)
+                @forelse ($homeFeaturedClubs as $club)
                     @php
-                        $resourceUrl = route('public.information.show', ['resourceSlug' => $resource->public_slug]);
-                        $galleryImage = $resource->is_image ? $resource->file_url : ($fallbackGalleryImages[$loop->index]['full'] ?? asset('kester-assets/images/gallery/full1.png'));
-                        $galleryImageSmall = $resource->is_image ? $resource->file_url : ($fallbackGalleryImages[$loop->index]['small'] ?? asset('kester-assets/images/gallery/1.png'));
+                        $clubUrl = route('public.clubs.show', ['clubSlug' => $club->public_slug]);
+                        $galleryImage = $club->logo_file_url ?: ($fallbackGalleryImages[$loop->index]['full'] ?? asset('kester-assets/images/gallery/full1.png'));
+                        $galleryImageSmall = $club->logo_file_url ?: ($fallbackGalleryImages[$loop->index]['small'] ?? asset('kester-assets/images/gallery/1.png'));
                     @endphp
                     <div class="gallery-item text-center {{ $loop->first ? 'active mid' : '' }}">
-                        <a href="{{ $resourceUrl }}" class="gallery-picture"><img src="{{ $galleryImage }}" alt="{{ $resource->title }}"></a>
-                        <a href="{{ $resourceUrl }}" class="gallery-picture1"><img src="{{ $galleryImageSmall }}" alt="{{ $resource->title }}"></a>
+                        <a href="{{ $clubUrl }}" class="gallery-picture"><img src="{{ $galleryImage }}" alt="{{ $club->name }}"></a>
+                        <a href="{{ $clubUrl }}" class="gallery-picture1"><img src="{{ $galleryImageSmall }}" alt="{{ $club->name }}"></a>
                         <div class="contents-wrapper">
                             <div class="contents text-start">
                                 <div class="d-block">
-                                    <p class="tag">{{ strtoupper($resource->badge_label) }}</p>
-                                    <a href="{{ $resourceUrl }}" class="gallery-title">{{ strtoupper($resource->title) }}</a>
+                                    <p class="tag">{{ strtoupper($club->zone ?: 'KLUB PESERTA') }}</p>
+                                    <a href="{{ $clubUrl }}" class="gallery-title">{{ strtoupper($club->name) }}</a>
                                 </div>
                                 <div class="author-info">
                                     <div class="content">
-                                        <a href="{{ $resourceUrl }}" class="read-more">READ MORE</a>
+                                        <a href="{{ $clubUrl }}" class="read-more">LIHAT PROFIL</a>
                                     </div>
                                 </div>
                             </div>
@@ -302,17 +410,17 @@
                 @empty
                     @for ($i = 0; $i < 3; $i++)
                         <div class="gallery-item text-center {{ $i === 1 ? 'active mid' : '' }}">
-                            <a href="{{ route('public.information') }}" class="gallery-picture"><img src="{{ $fallbackGalleryImages[$i]['full'] }}" alt="Informasi Kompetisi"></a>
-                            <a href="{{ route('public.information') }}" class="gallery-picture1"><img src="{{ $fallbackGalleryImages[$i]['small'] }}" alt="Informasi Kompetisi"></a>
+                            <a href="{{ route('public.clubs') }}" class="gallery-picture"><img src="{{ $fallbackGalleryImages[$i]['full'] }}" alt="Klub Peserta"></a>
+                            <a href="{{ route('public.clubs') }}" class="gallery-picture1"><img src="{{ $fallbackGalleryImages[$i]['small'] }}" alt="Klub Peserta"></a>
                             <div class="contents-wrapper">
                                 <div class="contents text-start">
                                     <div class="d-block">
-                                        <p class="tag">INFO</p>
-                                        <a href="{{ route('public.information') }}" class="gallery-title">INFORMASI RESMI KOMPETISI</a>
+                                        <p class="tag">KLUB PESERTA</p>
+                                        <a href="{{ route('public.clubs') }}" class="gallery-title">SOROTAN KLUB KOMPETISI</a>
                                     </div>
                                     <div class="author-info">
                                         <div class="content">
-                                            <a href="{{ route('public.information') }}" class="read-more">READ MORE</a>
+                                            <a href="{{ route('public.clubs') }}" class="read-more">LIHAT KLUB</a>
                                         </div>
                                     </div>
                                 </div>
@@ -327,7 +435,7 @@
     <div class="rts-next-match-section section-gap">
         <div class="container">
             <div class="section-title-area section-title-area1 text-center mb--50">
-                <span class="pretitle">GAMES</span>
+                <span class="pretitle">LAGA</span>
                 <h1 class="section-title">JADWAL TERDEKAT</h1>
                 <p>Berikut beberapa pertandingan terdekat yang sudah terjadwal pada portal publik kompetisi.</p>
             </div>
@@ -342,12 +450,12 @@
                         <div class="team-logo-area">
                             <a href="{{ $match->clubA ? route('public.clubs.show', ['clubSlug' => $match->clubA->public_slug]) : route('public.schedule') }}" class="text-center">
                                 <img src="{{ $match->clubA?->logo_file_url ?: asset('kester-assets/images/team/logo-01.png') }}" alt="{{ $match->clubA?->name ?: 'Klub A' }}">
-                                <p class="team">{{ strtoupper($match->clubA?->short_name ?: $match->clubA?->name ?: 'TBD') }}</p>
+                                <p class="team">{{ strtoupper($match->clubA?->name ?: $match->clubA?->short_name ?: 'MENYUSUL') }}</p>
                             </a>
                             <span class="versus">VS</span>
                             <a href="{{ $match->clubB ? route('public.clubs.show', ['clubSlug' => $match->clubB->public_slug]) : route('public.schedule') }}" class="text-center">
                                 <img src="{{ $match->clubB?->logo_file_url ?: asset('kester-assets/images/team/logo-02.png') }}" alt="{{ $match->clubB?->name ?: 'Klub B' }}">
-                                <p class="team">{{ strtoupper($match->clubB?->short_name ?: $match->clubB?->name ?: 'TBD') }}</p>
+                                <p class="team">{{ strtoupper($match->clubB?->name ?: $match->clubB?->short_name ?: 'MENYUSUL') }}</p>
                             </a>
                         </div>
                         <div class="button-area">
@@ -365,17 +473,17 @@
                         <div class="team-logo-area">
                             <a href="{{ route('public.schedule') }}" class="text-center">
                                 <img src="{{ asset('kester-assets/images/team/logo-01.png') }}" alt="">
-                                <p class="team">TBD</p>
+                                <p class="team">MENYUSUL</p>
                             </a>
                             <span class="versus">VS</span>
                             <a href="{{ route('public.schedule') }}" class="text-center">
                                 <img src="{{ asset('kester-assets/images/team/logo-02.png') }}" alt="">
-                                <p class="team">TBD</p>
+                                <p class="team">MENYUSUL</p>
                             </a>
                         </div>
                         <div class="button-area">
                             <a href="{{ route('public.schedule') }}" class="btn-1">Lihat Jadwal</a>
-                            <a href="{{ route('public.information') }}" class="btn-2">Lihat Informasi</a>
+                            <a href="#footer-kontak" class="btn-2">Lihat Kontak</a>
                         </div>
                     </li>
                 @endforelse
@@ -398,9 +506,9 @@
                     <div class="col-lg-7 col-12">
                         <div class="contents">
                             <div class="section-title-area section-title-area1 text-start">
-                                <span class="pretitle">PORTAL</span>
+                                <span class="pretitle">TENTANG PORTAL</span>
                                 <h1 class="section-title"><span>TENTANG</span> <br> LIGA ANAK PIAMAN LAWEH</h1>
-                                <p>Portal resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil laga, klasemen, daftar klub, dan informasi kompetisi.</p>
+                                <p>Portal resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil laga, klasemen, daftar klub, dan sponsor kompetisi.</p>
                             </div>
                             <ul>
                                 <li class="player">
@@ -412,11 +520,11 @@
                                     <h3 class="title">{{ $publicStats['players'] }}</h3>
                                 </li>
                                 <li class="player">
-                                    <p class="sub">OFFICIAL</p>
+                                    <p class="sub">OFISIAL</p>
                                     <h3 class="title">{{ $publicStats['officials'] }}</h3>
                                 </li>
                             </ul>
-                            <a href="{{ route('public.information') }}" class="more-btn">INFORMASI <i class="fal fa-long-arrow-right"></i></a>
+                            <a href="#footer-kontak" class="more-btn">KONTAK <i class="fal fa-long-arrow-right"></i></a>
                         </div>
                     </div>
                 </div>
@@ -429,7 +537,7 @@
             <div class="section-title-area section-title-area1 text-center mb--50">
                 <span class="pretitle">SPONSOR</span>
                 <h1 class="section-title">SPONSOR RESMI</h1>
-                <p>Terima kasih untuk sponsor yang mendukung kompetisi. Klik logo untuk melihat info sponsor.</p>
+                <p>Terima kasih untuk sponsor yang mendukung kompetisi. Klik logo untuk melihat profil sponsor.</p>
             </div>
             @if ($homeSponsorSlides->isNotEmpty())
                 <div class="sponsors-section-inner">
@@ -469,8 +577,8 @@
     <div class="rts-team-section section-gap">
         <div class="container">
             <div class="section-title-area section-title-area1 text-center mb--50">
-                <span class="pretitle">PLAYERS</span>
-                <h1 class="section-title">CLUB MEMBERS</h1>
+                <span class="pretitle">PEMAIN</span>
+                <h1 class="section-title">PEMAIN TERVERIFIKASI</h1>
                 <p>Beberapa pemain yang sudah terverifikasi pada portal kompetisi.</p>
             </div>
             <div class="team-section-inner">
@@ -493,7 +601,7 @@
                                         </ul>
                                     </div>
                                     <div class="profile">
-                                        <p class="position">{{ strtoupper($player->position ?: 'PLAYER') }}</p>
+                                        <p class="position">{{ strtoupper($player->position ?: 'PEMAIN') }}</p>
                                         <a href="{{ $playerClubUrl }}" class="name">{{ strtoupper($player->name) }}</a>
                                     </div>
                                 </div>
@@ -512,7 +620,7 @@
                                             </ul>
                                         </div>
                                         <div class="profile">
-                                            <p class="position">PLAYER</p>
+                                            <p class="position">PEMAIN</p>
                                             <a href="{{ route('public.clubs') }}" class="name">PEMAIN {{ $i }}</a>
                                         </div>
                                     </div>
@@ -536,22 +644,21 @@
                                 <img src="{{ asset('kester-assets/images/team/shape.png') }}" alt="">
                             </div>
                             <div class="section-title-area section-title-area1 text-start mb--50">
-                                <h1 class="section-title">DAPATKAN INFO TERBARU</h1>
-                                <p>Masukkan email untuk menerima informasi publik terbaru dari kompetisi.</p>
+                                <h1 class="section-title">IKUTI KOMPETISI DARI SATU PORTAL</h1>
+                                <p>Pantau jadwal, hasil pertandingan, klasemen, dan hubungi panitia dari halaman publik yang sama.</p>
                             </div>
-                            <form action="#0" onsubmit="return false;">
-                                <div class="form">
-                                    <input type="email" class="form-control" placeholder="Email kamu" required />
-                                </div>
-                                <div class="button">
-                                    <button type="submit" class="btn">SUBSCRIBE <i class="fal fa-long-arrow-right"></i></button>
-                                </div>
-                            </form>
+                            <div class="lap-home-cta-actions">
+                                <a href="{{ route('public.schedule') }}" class="btn">LIHAT JADWAL <i class="fal fa-long-arrow-right"></i></a>
+                                <a href="{{ route('public.results') }}" class="btn btn-light">LIHAT HASIL</a>
+                                <a href="#footer-kontak" class="btn btn-light">HUBUNGI PANITIA</a>
+                                <a href="{{ auth()->check() ? route('dashboard.home') : route('login') }}" class="btn btn-light">{{ auth()->check() ? 'BUKA DASHBOARD' : 'MASUK DASHBOARD' }}</a>
+                            </div>
+                            <p class="lap-home-cta-note">Gunakan tombol di atas untuk memantau jalannya kompetisi, melihat hasil terbaru, atau langsung menghubungi panitia.</p>
                         </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="hero-image">
-                            <img src="{{ asset('kester-assets/images/team/player3.png') }}" alt="">
+                            <img src="{{ asset('kester-assets/images/team/player3.png') }}" alt="Ilustrasi pemain Liga Anak Piaman Laweh">
                         </div>
                     </div>
                 </div>
@@ -559,79 +666,46 @@
         </div>
     </div>
 
-    <div class="rts-blog-section section-gap">
+    <div class="rts-blog-section section-gap lap-home-results">
         <div class="container">
             <div class="section-title-area section-title-area1 text-center mb--50">
-                <span class="pretitle">INSIGHTS</span>
-                <h1 class="section-title">INFORMASI TERBARU</h1>
-                <p>Ringkasan informasi dan publikasi terbaru seputar kompetisi.</p>
+                <span class="pretitle">HASIL</span>
+                <h1 class="section-title">HASIL PERTANDINGAN TERBARU</h1>
+                <p>Skor akhir dan ringkasan laga terbaru yang sudah dicatat pada portal kompetisi.</p>
             </div>
             <div class="blog-area">
                 <div class="row">
-                    @forelse ($homeBlogResources as $resource)
-                        @php
-                            $resourceUrl = route('public.information.show', ['resourceSlug' => $resource->public_slug]);
-                            $blogImage = $resource->is_image ? $resource->file_url : ($fallbackBlogImages[$loop->index] ?? $fallbackBlogImages[0]);
-                        @endphp
+                    @forelse ($homeRecentResults as $match)
                         <div class="col-xl-4 col-md-6">
-                            <div class="blog-item">
-                                <div class="blog-picture"><img src="{{ $blogImage }}" alt="{{ $resource->title }}"></div>
-                                <div class="contents-wrapper">
-                                    <div class="contents">
-                                        <div class="d-block">
-                                            <a href="{{ $resourceUrl }}" class="blog-catagory">{{ strtoupper($resource->badge_label) }}</a>
-                                            <a href="{{ $resourceUrl }}" class="blog-title">{{ strtoupper($resource->title) }}</a>
-                                        </div>
-                                        <div class="author-info">
-                                            <div class="author-dp lap-author-badge">
-                                                <span class="lap-author-avatar">
-                                                    @if ($resource->author_avatar_url)
-                                                        <img src="{{ $resource->author_avatar_url }}" alt="{{ $resource->author_name }}">
-                                                    @else
-                                                        <span class="lap-author-avatar-fallback">{{ $resource->author_initials }}</span>
-                                                    @endif
-                                                </span>
-                                            </div>
-                                            <div class="content">
-                                                <a href="{{ $resourceUrl }}" class="author-name">{{ strtoupper($resource->author_name) }}</a>
-                                                <div class="blog-date">
-                                                    <div class="date">{{ optional($resource->created_at)->translatedFormat('d F Y') }}</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="lap-home-result-card">
+                                <div class="lap-home-result-meta">
+                                    <span>{{ strtoupper($match->ageGroup?->name ?: 'UMUM') }}</span>
+                                    <span>{{ strtoupper($match->competition_format_label) }}</span>
+                                </div>
+                                <div class="lap-home-result-matchup">
+                                    <div class="lap-home-result-team">
+                                        <img src="{{ $match->clubA?->logo_file_url ?: asset('kester-assets/images/icons/club-3.svg') }}" alt="{{ $match->clubA?->name ?: 'Klub A' }}">
+                                        <div class="lap-home-result-team-name">{{ strtoupper($match->clubA?->name ?: $match->clubA?->short_name ?: 'MENYUSUL') }}</div>
+                                    </div>
+                                    <div class="lap-home-result-score">{{ $match->score_label }}</div>
+                                    <div class="lap-home-result-team">
+                                        <img src="{{ $match->clubB?->logo_file_url ?: asset('kester-assets/images/icons/club-4.svg') }}" alt="{{ $match->clubB?->name ?: 'Klub B' }}">
+                                        <div class="lap-home-result-team-name">{{ strtoupper($match->clubB?->name ?: $match->clubB?->short_name ?: 'MENYUSUL') }}</div>
                                     </div>
                                 </div>
+                                <p class="lap-home-result-summary">{{ strtoupper($match->result_summary) }}</p>
+                                <p class="lap-home-result-detail">{{ optional($match->match_date)->translatedFormat('d F Y') }} · {{ optional($match->kickoff_time)->format('H:i') }} WIB · {{ $match->venue ?: 'Venue belum diisi' }}</p>
+                                <a href="{{ route('public.results') }}" class="btn-1">Lihat Semua Hasil</a>
                             </div>
                         </div>
                     @empty
-                        @for ($i = 0; $i < 3; $i++)
-                            <div class="col-xl-4 col-md-6">
-                                <div class="blog-item">
-                                    <div class="blog-picture"><img src="{{ $fallbackBlogImages[$i] }}" alt=""></div>
-                                    <div class="contents-wrapper">
-                                        <div class="contents">
-                                            <div class="d-block">
-                                                <a href="{{ route('public.information') }}" class="blog-catagory">INFO</a>
-                                                <a href="{{ route('public.information') }}" class="blog-title">INFORMASI KOMPETISI</a>
-                                            </div>
-                                            <div class="author-info">
-                                                <div class="author-dp lap-author-badge">
-                                                    <span class="lap-author-avatar">
-                                                        <span class="lap-author-avatar-fallback">AD</span>
-                                                    </span>
-                                                </div>
-                                                <div class="content">
-                                                    <a href="{{ route('public.information') }}" class="author-name">ADMIN</a>
-                                                    <div class="blog-date">
-                                                        <div class="date">{{ now()->translatedFormat('d F Y') }}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="col-12">
+                            <div class="lap-home-result-card text-center">
+                                <p class="lap-home-result-summary mb--10">Belum ada hasil pertandingan terbaru</p>
+                                <p class="lap-home-result-detail">Hasil akan tampil di sini setelah pertandingan selesai dan skor akhir dicatat admin.</p>
+                                <a href="{{ route('public.schedule') }}" class="btn-1">Lihat Jadwal Pertandingan</a>
                             </div>
-                        @endfor
+                        </div>
                     @endforelse
                 </div>
             </div>

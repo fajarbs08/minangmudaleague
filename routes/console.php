@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Club;
-use App\Models\InformationResource;
 use App\Models\Official;
 use App\Models\Player;
 use App\Services\ClubLogoService;
@@ -48,7 +47,7 @@ Artisan::command('clubs:normalize-logos {--club_id=* : Batasi ke ID klub tertent
             continue;
         }
 
-        if (!$force && $clubLogoService->isNormalizedPath($currentPath)) {
+        if (! $force && $clubLogoService->isNormalizedPath($currentPath)) {
             $this->line("Skip klub #{$club->id} {$club->name}: logo sudah standar.");
             $skipped++;
 
@@ -170,15 +169,6 @@ Artisan::command('media:normalize-images {--force : Proses ulang file yang sudah
             ],
             'profile' => ['mode' => 'contain', 'max_width' => 2800, 'max_height' => 2800],
         ],
-        [
-            'label' => 'Pusat informasi',
-            'items' => InformationResource::query()
-                ->whereNotNull('file_path')
-                ->get(['id', 'title', 'file_path', 'file_mime']),
-            'field' => 'file_path',
-            'directory' => 'information-resources',
-            'profile' => ['mode' => 'contain', 'max_width' => 2200, 'max_height' => 2200],
-        ],
     ];
 
     $processed = 0;
@@ -205,7 +195,7 @@ Artisan::command('media:normalize-images {--force : Proses ulang file yang sudah
 
                 $directory = is_array($target['directory']) ? $target['directory'][$field] : $target['directory'];
 
-                if (!$force && $imageAssetService->isNormalizedPath($currentPath, $directory)) {
+                if (! $force && $imageAssetService->isNormalizedPath($currentPath, $directory)) {
                     $skipped++;
 
                     continue;
@@ -222,10 +212,6 @@ Artisan::command('media:normalize-images {--force : Proses ulang file yang sudah
 
                     $payload = [$field => $newPath];
 
-                    if ($item instanceof InformationResource) {
-                        $payload['file_mime'] = Storage::disk('public')->mimeType($newPath) ?: $item->file_mime;
-                    }
-
                     $item->forceFill($payload)->save();
 
                     $oldPath = ltrim($currentPath, '/');
@@ -236,7 +222,7 @@ Artisan::command('media:normalize-images {--force : Proses ulang file yang sudah
 
                     $this->info("OK {$target['label']} #{$item->id}: {$newPath}");
                     $processed++;
-                } catch (\Throwable $exception) {
+                } catch (Throwable $exception) {
                     $this->error("Gagal {$target['label']} #{$item->id}: {$exception->getMessage()}");
                     $failed++;
                 }

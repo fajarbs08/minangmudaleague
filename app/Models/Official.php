@@ -2,18 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Official extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVISION = 'revision';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -68,7 +73,7 @@ class Official extends Model
 
     public function registrationForAgeGroup(?int $ageGroupId): ?OfficialAgeGroup
     {
-        if (!$ageGroupId) {
+        if (! $ageGroupId) {
             return null;
         }
 
@@ -117,29 +122,59 @@ class Official extends Model
         return $this->fileUrl($this->identity_file_path);
     }
 
+    public function getPublicSlugAttribute(): string
+    {
+        $base = $this->name ?: 'ofisial';
+
+        return $this->id.'-'.Str::slug($base);
+    }
+
     public function validateForSubmission(): void
     {
         $errors = [];
 
-        if (blank($this->name)) $errors['name'] = 'Nama official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->role)) $errors['role'] = 'Peran official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->birth_place)) $errors['birth_place'] = 'Tempat lahir official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->birth_date)) $errors['birth_date'] = 'Tanggal lahir official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->citizenship)) $errors['citizenship'] = 'Kewarganegaraan official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->identity_number)) $errors['identity_number'] = 'NIK atau nomor identitas official wajib diisi sebelum submit verifikasi.';
-        if (blank($this->photo_path)) $errors['photo_path'] = 'Foto official wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->license_file_path) && blank($this->license_number)) $errors['license_file_path'] = 'Lisensi official wajib dilengkapi sebelum submit verifikasi.';
-        if (blank($this->identity_file_path)) $errors['identity_file_path'] = 'Dokumen identitas official wajib diunggah sebelum submit verifikasi.';
-        if (!$this->ageRegistrations()->exists()) $errors['age_registrations'] = 'Official harus memiliki minimal satu kelompok usia sebelum submit verifikasi.';
+        if (blank($this->name)) {
+            $errors['name'] = 'Nama official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->role)) {
+            $errors['role'] = 'Peran official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->birth_place)) {
+            $errors['birth_place'] = 'Tempat lahir official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->birth_date)) {
+            $errors['birth_date'] = 'Tanggal lahir official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->citizenship)) {
+            $errors['citizenship'] = 'Kewarganegaraan official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->identity_number)) {
+            $errors['identity_number'] = 'NIK atau nomor identitas official wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->photo_path)) {
+            $errors['photo_path'] = 'Foto official wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->license_file_path) && blank($this->license_number)) {
+            $errors['license_file_path'] = 'Lisensi official wajib dilengkapi sebelum submit verifikasi.';
+        }
+        if (blank($this->identity_file_path)) {
+            $errors['identity_file_path'] = 'Dokumen identitas official wajib diunggah sebelum submit verifikasi.';
+        }
+        $registrations = $this->ageRegistrations()->get();
+        if ($registrations->isEmpty()) {
+            $errors['age_registrations'] = 'Official harus memiliki minimal satu kelompok usia sebelum submit verifikasi.';
+        } elseif ($registrations->contains(fn ($registration) => ! $registration->ageGroup || ! $registration->ageGroup->is_active || ! in_array($registration->ageGroup->code, AgeGroup::COMPETITION_CODES, true))) {
+            $errors['age_registrations'] = 'Official hanya dapat disubmit untuk kelompok umur U-10, U-12, U-14, atau U-16.';
+        }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
     }
 
     private function fileUrl(?string $path): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 

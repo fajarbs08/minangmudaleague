@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\LineupList;
+use App\Models\MatchGoal;
 use App\Models\MatchSchedule;
-use App\Models\Player;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MatchScheduleController extends Controller
@@ -57,7 +58,7 @@ class MatchScheduleController extends Controller
             'title' => 'Jadwal Pertandingan',
             'matches' => $matches,
             'clubs' => Club::query()->orderBy('name')->get(),
-            'ageGroups' => AgeGroup::query()->orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
         ]);
     }
@@ -66,9 +67,9 @@ class MatchScheduleController extends Controller
     {
         return view('competition.matches.create', [
             'title' => 'Tambah Jadwal Pertandingan',
-            'matchSchedule' => new MatchSchedule(),
+            'matchSchedule' => new MatchSchedule,
             'clubs' => Club::query()->orderBy('name')->get(),
-            'ageGroups' => AgeGroup::query()->orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
             'knockoutEliminatedClubIdsByAgeGroup' => $this->knockoutEliminatedClubIdsByAgeGroup(),
             'currentMatchClubIds' => [],
@@ -88,7 +89,7 @@ class MatchScheduleController extends Controller
             'title' => 'Edit Jadwal Pertandingan',
             'matchSchedule' => $match,
             'clubs' => Club::query()->orderBy('name')->get(),
-            'ageGroups' => AgeGroup::query()->orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
             'knockoutEliminatedClubIdsByAgeGroup' => $this->knockoutEliminatedClubIdsByAgeGroup($match->id),
             'currentMatchClubIds' => array_values(array_filter([(int) $match->club_a_id, (int) $match->club_b_id])),
@@ -121,12 +122,51 @@ class MatchScheduleController extends Controller
         return redirect()->route('matches.index')->with('status', 'Jadwal pertandingan berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'selected_ids' => ['required', 'array', 'min:1'],
+            'selected_ids.*' => ['integer', 'exists:match_schedules,id'],
+        ]);
+
+        $matches = MatchSchedule::query()
+            ->withCount('lineupLists')
+            ->whereIn('id', $validated['selected_ids'])
+            ->get();
+
+        $deletableIds = $matches
+            ->where('lineup_lists_count', 0)
+            ->pluck('id');
+
+        $blockedCount = $matches->count() - $deletableIds->count();
+
+        if ($deletableIds->isEmpty()) {
+            return redirect()
+                ->route('matches.index', $request->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction']))
+                ->withErrors([
+                    'match' => 'Tidak ada jadwal yang bisa dihapus. Jadwal yang sudah dipakai DSP tidak bisa dihapus massal.',
+                ]);
+        }
+
+        MatchSchedule::query()->whereIn('id', $deletableIds)->delete();
+
+        $message = $deletableIds->count().' jadwal pertandingan berhasil dihapus.';
+
+        if ($blockedCount > 0) {
+            $message .= ' '.$blockedCount.' jadwal dilewati karena sudah dipakai DSP.';
+        }
+
+        return redirect()
+            ->route('matches.index', $request->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction']))
+            ->with('status', $message);
+    }
+
     public function results(Request $request): View
     {
         $user = $request->user();
-        $clubIds = $user->isAdmin()
-            ? Club::query()->pluck('id')
-            : $user->clubs()->pluck('id');
+        $clubIds = $this->visibleClubIds($user);
         [$sort, $direction] = $this->resolveSort(
             request: $request,
             defaultSort: 'match_date',
@@ -149,7 +189,7 @@ class MatchScheduleController extends Controller
                         ->orderByPivot('role')
                         ->orderByPivot('display_order')]),
             ])
-            ->when(!$user->isAdmin(), function ($query) use ($clubIds) {
+            ->when(! $user->isAdmin(), function ($query) use ($clubIds) {
                 $query->where(function ($inner) use ($clubIds) {
                     $inner->whereIn('club_a_id', $clubIds)
                         ->orWhereIn('club_b_id', $clubIds);
@@ -164,27 +204,185 @@ class MatchScheduleController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $standings = $this->buildLeagueStandings(
-            user: $user,
-            clubIds: $clubIds,
-            ageGroupId: $request->integer('age_group_id') ?: null,
-            competitionFormat: $request->string('competition_format')->value() ?: null,
-        );
-        $brackets = $this->buildKnockoutBrackets(
-            user: $user,
-            clubIds: $clubIds,
-            ageGroupId: $request->integer('age_group_id') ?: null,
-            competitionFormat: $request->string('competition_format')->value() ?: null,
-        );
-
         return view('competition.matches.results', [
             'title' => 'Hasil Pertandingan',
             'matches' => $matches,
-            'ageGroups' => AgeGroup::query()->orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
-            'standings' => $standings,
-            'brackets' => $brackets,
         ]);
+    }
+
+    public function standings(Request $request): View
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+
+        return view('competition.matches.standings', [
+            'title' => 'Klasemen',
+            'ageGroups' => AgeGroup::competition()->get(),
+            'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
+            'standings' => $this->buildLeagueStandings(
+                user: $user,
+                clubIds: $clubIds,
+                ageGroupId: $ageGroupId,
+            ),
+        ]);
+    }
+
+    public function standingsPdf(Request $request)
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+
+        return $this->streamReportPdf(
+            request: $request,
+            view: 'competition.matches.standings-pdf',
+            fileName: $this->pdfFileName('laporan-klasemen', $selectedAgeGroup),
+            data: [
+                'generatedAt' => now(),
+                'selectedAgeGroup' => $selectedAgeGroup,
+                'standings' => $this->buildLeagueStandings(
+                    user: $user,
+                    clubIds: $clubIds,
+                    ageGroupId: $ageGroupId,
+                ),
+            ],
+        );
+    }
+
+    public function topScorers(Request $request): View
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+
+        return view('competition.matches.top-scorers', [
+            'title' => 'Top Skor',
+            'ageGroups' => AgeGroup::competition()->get(),
+            'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
+            'topScorers' => $this->buildGoalLeaderboard(
+                user: $user,
+                clubIds: $clubIds,
+                type: 'scorer',
+                ageGroupId: $ageGroupId,
+            ),
+        ]);
+    }
+
+    public function topScorersPdf(Request $request)
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+
+        return $this->streamReportPdf(
+            request: $request,
+            view: 'competition.matches.leaderboard-pdf',
+            fileName: $this->pdfFileName('laporan-top-skor', $selectedAgeGroup),
+            data: [
+                'generatedAt' => now(),
+                'selectedAgeGroup' => $selectedAgeGroup,
+                'title' => 'Top Skor',
+                'description' => 'Peringkat pencetak gol terbanyak dari pertandingan yang sudah selesai.',
+                'metricLabel' => 'Gol',
+                'emptyMessage' => 'Belum ada data top skor untuk filter ini.',
+                'leaderboards' => $this->buildGoalLeaderboard(
+                    user: $user,
+                    clubIds: $clubIds,
+                    type: 'scorer',
+                    ageGroupId: $ageGroupId,
+                ),
+            ],
+        );
+    }
+
+    public function topAssists(Request $request): View
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+
+        return view('competition.matches.top-assists', [
+            'title' => 'Top Assist',
+            'ageGroups' => AgeGroup::competition()->get(),
+            'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
+            'topAssists' => $this->buildGoalLeaderboard(
+                user: $user,
+                clubIds: $clubIds,
+                type: 'assist',
+                ageGroupId: $ageGroupId,
+            ),
+        ]);
+    }
+
+    public function topAssistsPdf(Request $request)
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+
+        return $this->streamReportPdf(
+            request: $request,
+            view: 'competition.matches.leaderboard-pdf',
+            fileName: $this->pdfFileName('laporan-top-assist', $selectedAgeGroup),
+            data: [
+                'generatedAt' => now(),
+                'selectedAgeGroup' => $selectedAgeGroup,
+                'title' => 'Top Assist',
+                'description' => 'Peringkat pemberi assist terbanyak dari report gol yang sudah tercatat.',
+                'metricLabel' => 'Assist',
+                'emptyMessage' => 'Belum ada data top assist untuk filter ini.',
+                'leaderboards' => $this->buildGoalLeaderboard(
+                    user: $user,
+                    clubIds: $clubIds,
+                    type: 'assist',
+                    ageGroupId: $ageGroupId,
+                ),
+            ],
+        );
+    }
+
+    public function brackets(Request $request): View
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+
+        return view('competition.matches.brackets', [
+            'title' => 'Bagan Knockout',
+            'ageGroups' => AgeGroup::competition()->get(),
+            'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
+            'brackets' => $this->buildKnockoutBrackets(
+                user: $user,
+                clubIds: $clubIds,
+                ageGroupId: $ageGroupId,
+            ),
+        ]);
+    }
+
+    public function reports(Request $request): View
+    {
+        return view('competition.matches.reports', [
+            'title' => 'Rekap Laporan',
+            ...$this->reportPageData($request),
+        ]);
+    }
+
+    public function reportsPdf(Request $request)
+    {
+        $reportData = $this->reportPageData($request);
+
+        return $this->streamReportPdf(
+            request: $request,
+            view: 'competition.matches.report-pdf',
+            fileName: $this->pdfFileName('laporan-pertandingan', $reportData['selectedAgeGroup']),
+            data: $reportData,
+        );
     }
 
     public function updateResult(Request $request, MatchSchedule $match)
@@ -223,7 +421,7 @@ class MatchScheduleController extends Controller
 
             $match->goalEvents()->delete();
 
-            if (!empty($goalEvents)) {
+            if (! empty($goalEvents)) {
                 $match->goalEvents()->createMany($goalEvents);
             }
         });
@@ -236,7 +434,7 @@ class MatchScheduleController extends Controller
     private function validatedData(Request $request): array
     {
         $validated = $request->validate([
-            'age_group_id' => ['required', 'exists:age_groups,id'],
+            'age_group_id' => ['required', AgeGroup::competitionExistsRule()],
             'competition_format' => ['required', 'in:league,knockout'],
             'round_label' => ['nullable', 'string', 'max:255'],
             'round_order' => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -325,11 +523,11 @@ class MatchScheduleController extends Controller
         $sort = $request->string('sort')->value() ?: $defaultSort;
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             return [$defaultSort, $defaultDirection];
         }
 
-        if (!$request->filled('sort')) {
+        if (! $request->filled('sort')) {
             $direction = $defaultDirection;
         }
 
@@ -366,6 +564,186 @@ class MatchScheduleController extends Controller
         };
     }
 
+    private function visibleClubIds($user): Collection
+    {
+        return $user->isAdmin()
+            ? Club::query()->pluck('id')
+            : $user->clubs()->pluck('id');
+    }
+
+    private function selectedReportAgeGroup(?int $ageGroupId): ?AgeGroup
+    {
+        if (! $ageGroupId) {
+            return null;
+        }
+
+        return AgeGroup::competition()->find($ageGroupId);
+    }
+
+    private function pdfFileName(string $baseName, ?AgeGroup $selectedAgeGroup = null): string
+    {
+        $suffix = $selectedAgeGroup?->code
+            ? '-'.strtolower($selectedAgeGroup->code)
+            : '';
+
+        return $baseName.$suffix.'.pdf';
+    }
+
+    private function streamReportPdf(Request $request, string $view, string $fileName, array $data)
+    {
+        $pdf = Pdf::loadView($view, [
+            'generatedAt' => now(),
+            ...$data,
+        ])->setPaper('a4', 'portrait');
+
+        if ($request->boolean('download')) {
+            return $pdf->download($fileName);
+        }
+
+        return $pdf->stream($fileName);
+    }
+
+    private function reportPageData(Request $request): array
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+
+        return [
+            'generatedAt' => now(),
+            'ageGroups' => AgeGroup::competition()->get(),
+            'selectedAgeGroup' => $selectedAgeGroup,
+            'reportSummary' => $this->buildReportSummary(
+                user: $user,
+                clubIds: $clubIds,
+                ageGroupId: $ageGroupId,
+            ),
+            'topScorers' => $this->buildGoalLeaderboard(
+                user: $user,
+                clubIds: $clubIds,
+                type: 'scorer',
+                ageGroupId: $ageGroupId,
+            ),
+            'topAssists' => $this->buildGoalLeaderboard(
+                user: $user,
+                clubIds: $clubIds,
+                type: 'assist',
+                ageGroupId: $ageGroupId,
+            ),
+            'standings' => $this->buildLeagueStandings(
+                user: $user,
+                clubIds: $clubIds,
+                ageGroupId: $ageGroupId,
+            ),
+        ];
+    }
+
+    private function buildReportSummary($user, Collection $clubIds, ?int $ageGroupId = null): array
+    {
+        $matchQuery = MatchSchedule::query()
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->when($ageGroupId, fn ($query) => $query->where('age_group_id', $ageGroupId));
+
+        if (! $user->isAdmin()) {
+            $matchQuery->where(function ($query) use ($clubIds) {
+                $query->whereIn('club_a_id', $clubIds)
+                    ->orWhereIn('club_b_id', $clubIds);
+            });
+        }
+
+        $matches = $matchQuery->get(['id', 'age_group_id', 'score_club_a', 'score_club_b']);
+        $assistQuery = MatchGoal::query()
+            ->join('match_schedules', 'match_schedules.id', '=', 'match_goals.match_id')
+            ->where('match_schedules.is_finished', true)
+            ->whereNotNull('match_goals.assist_player_id')
+            ->when($ageGroupId, fn ($query) => $query->where('match_schedules.age_group_id', $ageGroupId));
+
+        if (! $user->isAdmin()) {
+            $assistQuery->where(function ($query) use ($clubIds) {
+                $query->whereIn('match_schedules.club_a_id', $clubIds)
+                    ->orWhereIn('match_schedules.club_b_id', $clubIds);
+            });
+        }
+
+        return [
+            [
+                'label' => 'Laga Selesai',
+                'value' => $matches->count(),
+                'hint' => 'Pertandingan yang hasil skornya sudah dikunci.',
+            ],
+            [
+                'label' => 'Total Gol',
+                'value' => $matches->sum(fn (MatchSchedule $match) => (int) $match->score_club_a + (int) $match->score_club_b),
+                'hint' => 'Akumulasi gol dari semua pertandingan selesai.',
+            ],
+            [
+                'label' => 'Assist Tercatat',
+                'value' => $assistQuery->count(),
+                'hint' => 'Gol yang sudah memiliki pemberi assist.',
+            ],
+            [
+                'label' => 'Kelompok Usia Aktif',
+                'value' => $matches->pluck('age_group_id')->filter()->unique()->count(),
+                'hint' => 'Jumlah kelompok usia yang sudah punya hasil.',
+            ],
+        ];
+    }
+
+    private function buildGoalLeaderboard($user, Collection $clubIds, string $type, ?int $ageGroupId = null): Collection
+    {
+        $relationColumn = $type === 'assist' ? 'assist_player_id' : 'player_id';
+        $ageGroups = AgeGroup::competition()->get()->keyBy('id');
+        $rows = MatchGoal::query()
+            ->select([
+                'match_schedules.age_group_id',
+                'players.id as player_id',
+                'players.name as player_name',
+                'clubs.name as club_name',
+                'clubs.short_name as club_short_name',
+                DB::raw('COUNT(match_goals.id) as total'),
+            ])
+            ->join('match_schedules', 'match_schedules.id', '=', 'match_goals.match_id')
+            ->join('players', 'players.id', '=', "match_goals.{$relationColumn}")
+            ->leftJoin('clubs', 'clubs.id', '=', 'players.club_id')
+            ->where('match_schedules.is_finished', true)
+            ->whereNotNull("match_goals.{$relationColumn}")
+            ->when($ageGroupId, fn ($query) => $query->where('match_schedules.age_group_id', $ageGroupId));
+
+        if (! $user->isAdmin()) {
+            $rows->where(function ($query) use ($clubIds) {
+                $query->whereIn('match_schedules.club_a_id', $clubIds)
+                    ->orWhereIn('match_schedules.club_b_id', $clubIds);
+            });
+        }
+
+        return $rows
+            ->groupBy('match_schedules.age_group_id', 'players.id', 'players.name', 'clubs.name', 'clubs.short_name')
+            ->orderBy('match_schedules.age_group_id')
+            ->orderByRaw('COUNT(match_goals.id) DESC')
+            ->orderBy('players.name')
+            ->get()
+            ->groupBy('age_group_id')
+            ->map(function (Collection $groupRows, int $groupId) use ($ageGroups) {
+                return [
+                    'age_group' => $ageGroups->get($groupId),
+                    'rows' => $groupRows
+                        ->values()
+                        ->map(function ($row, int $index) {
+                            return [
+                                'position' => $index + 1,
+                                'player_name' => $row->player_name,
+                                'club_name' => $row->club_short_name ?: $row->club_name ?: '-',
+                                'total' => (int) $row->total,
+                            ];
+                        }),
+                ];
+            })
+            ->values();
+    }
+
     private function buildKnockoutBrackets($user, Collection $clubIds, ?int $ageGroupId = null, ?string $competitionFormat = null): Collection
     {
         if ($competitionFormat === MatchSchedule::FORMAT_LEAGUE) {
@@ -377,7 +755,7 @@ class MatchScheduleController extends Controller
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->when($ageGroupId, fn ($builder) => $builder->where('age_group_id', $ageGroupId));
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $query->where(function ($builder) use ($clubIds) {
                 $builder->whereIn('club_a_id', $clubIds)
                     ->orWhereIn('club_b_id', $clubIds);
@@ -460,7 +838,7 @@ class MatchScheduleController extends Controller
             'club_a_id' => (int) $validated['club_a_id'],
             'club_b_id' => (int) $validated['club_b_id'],
         ])->filter(function (int $clubId) use ($eliminatedClubIds, $originalClubIds) {
-            return $eliminatedClubIds->contains($clubId) && !$originalClubIds->contains($clubId);
+            return $eliminatedClubIds->contains($clubId) && ! $originalClubIds->contains($clubId);
         });
 
         if ($blockedSelections->isEmpty()) {
@@ -493,7 +871,7 @@ class MatchScheduleController extends Controller
             ->whereNotNull('score_club_b')
             ->when($ageGroupId, fn ($query) => $query->where('age_group_id', $ageGroupId));
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $allowedAgeGroupIds = MatchSchedule::query()
                 ->where(function ($query) use ($clubIds) {
                     $query->whereIn('club_a_id', $clubIds)
@@ -528,13 +906,13 @@ class MatchScheduleController extends Controller
                             'goals_against' => (int) $match->score_club_a,
                         ],
                     ] as $entry) {
-                        if (!$entry['club']) {
+                        if (! $entry['club']) {
                             continue;
                         }
 
                         $clubId = $entry['club']->id;
 
-                        if (!$table->has($clubId)) {
+                        if (! $table->has($clubId)) {
                             $table->put($clubId, [
                                 'club_id' => $clubId,
                                 'club_name' => $entry['club']->name,
@@ -599,7 +977,7 @@ class MatchScheduleController extends Controller
                 $playerId = isset($goalEvent['player_id']) && $goalEvent['player_id'] !== '' ? (int) $goalEvent['player_id'] : null;
                 $assistPlayerId = isset($goalEvent['assist_player_id']) && $goalEvent['assist_player_id'] !== '' ? (int) $goalEvent['assist_player_id'] : null;
 
-                if (!$clubId && !$playerId && !$assistPlayerId) {
+                if (! $clubId && ! $playerId && ! $assistPlayerId) {
                     return null;
                 }
 
@@ -617,8 +995,8 @@ class MatchScheduleController extends Controller
 
     private function validateGoalEvents(MatchSchedule $match, array $goalEvents, ?int $scoreA, ?int $scoreB, bool $isFinished): void
     {
-        if (!$isFinished) {
-            if (!empty($goalEvents)) {
+        if (! $isFinished) {
+            if (! empty($goalEvents)) {
                 throw ValidationException::withMessages([
                     'goal_events' => 'Report pencetak gol hanya bisa diisi jika pertandingan ditandai selesai.',
                 ]);
@@ -646,27 +1024,27 @@ class MatchScheduleController extends Controller
             $playerId = (int) ($goalEvent['player_id'] ?? 0);
             $assistPlayerId = (int) ($goalEvent['assist_player_id'] ?? 0);
 
-            if (!$clubId || !$playerId) {
+            if (! $clubId || ! $playerId) {
                 throw ValidationException::withMessages([
                     'goal_events' => "Baris gol ke-{$row} wajib memilih tim dan pencetak gol.",
                 ]);
             }
 
-            if (!in_array($clubId, [(int) $match->club_a_id, (int) $match->club_b_id], true)) {
+            if (! in_array($clubId, [(int) $match->club_a_id, (int) $match->club_b_id], true)) {
                 throw ValidationException::withMessages([
                     'goal_events' => "Tim pada baris gol ke-{$row} tidak sesuai dengan pertandingan ini.",
                 ]);
             }
 
             $allowedPlayerIds = collect($rosterByClub[$clubId] ?? []);
-            if (!$allowedPlayerIds->contains($playerId)) {
+            if (! $allowedPlayerIds->contains($playerId)) {
                 throw ValidationException::withMessages([
                     'goal_events' => "Pencetak gol pada baris ke-{$row} harus berasal dari roster DSP pertandingan.",
                 ]);
             }
 
             if ($assistPlayerId) {
-                if (!$allowedPlayerIds->contains($assistPlayerId)) {
+                if (! $allowedPlayerIds->contains($assistPlayerId)) {
                     throw ValidationException::withMessages([
                         'goal_events' => "Assist pada baris ke-{$row} harus berasal dari roster DSP tim yang sama.",
                     ]);

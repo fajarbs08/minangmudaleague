@@ -7,8 +7,8 @@ use App\Models\LineupList;
 use App\Models\Official;
 use App\Models\Player;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class SearchController extends Controller
 {
@@ -117,9 +117,9 @@ class SearchController extends Controller
                 ->limit(2)
                 ->get()
                 ->map(fn (Official $official) => [
-                    'type' => 'Official',
+                    'type' => 'Ofisial',
                     'label' => $official->name,
-                    'description' => $official->role ?: ($official->email ?: 'Data official'),
+                    'description' => $official->role ?: ($official->email ?: 'Data ofisial'),
                     'url' => route('officials.show', $official),
                 ])
         );

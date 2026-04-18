@@ -9,7 +9,7 @@
                 Buka PDF
             </a>
             <a href="{{ route('dashboard.admin-manual-pdf', ['download' => 1]) }}" class="btn btn-light">
-                Download PDF
+                Unduh PDF
             </a>
         </div>
     </div>

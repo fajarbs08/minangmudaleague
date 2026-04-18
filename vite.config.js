@@ -7,6 +7,7 @@ export default defineConfig({
             input: [
 
             // css
+            'resources/css/public-tailwind.css',
             'resources/scss/app.scss',
             "node_modules/glightbox/dist/css/glightbox.min.css",
             'node_modules/flatpickr/dist/flatpickr.min.css',

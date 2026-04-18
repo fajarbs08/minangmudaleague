@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Club as ClubModel;
+use App\Models\AgeGroup;
 use App\Models\Club;
-use App\Models\InformationResource;
+use App\Models\Club as ClubModel;
 use App\Models\LineupList;
 use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
 use App\Models\Sponsor;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ class DashboardController extends Controller
             'title' => 'Liga Anak Piaman Laweh',
             'seoTitle' => 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak',
             'activePublicPage' => 'home',
-            'seoDescription' => 'Platform resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil, klasemen, daftar klub, sponsor, dan pusat informasi kompetisi.',
+            'seoDescription' => 'Platform resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil, klasemen, daftar klub, sponsor, dan kontak panitia.',
         ]));
     }
 
@@ -40,8 +41,54 @@ class DashboardController extends Controller
         ]));
     }
 
-    public function publicResults()
+    public function publicResults(Request $request)
     {
+        $resultFormatOptions = [
+            MatchSchedule::FORMAT_LEAGUE => 'Liga',
+            MatchSchedule::FORMAT_KNOCKOUT => 'Knockout',
+        ];
+        $selectedAgeGroupId = AgeGroup::competition()->whereKey($request->integer('age_group_id'))->value('id');
+        $selectedCompetitionFormat = $request->string('competition_format')->value();
+        $selectedCompetitionFormat = array_key_exists($selectedCompetitionFormat, $resultFormatOptions) ? $selectedCompetitionFormat : null;
+        $clubKeyword = trim((string) $request->input('q'));
+        $resultViewMode = $request->string('view')->value() === 'compact' ? 'compact' : 'grid';
+        $dateFrom = $this->normalizePublicDateFilter($request->input('date_from'));
+        $dateTo = $this->normalizePublicDateFilter($request->input('date_to'));
+
+        if ($dateFrom && $dateTo && $dateFrom > $dateTo) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        $resultsQuery = $this->publicResultsQuery()
+            ->when($selectedAgeGroupId, fn (Builder $query, int $ageGroupId) => $query->where('age_group_id', $ageGroupId))
+            ->when($selectedCompetitionFormat, fn (Builder $query, string $competitionFormat) => $query->where('competition_format', $competitionFormat))
+            ->when($clubKeyword !== '', function (Builder $query) use ($clubKeyword) {
+                $keyword = '%'.addcslashes($clubKeyword, '\\%_').'%';
+
+                $query->where(function (Builder $inner) use ($keyword) {
+                    $inner->whereHas('clubA', function (Builder $clubQuery) use ($keyword) {
+                        $clubQuery->where('name', 'like', $keyword)
+                            ->orWhere('short_name', 'like', $keyword);
+                    })->orWhereHas('clubB', function (Builder $clubQuery) use ($keyword) {
+                        $clubQuery->where('name', 'like', $keyword)
+                            ->orWhere('short_name', 'like', $keyword);
+                    });
+                });
+            })
+            ->when($dateFrom, fn (Builder $query, string $from) => $query->whereDate('match_date', '>=', $from))
+            ->when($dateTo, fn (Builder $query, string $to) => $query->whereDate('match_date', '<=', $to));
+
+        $resultStats = [
+            'matches' => (clone $resultsQuery)->count(),
+            'goals' => (int) ((clone $resultsQuery)->selectRaw('COALESCE(SUM(score_club_a + score_club_b), 0) as aggregate')->value('aggregate') ?? 0),
+            'clean_sheets' => (clone $resultsQuery)
+                ->where(function (Builder $query) {
+                    $query->where('score_club_a', 0)
+                        ->orWhere('score_club_b', 0);
+                })
+                ->count(),
+        ];
+
         return view('public.results', $this->publicPageData([
             'title' => 'Hasil Pertandingan',
             'seoTitle' => 'Hasil Liga Anak Piaman Laweh | Skor Pertandingan',
@@ -49,6 +96,75 @@ class DashboardController extends Controller
             'bannerTitle' => 'Hasil Pertandingan',
             'bannerCurrent' => 'Hasil',
             'seoDescription' => 'Pantau hasil pertandingan terbaru Liga Anak Piaman Laweh beserta skor akhir dan ringkasan laga.',
+            'recentResults' => (clone $resultsQuery)->paginate(12)->withQueryString(),
+            'featuredResult' => (clone $resultsQuery)->first(),
+            'resultStats' => $resultStats,
+            'resultAgeGroups' => AgeGroup::competition()->get(),
+            'resultFormatOptions' => $resultFormatOptions,
+            'resultFilters' => [
+                'age_group_id' => $selectedAgeGroupId,
+                'competition_format' => $selectedCompetitionFormat,
+                'q' => $clubKeyword,
+                'view' => $resultViewMode,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+        ]));
+    }
+
+    public function publicResultShow(string $matchSlug)
+    {
+        $match = $this->resolvePublicResult($matchSlug);
+        $match->loadMissing('goalEvents.club');
+
+        if ($matchSlug !== $match->public_slug) {
+            return redirect()->route('public.results.show', ['matchSlug' => $match->public_slug], 301);
+        }
+
+        $clubALabel = $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A';
+        $clubBLabel = $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B';
+        $matchShareUrl = route('public.results.show', ['matchSlug' => $match->public_slug]);
+        $cleanSheetLabel = match (true) {
+            ! $match->has_clean_sheet => 'Tidak ada clean sheet',
+            (int) $match->score_club_a === 0 && (int) $match->score_club_b === 0 => 'Kedua tim clean sheet',
+            (int) $match->score_club_a === 0 => ($match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B').' clean sheet',
+            default => ($match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A').' clean sheet',
+        };
+        $winnerLabel = $match->score_club_a === $match->score_club_b
+            ? 'Laga berakhir imbang'
+            : ($match->score_club_a > $match->score_club_b
+                ? $clubALabel.' menang'
+                : $clubBLabel.' menang');
+        $seoImage = $this->normalizeAbsoluteUrl($match->clubA?->logo_file_url ?: $match->clubB?->logo_file_url ?: $this->defaultSeoImageUrl());
+        $matchSummary = $winnerLabel.'. Skor akhir '.$match->score_label.' pada '.optional($match->match_date)->translatedFormat('d F Y').' di '.($match->venue ?: 'lokasi pertandingan').'.';
+
+        return view('public.result-show', $this->publicPageData([
+            'title' => $clubALabel.' vs '.$clubBLabel,
+            'seoTitle' => $clubALabel.' '.$match->score_label.' '.$clubBLabel.' | Hasil Liga Anak Piaman Laweh',
+            'activePublicPage' => 'results',
+            'bannerTitle' => 'Detail Hasil Pertandingan',
+            'bannerCurrent' => 'Detail Hasil',
+            'seoDescription' => $matchSummary.' Lihat rincian gol, statistik tim, dan detail laga lengkap.',
+            'seoUrl' => $matchShareUrl,
+            'seoType' => 'article',
+            'seoImage' => $seoImage,
+            'matchResult' => $match,
+            'matchResultShareUrl' => $matchShareUrl,
+            'matchResultStats' => [
+                'total_goals' => $match->total_goals,
+                'scorer_count' => $match->goalEvents->pluck('player_id')->filter()->unique()->count(),
+                'clean_sheet' => $cleanSheetLabel,
+            ],
+            'matchResultClubStats' => [
+                'club_a' => $this->buildPublicResultClubStats($match, (int) $match->club_a_id),
+                'club_b' => $this->buildPublicResultClubStats($match, (int) $match->club_b_id),
+            ],
+            'matchResultTimeline' => $this->buildPublicGoalTimeline($match),
+            'relatedResults' => $this->publicResultsQuery()
+                ->whereKeyNot($match->id)
+                ->where('age_group_id', $match->age_group_id)
+                ->limit(4)
+                ->get(),
         ]));
     }
 
@@ -72,7 +188,7 @@ class DashboardController extends Controller
             'activePublicPage' => 'clubs',
             'bannerTitle' => 'Daftar Klub',
             'bannerCurrent' => 'Klub',
-            'seoDescription' => 'Daftar klub peserta Liga Anak Piaman Laweh lengkap dengan profil singkat, pemain, dan official terdaftar.',
+            'seoDescription' => 'Daftar klub peserta Liga Anak Piaman Laweh lengkap dengan profil singkat, pemain, dan ofisial terdaftar.',
         ]));
     }
 
@@ -133,117 +249,8 @@ class DashboardController extends Controller
             'clubOfficials' => $club->officials,
             'clubRecentMatches' => $clubMatches,
             'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
-            'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, official, dan riwayat pertandingan terbaru.',
+            'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, ofisial, dan riwayat pertandingan terbaru.',
             'seoImage' => $this->defaultSeoImageUrl(),
-        ]));
-    }
-
-    public function publicInformation()
-    {
-        $category = request()->string('category')->value();
-        $search = request()->string('search')->value();
-
-        $informationQuery = InformationResource::query()
-            ->with('creator')
-            ->where('is_published', true)
-            ->where('visibility', InformationResource::VISIBILITY_PUBLIC);
-
-        $publishedResources = (clone $informationQuery)
-            ->when($category, fn ($query, $value) => $query->where('category', $value))
-            ->when($search, fn ($query, $value) => $query->where(function ($subQuery) use ($value) {
-                $subQuery->where('title', 'like', "%{$value}%")
-                    ->orWhere('description', 'like', "%{$value}%");
-            }))
-            ->orderByDesc('is_pinned')
-            ->orderBy('sort_order')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $resourceCategories = (clone $informationQuery)
-            ->selectRaw('category, COUNT(*) as total')
-            ->groupBy('category')
-            ->orderBy('category')
-            ->get();
-
-        $latestResources = (clone $informationQuery)
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->get();
-
-        return view('public.information', $this->publicPageData([
-            'title' => 'Informasi Kompetisi',
-            'seoTitle' => 'Informasi Liga Anak Piaman Laweh | Panduan & Dokumen',
-            'activePublicPage' => 'information',
-            'bannerTitle' => 'Informasi Kompetisi',
-            'bannerCurrent' => 'Informasi',
-            'publishedResources' => $publishedResources,
-            'resourceCategories' => $resourceCategories,
-            'latestResources' => $latestResources,
-            'activeInformationCategory' => $category,
-            'informationSearch' => $search,
-            'seoDescription' => 'Pusat informasi publik Liga Anak Piaman Laweh berisi panduan, template, alur, dan dokumen resmi kompetisi.',
-        ]));
-    }
-
-    public function publicInformationShow(string $resourceSlug)
-    {
-        preg_match('/(\d+)$/', $resourceSlug, $matches);
-        $resourceId = isset($matches[1]) ? (int) $matches[1] : 0;
-
-        $resource = InformationResource::query()
-            ->with('creator')
-            ->where('id', $resourceId)
-            ->where('is_published', true)
-            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
-            ->firstOrFail();
-
-        $relatedResources = InformationResource::query()
-            ->with('creator')
-            ->where('is_published', true)
-            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
-            ->where('id', '!=', $resource->id)
-            ->where(function ($query) use ($resource) {
-                $query->where('category', $resource->category)
-                    ->orWhere('is_pinned', true);
-            })
-            ->orderByDesc('is_pinned')
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->get();
-
-        $adjacentResources = InformationResource::query()
-            ->with('creator')
-            ->where('is_published', true)
-            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
-            ->orderByDesc('is_pinned')
-            ->orderBy('sort_order')
-            ->orderByDesc('created_at')
-            ->get()
-            ->values();
-
-        $resourceIndex = $adjacentResources->search(fn (InformationResource $item) => $item->id === $resource->id);
-        $previousResource = $resourceIndex !== false && $resourceIndex > 0
-            ? $adjacentResources->get($resourceIndex - 1)
-            : null;
-        $nextResource = $resourceIndex !== false && $resourceIndex < ($adjacentResources->count() - 1)
-            ? $adjacentResources->get($resourceIndex + 1)
-            : null;
-
-        return view('public.information-show', $this->publicPageData([
-            'title' => $resource->title,
-            'activePublicPage' => 'information',
-            'bannerTitle' => 'Informasi Kompetisi',
-            'bannerCurrent' => $resource->title,
-            'resource' => $resource,
-            'relatedResources' => $relatedResources,
-            'previousResource' => $previousResource,
-            'nextResource' => $nextResource,
-            'resourcePageUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
-            'seoTitle' => $resource->title.' | Liga Anak Piaman Laweh',
-            'seoDescription' => Str::limit($resource->description ?: 'Dokumen resmi yang dipublikasikan melalui pusat informasi Liga Anak Piaman Laweh.', 155),
-            'seoImage' => $this->defaultSeoImageUrl(),
-            'seoType' => 'article',
-            'seoUrl' => $this->normalizeAbsoluteUrl(route('public.information.show', ['resourceSlug' => $resource->public_slug])),
         ]));
     }
 
@@ -253,7 +260,7 @@ class DashboardController extends Controller
         $clubIds = $user->isAdmin() ? Club::query()->select('id') : $user->clubs()->select('id');
 
         return view('competition.dashboard', [
-            'title' => 'Dashboard',
+            'title' => 'Dashboard Registrasi',
             'stats' => [
                 'clubs' => Club::whereIn('id', $clubIds)->count(),
                 'officials' => Official::whereIn('club_id', $clubIds)->count(),
@@ -266,7 +273,7 @@ class DashboardController extends Controller
             ],
             'recentPlayers' => Player::with(['club', 'primaryAgeGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get(),
             'recentLineups' => LineupList::with(['club', 'ageGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get(),
-            'clubSummary' => !$user->isAdmin() ? Club::whereIn('id', $clubIds)->latest()->first() : null,
+            'clubSummary' => ! $user->isAdmin() ? Club::whereIn('id', $clubIds)->latest()->first() : null,
             'adminReviewStats' => $user->isAdmin() ? $this->adminReviewStats() : [],
             'adminQueues' => $user->isAdmin() ? $this->adminQueues() : [],
             'recentSubmissions' => $user->isAdmin() ? $this->recentSubmissions() : collect(),
@@ -307,7 +314,7 @@ class DashboardController extends Controller
                             'goals_against' => (int) $match->score_club_a,
                         ],
                     ] as $entry) {
-                        if (!$entry['club']) {
+                        if (! $entry['club']) {
                             continue;
                         }
 
@@ -409,13 +416,7 @@ class DashboardController extends Controller
             ->limit(12)
             ->get();
 
-        $recentResults = MatchSchedule::query()
-            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
-            ->where('is_finished', true)
-            ->whereNotNull('score_club_a')
-            ->whereNotNull('score_club_b')
-            ->orderByDesc('match_date')
-            ->orderByDesc('kickoff_time')
+        $recentResults = $this->publicResultsQuery()
             ->limit(12)
             ->get();
 
@@ -429,16 +430,6 @@ class DashboardController extends Controller
             ->with(['club', 'primaryAgeGroup'])
             ->where('verification_status', Player::STATUS_APPROVED)
             ->latest('updated_at')
-            ->limit(12)
-            ->get();
-
-        $publishedResources = InformationResource::query()
-            ->with('creator')
-            ->where('is_published', true)
-            ->where('visibility', InformationResource::VISIBILITY_PUBLIC)
-            ->orderByDesc('is_pinned')
-            ->orderBy('sort_order')
-            ->orderByDesc('created_at')
             ->limit(12)
             ->get();
 
@@ -461,7 +452,6 @@ class DashboardController extends Controller
             'featuredResult' => $recentResults->first(),
             'publicStandings' => $this->publicStandings(),
             'publicKnockoutBrackets' => $this->publicKnockoutBrackets(),
-            'publishedResources' => $publishedResources,
             'featuredSponsors' => $this->publicSponsorsData(),
         ];
 
@@ -471,7 +461,7 @@ class DashboardController extends Controller
             : ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
 
         $data['seoTitle'] = $data['seoTitle'] ?? $defaultSeoTitle;
-        $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk informasi kompetisi, jadwal, hasil pertandingan, klasemen, dan data klub peserta.';
+        $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk jadwal, hasil pertandingan, klasemen, data klub peserta, sponsor, dan kontak panitia.';
         $data['seoImage'] = $data['seoImage'] ?? $this->defaultSeoImageUrl();
         $data['seoUrl'] = $data['seoUrl'] ?? $this->normalizeAbsoluteUrl(url()->current());
         $data['seoType'] = $data['seoType'] ?? 'website';
@@ -480,9 +470,139 @@ class DashboardController extends Controller
         return $data;
     }
 
+    private function publicResultsQuery(): Builder
+    {
+        return MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->orderByDesc('match_date')
+            ->orderByDesc('kickoff_time');
+    }
+
+    private function normalizePublicDateFilter(mixed $value): ?string
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    private function resolvePublicResult(string $matchSlug): MatchSchedule
+    {
+        preg_match('/(\d+)$/', $matchSlug, $matches);
+        $matchId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        abort_unless($matchId > 0, 404);
+
+        return $this->publicResultsQuery()->whereKey($matchId)->firstOrFail();
+    }
+
+    private function buildPublicResultClubStats(MatchSchedule $match, int $clubId): array
+    {
+        $history = MatchSchedule::query()
+            ->select(['id', 'club_a_id', 'club_b_id', 'score_club_a', 'score_club_b', 'match_date', 'kickoff_time'])
+            ->where('age_group_id', $match->age_group_id)
+            ->where('competition_format', $match->competition_format)
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->where(function (Builder $query) use ($clubId) {
+                $query->where('club_a_id', $clubId)
+                    ->orWhere('club_b_id', $clubId);
+            })
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time')
+            ->orderBy('id')
+            ->get();
+
+        $played = 0;
+        $wins = 0;
+        $draws = 0;
+        $losses = 0;
+        $goalsFor = 0;
+        $goalsAgainst = 0;
+        $cleanSheets = 0;
+        $resultStory = 'Belum ada rekap pertandingan.';
+
+        foreach ($history as $historyMatch) {
+            $isClubA = (int) $historyMatch->club_a_id === $clubId;
+            $clubScore = (int) ($isClubA ? $historyMatch->score_club_a : $historyMatch->score_club_b);
+            $opponentScore = (int) ($isClubA ? $historyMatch->score_club_b : $historyMatch->score_club_a);
+
+            $played++;
+            $goalsFor += $clubScore;
+            $goalsAgainst += $opponentScore;
+
+            if ($opponentScore === 0) {
+                $cleanSheets++;
+            }
+
+            if ($clubScore > $opponentScore) {
+                $wins++;
+                $currentOutcome = 'Kemenangan ke-'.$wins;
+            } elseif ($clubScore === $opponentScore) {
+                $draws++;
+                $currentOutcome = 'Hasil imbang ke-'.$draws;
+            } else {
+                $losses++;
+                $currentOutcome = 'Kekalahan ke-'.$losses;
+            }
+
+            if ((int) $historyMatch->id === (int) $match->id) {
+                $resultStory = $currentOutcome.' pada '.$match->competition_format_label.' '.$match->ageGroup?->name.'.';
+                break;
+            }
+        }
+
+        return [
+            'played' => $played,
+            'wins' => $wins,
+            'draws' => $draws,
+            'losses' => $losses,
+            'goals_for' => $goalsFor,
+            'goals_against' => $goalsAgainst,
+            'clean_sheets' => $cleanSheets,
+            'result_story' => $resultStory,
+        ];
+    }
+
+    private function buildPublicGoalTimeline(MatchSchedule $match): Collection
+    {
+        $scoreA = 0;
+        $scoreB = 0;
+
+        return $match->goalEvents
+            ->values()
+            ->map(function ($goal, int $index) use ($match, &$scoreA, &$scoreB) {
+                $isClubA = (int) $goal->club_id === (int) $match->club_a_id;
+                $isClubB = (int) $goal->club_id === (int) $match->club_b_id;
+
+                if ($isClubA) {
+                    $scoreA++;
+                }
+
+                if ($isClubB) {
+                    $scoreB++;
+                }
+
+                return [
+                    'sequence' => $index + 1,
+                    'label' => $index === 0 ? 'Gol pembuka' : 'Gol ke-'.($index + 1),
+                    'club_name' => $goal->club?->short_name ?: $goal->club?->name ?: ($isClubA ? ($match->clubA?->short_name ?: 'Klub A') : ($match->clubB?->short_name ?: 'Klub B')),
+                    'scorer' => $goal->scorer?->name ?: 'Pemain tidak ditemukan',
+                    'assist' => $goal->assistPlayer?->name,
+                    'score_after' => $scoreA.' - '.$scoreB,
+                    'side' => $isClubA ? 'home' : ($isClubB ? 'away' : 'neutral'),
+                ];
+            });
+    }
+
     private function normalizeAbsoluteUrl(string $url): string
     {
-        if (!$this->shouldForceHttpsUrls()) {
+        if (! $this->shouldForceHttpsUrls()) {
             return $url;
         }
 
@@ -500,7 +620,7 @@ class DashboardController extends Controller
             return true;
         }
 
-        if (app()->runningInConsole() || !app()->bound('request')) {
+        if (app()->runningInConsole() || ! app()->bound('request')) {
             return false;
         }
 
@@ -525,64 +645,6 @@ class DashboardController extends Controller
             ]);
     }
 
-    public function clubResources(Request $request)
-    {
-        abort_unless($request->user()?->isClubUser(), 403);
-        $category = $request->string('category')->value();
-
-        return view('competition.club-resources', [
-            'title' => 'Pusat Informasi Club',
-            'managedResources' => InformationResource::query()
-                ->where('is_published', true)
-                ->whereIn('visibility', [
-                    InformationResource::VISIBILITY_PUBLIC,
-                    InformationResource::VISIBILITY_CLUB,
-                ])
-                ->when($category, fn ($query, $value) => $query->where('category', $value))
-                ->orderByDesc('is_pinned')
-                ->orderBy('sort_order')
-                ->orderByDesc('created_at')
-                ->get(),
-            'activeCategory' => $category,
-            'downloadResources' => [
-                [
-                    'label' => 'Template Surat Pernyataan',
-                    'description' => 'File template surat pernyataan yang diisi club lalu diunggah kembali pada data klub.',
-                    'open_url' => route('clubs.statement-template'),
-                    'download_url' => route('clubs.statement-template'),
-                    'badge' => 'Template',
-                    'badge_class' => 'bg-primary-subtle text-primary',
-                ],
-                [
-                    'label' => 'Flow Alur Registrasi',
-                    'description' => 'Panduan urutan kerja akun club mulai dari data klub, pemain, official, sampai DSP.',
-                    'open_url' => route('dashboard.workflow-pdf'),
-                    'download_url' => route('dashboard.workflow-pdf', ['download' => 1]),
-                    'badge' => 'PDF',
-                    'badge_class' => 'bg-success-subtle text-success',
-                ],
-                [
-                    'label' => 'Manual Club',
-                    'description' => 'Dokumen panduan penggunaan sistem untuk akun club dalam format PDF.',
-                    'open_url' => route('dashboard.club-manual-pdf'),
-                    'download_url' => route('dashboard.club-manual-pdf', ['download' => 1]),
-                    'badge' => 'PDF',
-                    'badge_class' => 'bg-info-subtle text-info',
-                ],
-            ],
-            'upcomingResources' => [
-                [
-                    'label' => 'Rules Kompetisi',
-                    'description' => 'Ketentuan dan regulasi resmi kompetisi.',
-                ],
-                [
-                    'label' => 'Dokumen Tambahan',
-                    'description' => 'Dokumen briefing teknis, jadwal teknikal meeting, dan lampiran pendukung lainnya.',
-                ],
-            ],
-        ]);
-    }
-
     public function workflowPdf(Request $request)
     {
         abort_unless($request->user()?->isClubUser(), 403);
@@ -596,13 +658,13 @@ class DashboardController extends Controller
                     'description' => 'Tahap awal untuk akun club adalah menerima akses login dan masuk ke dashboard registrasi.',
                     'screenshot' => [
                         'title' => 'Tampilan dashboard akun club',
-                        'caption' => 'Penanda pada sidebar menunjukkan urutan menu utama yang dipakai akun club: 1) Klub, 2) Official, 3) Pemain, dan 4) DSP.',
+                        'caption' => 'Penanda pada sidebar menunjukkan urutan menu utama yang dipakai akun club: 1) Klub, 2) Ofisial, 3) Pemain, dan 4) DSP.',
                         'path' => public_path('workflow-screens/dashboard-annotated.png'),
                     ],
                     'details' => [
                         'Gunakan email akun club dan password awal yang diberikan panitia atau admin.',
                         'Login ke sistem registrasi sampai berhasil masuk ke dashboard akun club.',
-                        'Pastikan menu utama untuk registrasi seperti Klub, Official, Pemain, dan DSP dapat diakses dengan benar.',
+                        'Pastikan menu utama untuk registrasi seperti Klub, Ofisial, Pemain, dan DSP dapat diakses dengan benar.',
                     ],
                     'result' => 'Akun club berhasil masuk ke dashboard dan siap mulai mengerjakan registrasi.',
                     'accent' => '#ef6b2e',
@@ -622,25 +684,25 @@ class DashboardController extends Controller
                         'Unduh template surat pernyataan, isi data klub, tanda tangan, lalu unggah kembali bersama logo klub.',
                         'Periksa ulang apakah seluruh identitas klub sudah benar dan sama dengan dokumen pendukung yang diunggah.',
                     ],
-                    'result' => 'Profil klub lengkap dan siap diajukan ke verifikasi atau dilanjutkan ke input official dan pemain.',
+                    'result' => 'Profil klub lengkap dan siap diajukan ke verifikasi atau dilanjutkan ke input ofisial dan pemain.',
                     'accent' => '#ff9f43',
                     'icon' => 'KLUB',
                 ],
                 [
                     'number' => '3',
-                    'title' => 'Input Data Official',
-                    'description' => 'Akun club mendaftarkan setiap official secara terpisah lengkap dengan identitas, dokumen, dan penugasan.',
+                    'title' => 'Input Data Ofisial',
+                    'description' => 'Akun club mendaftarkan setiap ofisial secara terpisah lengkap dengan identitas, dokumen, dan penugasan.',
                     'screenshot' => [
-                        'title' => 'Form input official',
-                        'caption' => 'Pilih klub, isi identitas official, unggah lisensi dan dokumen pendukung, lalu simpan data official.',
+                        'title' => 'Form input ofisial',
+                        'caption' => 'Pilih klub, isi identitas ofisial, unggah lisensi dan dokumen pendukung, lalu simpan data ofisial.',
                         'path' => public_path('workflow-screens/official-create-annotated.png'),
                     ],
                     'details' => [
-                        'Isi klub, peran official, nama, nomor lisensi, telepon, email, tempat lahir, tanggal lahir, dan kewarganegaraan.',
+                        'Isi klub, peran ofisial, nama, nomor lisensi, telepon, email, tempat lahir, tanggal lahir, dan kewarganegaraan.',
                         'Unggah pas foto 3x4, bukti lisensi, serta KTP atau identitas lain yang diminta.',
                         'Tambahkan kelompok usia yang diikuti, jabatan per kelompok usia, level lisensi, dan catatan bila diperlukan.',
                     ],
-                    'result' => 'Data official tersimpan sebagai draft dan dapat diedit, diajukan, atau direview kemudian.',
+                    'result' => 'Data ofisial tersimpan sebagai draft dan dapat diedit, diajukan, atau direview kemudian.',
                     'accent' => '#43aa8b',
                     'icon' => 'OFC',
                 ],
@@ -690,11 +752,11 @@ class DashboardController extends Controller
                         'path' => public_path('workflow-screens/submit-annotated.png'),
                     ],
                     'details' => [
-                        'Pada data klub, official, pemain, dan DSP, club menekan tombol Submit Verifikasi ketika data sudah lengkap.',
+                        'Pada data klub, ofisial, pemain, dan DSP, club menekan tombol Submit Verifikasi ketika data sudah lengkap.',
                         'Setelah dikirim, status berubah menjadi Dalam Proses atau submitted dan waktu pengajuan tercatat di sistem.',
-                        'Data dianggap lengkap bila semua field penting terisi, dokumen wajib sudah diunggah, identitas sesuai, kelompok usia sudah ditetapkan, dan tidak ada informasi yang masih kosong atau bertentangan.',
+                        'Data dianggap lengkap bila semua field penting terisi, dokumen wajib sudah diunggah, identitas sesuai, kelompok usia sudah ditetapkan, dan tidak ada bagian data yang masih kosong atau bertentangan.',
                         'Untuk klub, lengkap berarti profil klub, manajer, alamat, logo, dan surat pernyataan sudah siap diperiksa.',
-                        'Untuk official, lengkap berarti identitas, peran, lisensi, dokumen pendukung, dan kelompok usia sudah sesuai kebutuhan kompetisi.',
+                        'Untuk ofisial, lengkap berarti identitas, peran, lisensi, dokumen pendukung, dan kelompok usia sudah sesuai kebutuhan kompetisi.',
                         'Untuk pemain, lengkap berarti identitas pemain, dokumen administrasi, kelompok usia, posisi, dan nomor punggung sudah benar.',
                         'Untuk DSP, lengkap berarti pertandingan, pelatih, kelompok usia, starter, cadangan, dan urutan roster sudah sesuai aturan sistem.',
                         'Sebelum submit, akun club wajib membuka ulang item terkait dan memastikan tidak ada file salah, file kosong, atau data yang belum diperbarui.',
@@ -714,7 +776,7 @@ class DashboardController extends Controller
                         'Jika status Rejected atau Ditolak, artinya data tidak diterima dalam kondisi saat ini. Akun club harus menganggap item tersebut belum lolos verifikasi dan wajib meninjau penyebab penolakan sebelum melanjutkan.',
                         'Tindakan saat rejected: baca catatan admin, cocokan dengan field dan dokumen yang ada, perbaiki semua data yang tidak valid atau tidak sesuai, lalu pastikan ke admin atau panitia apakah item boleh diedit langsung atau perlu dibuka ulang secara administratif.',
                         'Bila item rejected masih bisa diedit oleh sistem atau oleh arahan admin, club harus memperbaiki seluruh kekurangan, bukan hanya satu bagian yang paling terlihat, lalu ajukan ulang hanya setelah seluruh syarat benar-benar terpenuhi.',
-                        'Jika penolakan terjadi karena dokumen tidak jelas, dokumen salah, data identitas tidak cocok, kelompok usia tidak sesuai, roster DSP tidak memenuhi aturan, atau informasi penting kosong, maka semua sumber masalah itu harus dibereskan sebelum mencoba mengajukan ulang.',
+                        'Jika penolakan terjadi karena dokumen tidak jelas, dokumen salah, data identitas tidak cocok, kelompok usia tidak sesuai, roster DSP tidak memenuhi aturan, atau data penting masih kosong, maka semua sumber masalah itu harus dibereskan sebelum mencoba mengajukan ulang.',
                         'Club tidak boleh menganggap approved berarti pekerjaan selesai total. Semua modul yang masih draft, submitted, revision, atau rejected tetap harus dipantau sampai seluruh kebutuhan kompetisi berstatus diterima.',
                         'Club juga dapat membuka atau mengunduh PDF ini sebagai referensi selama proses verifikasi dan administrasi pertandingan.',
                     ],
@@ -804,22 +866,22 @@ class DashboardController extends Controller
     {
         return [
             [
-                'label' => 'Perlu Review Admin',
+                'label' => 'Menunggu Review',
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_SUBMITTED)->count()
                     + Official::query()->where('verification_status', Official::STATUS_SUBMITTED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_SUBMITTED)->count()
                     + LineupList::query()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
-                'hint' => 'Semua submission dengan status Dalam Proses.',
+                'hint' => 'Total klub, ofisial, pemain, dan DSP yang baru diajukan.',
                 'class' => 'border-warning border-opacity-25',
                 'href' => route('dashboard.index').'#queue-admin',
             ],
             [
-                'label' => 'Perlu Revisi Club',
+                'label' => 'Perlu Revisi Klub',
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_REVISION)->count()
                     + Official::query()->where('verification_status', Official::STATUS_REVISION)->count()
                     + Player::query()->where('verification_status', Player::STATUS_REVISION)->count()
                     + LineupList::query()->where('verification_status', LineupList::STATUS_REVISION)->count(),
-                'hint' => 'Item yang sudah dikembalikan ke club.',
+                'hint' => 'Data yang sudah dikembalikan ke klub untuk diperbaiki.',
                 'class' => 'border-info border-opacity-25',
                 'href' => route('dashboard.index').'#submission-terbaru',
             ],
@@ -829,7 +891,7 @@ class DashboardController extends Controller
                     + Official::query()->where('verification_status', Official::STATUS_APPROVED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_APPROVED)->count()
                     + LineupList::query()->where('verification_status', LineupList::STATUS_APPROVED)->count(),
-                'hint' => 'Seluruh data yang sudah lolos verifikasi.',
+                'hint' => 'Data yang sudah selesai diverifikasi admin.',
                 'class' => 'border-success border-opacity-25',
                 'href' => route('dashboard.index').'#submission-terbaru',
             ],
@@ -839,7 +901,7 @@ class DashboardController extends Controller
                     + Official::query()->where('verification_status', Official::STATUS_REJECTED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_REJECTED)->count()
                     + LineupList::query()->where('verification_status', LineupList::STATUS_REJECTED)->count(),
-                'hint' => 'Data yang perlu keputusan lanjutan panitia.',
+                'hint' => 'Data yang ditolak dan butuh tindak lanjut panitia.',
                 'class' => 'border-danger border-opacity-25',
                 'href' => route('dashboard.index').'#submission-terbaru',
             ],
@@ -850,28 +912,33 @@ class DashboardController extends Controller
     {
         return [
             [
-                'label' => 'Review Klub',
+                'label' => 'Klub Menunggu Review',
                 'count' => Club::query()->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                'hint' => 'Lihat daftar klub terfilter',
                 'href' => route('clubs.index', ['status' => ClubModel::STATUS_SUBMITTED]),
             ],
             [
-                'label' => 'Review Official',
+                'label' => 'Ofisial Menunggu Review',
                 'count' => Official::query()->where('verification_status', Official::STATUS_SUBMITTED)->count(),
+                'hint' => 'Lihat daftar ofisial terfilter',
                 'href' => route('officials.index', ['status' => Official::STATUS_SUBMITTED]),
             ],
             [
-                'label' => 'Review Pemain',
+                'label' => 'Pemain Menunggu Review',
                 'count' => Player::query()->where('verification_status', Player::STATUS_SUBMITTED)->count(),
+                'hint' => 'Lihat daftar pemain terfilter',
                 'href' => route('players.index', ['status' => Player::STATUS_SUBMITTED]),
             ],
             [
-                'label' => 'Review DSP',
+                'label' => 'DSP Menunggu Review',
                 'count' => LineupList::query()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
+                'hint' => 'Lihat daftar DSP terfilter',
                 'href' => route('lineup-lists.index', ['status' => LineupList::STATUS_SUBMITTED]),
             ],
             [
-                'label' => 'Akun Club Belum Dipakai',
+                'label' => 'Akun Klub Belum Dipakai',
                 'count' => User::query()->where('role', 'club')->doesntHave('clubs')->count(),
+                'hint' => 'Buka halaman pembuatan akun',
                 'href' => route('club-accounts.create'),
             ],
         ];
@@ -900,7 +967,7 @@ class DashboardController extends Controller
                 ->take(4)
                 ->get()
                 ->map(fn (Official $official) => [
-                    'type' => 'Official',
+                    'type' => 'Ofisial',
                     'name' => $official->name,
                     'status' => $official->verification_status,
                     'club' => $official->club?->name,
@@ -966,7 +1033,7 @@ class DashboardController extends Controller
                 ->take(3)
                 ->get()
                 ->map(fn (Official $official) => [
-                    'type' => 'Official',
+                    'type' => 'Ofisial',
                     'name' => $official->name,
                     'club' => $official->club?->name,
                     'submitted_at' => $official->submitted_at,

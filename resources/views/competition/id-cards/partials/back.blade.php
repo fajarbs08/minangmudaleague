@@ -1,5 +1,5 @@
 <div class="idc-page">
-    <div class="idc-card idc-card--back">
+    <div class="idc-card idc-card--back idc-card--{{ $card['type'] }}">
         <img src="{{ $document['assets']['leagueWatermark'] }}" alt="" class="idc-watermark">
         <div class="idc-header-glow"></div>
 

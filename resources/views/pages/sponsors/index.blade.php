@@ -80,6 +80,9 @@
                 </thead>
                 <tbody>
                     @forelse ($sponsors as $item)
+                        @php
+                            $deleteSponsorFormId = 'delete-sponsor-'.$item->id;
+                        @endphp
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
@@ -121,10 +124,20 @@
                                             'icon' => 'square-pen',
                                             'label' => 'Edit',
                                         ])
-                                        <form method="POST" action="{{ route('sponsors.destroy', $item) }}" onsubmit="return confirm('Hapus sponsor ini?')">
+                                        <form method="POST" action="{{ route('sponsors.destroy', $item) }}" id="{{ $deleteSponsorFormId }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-danger">
+                                            <button
+                                                type="button"
+                                                class="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#sponsorActionConfirmModal"
+                                                data-confirm-form="#{{ $deleteSponsorFormId }}"
+                                                data-confirm-title="Hapus Sponsor"
+                                                data-confirm-message="Sponsor {{ $item->name }} akan dihapus. Tindakan ini tidak bisa dibatalkan."
+                                                data-confirm-submit-label="Hapus"
+                                                data-confirm-submit-class="btn-danger"
+                                            >
                                                 <i data-lucide="trash-2" class="fs-14"></i>
                                                 <span>Hapus</span>
                                             </button>
@@ -196,4 +209,12 @@
         </div>
     </div>
 </div>
+
+@include('layouts.partials.action-confirm-modal', [
+    'modalId' => 'sponsorActionConfirmModal',
+    'title' => 'Hapus Sponsor',
+    'message' => 'Sponsor yang dipilih akan dihapus. Tindakan ini tidak bisa dibatalkan.',
+    'submitLabel' => 'Hapus',
+    'submitClass' => 'btn-danger',
+])
 @endsection

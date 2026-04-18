@@ -28,24 +28,23 @@
             </ol>
         </nav>
         <h4 class="mb-1">Klub</h4>
-        <p class="text-muted mb-0">Kelola klub peserta, kelengkapan berkas, dan status verifikasi dari panel yang konsisten dengan modul kompetisi lain.</p>
+        <p class="text-muted mb-0">Kelola data klub, kelengkapan berkas, dan status verifikasi dari satu halaman kerja.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         @if ($isAdmin)
-            <a
-                href="#club-filter-panel"
+            <button
+                type="button"
                 class="btn btn-outline-secondary position-relative d-inline-flex align-items-center gap-2"
-                data-bs-toggle="collapse"
-                role="button"
-                aria-expanded="{{ $filterCount ? 'true' : 'false' }}"
-                aria-controls="club-filter-panel"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#clubFilterCanvas"
+                aria-controls="clubFilterCanvas"
             >
                 <i data-lucide="filter" class="fs-14"></i>
                 <span>Filter</span>
                 @if ($filterCount)
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
                 @endif
-            </a>
+            </button>
         @endif
         @if ($isAdmin || (auth()->user()->isClubUser() && $clubs->isEmpty()))
         @include('competition.partials.icon-button', [
@@ -66,7 +65,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-primary-subtle text-primary mb-2">Table</span>
+                        <span class="badge bg-primary-subtle text-primary mb-2">Klub</span>
                         <h3 class="mb-1">{{ $clubs->total() }}</h3>
                         <p class="text-muted mb-0">Total klub terdaftar</p>
                     </div>
@@ -82,9 +81,9 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-info-subtle text-info mb-2">Official</span>
+                        <span class="badge bg-info-subtle text-info mb-2">Ofisial</span>
                         <h3 class="mb-1">{{ $totalOfficials }}</h3>
-                        <p class="text-muted mb-0">Total official di halaman ini</p>
+                        <p class="text-muted mb-0">Total ofisial di halaman ini</p>
                     </div>
                     <div class="avatar-md bg-info-subtle rounded-circle d-flex align-items-center justify-content-center">
                         <i data-lucide="users" class="fs-22 text-info"></i>
@@ -98,7 +97,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-success-subtle text-success mb-2">Progress</span>
+                        <span class="badge bg-success-subtle text-success mb-2">Disetujui</span>
                         <h3 class="mb-1">{{ $approvedCount }}</h3>
                         <p class="text-muted mb-2">Klub sudah disetujui</p>
                     </div>
@@ -124,7 +123,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-warning-subtle text-warning mb-2">Review</span>
+                        <span class="badge bg-warning-subtle text-warning mb-2">Menunggu Review</span>
                         <h3 class="mb-1">{{ $needsReviewCount }}</h3>
                         <p class="text-muted mb-0">Perlu tindak lanjut admin</p>
                     </div>
@@ -143,7 +142,7 @@
             <h4 class="card-title mb-1">{{ $isAdmin ? 'Daftar Klub' : 'Profil Klub' }}</h4>
             <p class="text-muted mb-0">
                 {{ $isAdmin
-                    ? 'Cari klub, cek progres verifikasi, lalu jalankan aksi dari menu per baris dengan format yang seragam.'
+                    ? 'Cari klub, cek status verifikasi, lalu buka tindakan yang dibutuhkan dari setiap baris.'
                     : 'Pantau data klub dan status verifikasi Anda dari halaman ini.' }}
             </p>
         </div>
@@ -164,36 +163,6 @@
         </div>
     </div>
     @if ($isAdmin)
-        <div class="card-body border-bottom collapse {{ $filterCount ? 'show' : '' }}" id="club-filter-panel">
-            <form class="row g-3">
-                <div class="col-xl-5 col-md-6">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="fs-16" data-lucide="search"></i>
-                        </span>
-                        <input type="text" class="form-control border-start-0" name="search" value="{{ request('search') }}" placeholder="Cari nama klub atau zona kota/kabupaten">
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6">
-                    <select name="status" class="form-select">
-                        <option value="">Semua status</option>
-                        <option value="draft" @selected(request('status') === 'draft')>Draft</option>
-                        <option value="submitted" @selected(request('status') === 'submitted')>Dalam Proses</option>
-                        <option value="revision" @selected(request('status') === 'revision')>Perlu Revisi</option>
-                        <option value="approved" @selected(request('status') === 'approved')>Diterima</option>
-                        <option value="rejected" @selected(request('status') === 'rejected')>Ditolak</option>
-                    </select>
-                </div>
-                <div class="col-xl-4 col-md-12">
-                    <div class="d-grid gap-2 d-md-flex">
-                        <button class="btn btn-primary flex-fill" type="submit">Filter</button>
-                        <a href="{{ route('clubs.index') }}" class="btn btn-light flex-fill">Reset</a>
-                    </div>
-                </div>
-            </form>
-        </div>
-    @endif
-    @if ($isAdmin)
     <form id="bulk-club-review-form" method="POST" action="{{ route('clubs.bulk-review') }}">
         @csrf
         <div class="card-body border-bottom bg-light-subtle">
@@ -208,7 +177,7 @@
                             aria-expanded="false"
                             aria-controls="clubBulkReviewCollapse"
                         >
-                            Bulk Action Admin
+                            Tindakan Massal Admin
                         </button>
                     </h2>
                     <div
@@ -223,15 +192,15 @@
                                     <label for="bulk-club-status" class="form-label">Aksi</label>
                                     <select id="bulk-club-status" name="status" class="form-select" data-choices data-choices-search-false data-bulk-choices required>
                                         <option value="">Pilih aksi</option>
-                                        <option value="approved">Approve</option>
+                                        <option value="approved">Setujui</option>
                                         <option value="revision">Minta revisi</option>
-                                        <option value="rejected">Reject</option>
+                                        <option value="rejected">Tolak</option>
                                         <option value="deleted">Hapus</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-6">
                                     <label for="bulk-club-notes" class="form-label">Catatan verifikasi</label>
-                                    <textarea id="bulk-club-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau reject."></textarea>
+                                    <textarea id="bulk-club-notes" name="verification_notes" rows="2" class="form-control" placeholder="Wajib untuk revisi atau penolakan."></textarea>
                                 </div>
                                 <div class="col-lg-3">
                                     <label class="form-label d-block">&nbsp;</label>
@@ -265,7 +234,7 @@
                         @endif
                         @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Klub', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'zone', 'label' => 'Zona (Kota / Kabupaten)', 'defaultSort' => 'created_at'])
-                        @include('competition.partials.sortable-th', ['key' => 'officials_count', 'label' => 'Official', 'defaultSort' => 'created_at'])
+                        @include('competition.partials.sortable-th', ['key' => 'officials_count', 'label' => 'Ofisial', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'players_count', 'label' => 'Pemain', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'lineup_lists_count', 'label' => 'DSP', 'defaultSort' => 'created_at'])
                         @include('competition.partials.sortable-th', ['key' => 'verification_status', 'label' => 'Verifikasi', 'defaultSort' => 'created_at'])
@@ -338,7 +307,7 @@
                             @php
                                 $actionHint = match ($club->verification_status) {
                                     'draft' => $isAdmin ? 'Buka detail atau edit manual admin.' : 'Lengkapi data klub lalu ajukan verifikasi.',
-                                    'submitted' => $isAdmin ? 'Review pengajuan admin.' : 'Menunggu review admin.',
+                                    'submitted' => $isAdmin ? 'Tinjau pengajuan lalu beri keputusan.' : 'Menunggu review admin.',
                                     'revision' => $isAdmin ? 'Minta revisi atau edit manual admin.' : 'Perbaiki data lalu submit ulang.',
                                     'approved' => $isAdmin ? 'Klub sudah diterima. Edit manual tetap tersedia.' : 'Klub sudah diterima admin.',
                                     'rejected' => $isAdmin ? 'Tindak lanjuti lewat revisi atau edit manual.' : 'Periksa catatan admin.',
@@ -378,7 +347,7 @@
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('clubs.edit', $club),
                                                     'icon' => 'square-pen',
-                                                    'label' => $isAdmin ? 'Edit Manual Admin' : 'Edit',
+                                                    'label' => $isAdmin ? 'Edit oleh Admin' : 'Edit',
                                                 ])
                                             @endif
                                         </div>
@@ -386,18 +355,18 @@
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 @if ($isAdmin && $club->canBeReviewedByAdmin())
-                                                    <div class="competition-action-label px-2 pb-2">Review Admin</div>
+                                                    <div class="competition-action-label px-2 pb-2">Verifikasi Admin</div>
                                                     @if ($club->verification_status !== 'approved')
                                                         @include('competition.partials.action-item', [
                                                             'icon' => 'check',
-                                                            'label' => 'Approve',
+                                                            'label' => 'Setujui',
                                                             'class' => 'text-success',
                                                             'attributes' => [
                                                                 'data-bs-toggle' => 'modal',
                                                                 'data-bs-target' => '#clubReviewModal',
                                                                 'data-review-route' => route('clubs.review', $club),
                                                                 'data-review-status' => 'approved',
-                                                                'data-review-label' => 'Approve Klub',
+                                                                'data-review-label' => 'Setujui Klub',
                                                                 'data-review-title' => $club->name,
                                                                 'data-review-notes-required' => '0',
                                                                 'data-review-placeholder' => 'Catatan admin opsional.',
@@ -422,17 +391,17 @@
                                                     @if ($club->verification_status !== 'approved')
                                                         @include('competition.partials.action-item', [
                                                             'icon' => 'x',
-                                                            'label' => 'Reject',
+                                                            'label' => 'Tolak',
                                                             'class' => 'text-danger',
                                                             'attributes' => [
                                                                 'data-bs-toggle' => 'modal',
                                                                 'data-bs-target' => '#clubReviewModal',
                                                                 'data-review-route' => route('clubs.review', $club),
                                                                 'data-review-status' => 'rejected',
-                                                                'data-review-label' => 'Reject Klub',
+                                                                'data-review-label' => 'Tolak Klub',
                                                                 'data-review-title' => $club->name,
                                                                 'data-review-notes-required' => '1',
-                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk reject.',
+                                                                'data-review-placeholder' => 'Catatan admin wajib diisi untuk penolakan.',
                                                             ],
                                                         ])
                                                     @endif
@@ -441,7 +410,7 @@
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2">
                                                             <i data-lucide="send" class="review-actions-icon" aria-hidden="true"></i>
-                                                            <span>Submit Verifikasi</span>
+                                                            <span>Ajukan Verifikasi</span>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -483,6 +452,44 @@
     </form>
     @endif
 </div>
+
+@if ($isAdmin)
+<div class="offcanvas offcanvas-end" tabindex="-1" id="clubFilterCanvas" aria-labelledby="clubFilterCanvasLabel">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title" id="clubFilterCanvasLabel">Filter Klub</h5>
+            <p class="text-muted mb-0 small">Pakai filter detail tanpa memenuhi area tabel.</p>
+        </div>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form class="d-flex flex-column gap-3">
+            <div>
+                <label for="club-search" class="form-label">Pencarian</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="fs-16" data-lucide="search"></i>
+                    </span>
+                    <input id="club-search" type="text" class="form-control border-start-0" name="search" value="{{ request('search') }}" placeholder="Cari nama klub atau zona kota/kabupaten">
+                </div>
+            </div>
+            <div>
+                <label for="club-status" class="form-label">Status verifikasi</label>
+                <select id="club-status" name="status" class="form-select">
+                    <option value="">Semua status</option>
+                    @foreach ($statusOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="d-grid gap-2 mt-2">
+                <button class="btn btn-primary" type="submit">Terapkan Filter</button>
+                <a href="{{ route('clubs.index') }}" class="btn btn-light">Reset Filter</a>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 @include('competition.partials.delete-modal', [
     'modalId' => 'deleteClubModal',
@@ -544,6 +551,14 @@
         </div>
     </div>
 </div>
+
+@include('layouts.partials.action-confirm-modal', [
+    'modalId' => 'bulkClubActionConfirmModal',
+    'title' => 'Konfirmasi Aksi Massal',
+    'message' => 'Aksi ini akan diterapkan ke data terpilih.',
+    'submitLabel' => 'Lanjutkan',
+    'submitClass' => 'btn-danger',
+])
 @endsection
 
 @push('scripts')
@@ -557,6 +572,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const checkAll = bulkForm.querySelector('.js-check-all');
     const bulkSubmit = bulkForm.querySelector('[data-bulk-submit]');
     const bulkCount = bulkForm.querySelector('[data-bulk-selected-count]');
+    const bulkStatus = bulkForm.querySelector('[name=status]');
+    const bulkConfirmModal = document.getElementById('bulkClubActionConfirmModal');
 
     if (!checkAll) {
         return;
@@ -596,11 +613,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     bulkForm.addEventListener('submit', function (event) {
+        if (bulkForm.dataset.confirmAccepted === '1') {
+            delete bulkForm.dataset.confirmAccepted;
+            return;
+        }
+
         const selectedCount = getRows().filter((checkbox) => checkbox.checked).length;
 
         if (selectedCount === 0) {
             event.preventDefault();
+            return;
         }
+
+        const bulkAction = bulkStatus?.value;
+
+        if (!['deleted', 'rejected'].includes(bulkAction || '')) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!bulkConfirmModal) {
+            return;
+        }
+
+        const isDelete = bulkAction === 'deleted';
+
+        bulkConfirmModal.setAttribute('data-confirm-form', '#bulk-club-review-form');
+        bulkConfirmModal.setAttribute('data-confirm-title', isDelete ? 'Hapus Klub' : 'Tolak Klub');
+        bulkConfirmModal.setAttribute('data-confirm-message', isDelete
+            ? `Hapus ${selectedCount} klub terpilih? Data yang sudah dihapus tidak bisa dikembalikan.`
+            : `Tolak ${selectedCount} klub terpilih? Status akan berubah menjadi ditolak dan catatan admin wajib diisi.`);
+        bulkConfirmModal.setAttribute('data-confirm-submit-label', isDelete ? 'Hapus' : 'Tolak');
+        bulkConfirmModal.setAttribute('data-confirm-submit-class', 'btn-danger');
+
+        bootstrap.Modal.getOrCreateInstance(bulkConfirmModal).show();
     });
 
     syncBulkState();

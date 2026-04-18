@@ -6,8 +6,8 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
-use App\Services\ImageAssetService;
 use App\Services\IdCards\IdentityCardService;
+use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -19,8 +19,7 @@ class OfficialController extends Controller
     public function __construct(
         private IdentityCardService $identityCardService,
         private ImageAssetService $imageAssetService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -29,13 +28,13 @@ class OfficialController extends Controller
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
         $allowedSorts = ['name', 'club', 'role', 'age_group', 'email', 'is_active', 'verification_status', 'created_at'];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'created_at';
             $direction = 'desc';
         }
 
         $clubs = Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
 
@@ -70,10 +69,10 @@ class OfficialController extends Controller
             ->withQueryString();
 
         return view('competition.officials.index', [
-            'title' => 'Official',
+            'title' => 'Ofisial',
             'officials' => $officials,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -104,13 +103,13 @@ class OfficialController extends Controller
             $count = $models->count();
             $models->each->delete();
 
-            return redirect()->back()->with('status', $count.' data official berhasil dihapus.');
+            return redirect()->back()->with('status', $count.' data ofisial berhasil dihapus.');
         }
 
         return $this->bulkReviewSubmissions(
             $request,
             Official::query()->whereIn('club_id', $clubs->pluck('id')),
-            ':count data official berhasil diperbarui.'
+            ':count data ofisial berhasil diperbarui.'
         );
     }
 
@@ -119,10 +118,10 @@ class OfficialController extends Controller
         $clubs = $this->availableClubs();
 
         return view('competition.officials.create', [
-            'title' => 'Tambah Official',
-            'official' => new Official(),
+            'title' => 'Tambah Ofisial',
+            'official' => new Official,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -136,7 +135,7 @@ class OfficialController extends Controller
 
         return redirect()
             ->route('officials.edit', $official)
-            ->with('status', 'Data official berhasil ditambahkan.');
+            ->with('status', 'Data ofisial berhasil ditambahkan.');
     }
 
     public function edit(Official $official)
@@ -145,10 +144,10 @@ class OfficialController extends Controller
         $official->load('ageRegistrations.ageGroup');
 
         return view('competition.officials.edit', [
-            'title' => 'Edit Official',
+            'title' => 'Edit Ofisial',
             'official' => $official,
             'clubs' => $this->availableClubs(),
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -158,19 +157,34 @@ class OfficialController extends Controller
         $official->load(['club', 'reviewer', 'ageRegistrations.ageGroup']);
 
         return view('competition.officials.show', [
-            'title' => 'Detail Official',
+            'title' => 'Detail Ofisial',
             'official' => $official,
+        ]);
+    }
+
+    public function publicShow(string $officialSlug)
+    {
+        preg_match('/^(\d+)(?:-|$)/', $officialSlug, $matches);
+        $officialId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $official = Official::query()->findOrFail($officialId);
+
+        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
+
+        $official->load(['club', 'ageRegistrations.ageGroup']);
+
+        return view('public.scan-result-official', [
+            'title' => 'Hasil Scan Ofisial',
+            'official' => $official,
+            'canonicalUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
         ]);
     }
 
     public function scanResult(Official $official)
     {
-        $official->load(['club', 'ageRegistrations.ageGroup']);
+        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
 
-        return view('public.scan-result-official', [
-            'title' => 'Hasil Scan Official',
-            'official' => $official,
-        ]);
+        return redirect()->route('public.officials.show', ['officialSlug' => $official->public_slug]);
     }
 
     public function idCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
@@ -237,7 +251,7 @@ class OfficialController extends Controller
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
 
-        if (!$official->registrationForAgeGroup($ageGroup->id)) {
+        if (! $official->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
 
@@ -254,7 +268,7 @@ class OfficialController extends Controller
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
 
-        if (!$official->registrationForAgeGroup($ageGroup->id)) {
+        if (! $official->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
 
@@ -309,14 +323,14 @@ class OfficialController extends Controller
         $official->update($data);
         $this->syncAgeRegistrations($official, $ageRegistrations);
 
-        return redirect()->route('officials.index')->with('status', 'Data official berhasil diperbarui.');
+        return redirect()->route('officials.index')->with('status', 'Data ofisial berhasil diperbarui.');
     }
 
     public function submit(Official $official)
     {
         $this->ensureClubAccess($official->club_id);
 
-        return $this->submitForVerification($official, 'Data official berhasil dikirim untuk verifikasi.');
+        return $this->submitForVerification($official, 'Data ofisial berhasil dikirim untuk verifikasi.');
     }
 
     public function review(Request $request, Official $official)
@@ -327,7 +341,7 @@ class OfficialController extends Controller
             $official,
             $validated['status'],
             $validated['verification_notes'] ?? null,
-            'Status verifikasi official berhasil diperbarui.'
+            'Status verifikasi ofisial berhasil diperbarui.'
         );
     }
 
@@ -344,14 +358,14 @@ class OfficialController extends Controller
 
         $official->delete();
 
-        return redirect()->route('officials.index')->with('status', 'Data official berhasil dihapus.');
+        return redirect()->route('officials.index')->with('status', 'Data ofisial berhasil dihapus.');
     }
 
     private function validatedData(Request $request): array
     {
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
-            'age_group_id' => ['nullable', 'exists:age_groups,id'],
+            'age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
             'name' => ['required', 'string', 'max:255'],
             'role' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -368,7 +382,7 @@ class OfficialController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'age_registrations' => ['nullable', 'array'],
-            'age_registrations.*.age_group_id' => ['required_with:age_registrations', 'exists:age_groups,id'],
+            'age_registrations.*.age_group_id' => ['required_with:age_registrations', AgeGroup::competitionExistsRule()],
             'age_registrations.*.season' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.role' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.license_levels' => ['nullable', 'string', 'max:255'],
@@ -405,7 +419,7 @@ class OfficialController extends Controller
             ->unique('age_group_id')
             ->values();
 
-        if ($ageRegistrations->isEmpty() && !empty($data['age_group_id'])) {
+        if ($ageRegistrations->isEmpty() && ! empty($data['age_group_id'])) {
             $ageRegistrations = collect([[
                 'age_group_id' => (int) $data['age_group_id'],
                 'season' => (string) date('Y'),
@@ -488,13 +502,13 @@ class OfficialController extends Controller
     {
         if (in_array($official->verification_status, [Official::STATUS_SUBMITTED, Official::STATUS_APPROVED], true)) {
             throw ValidationException::withMessages([
-                'age_registration' => 'Kelompok usia official tidak bisa dihapus setelah data dikirim atau disetujui. Kembalikan dulu status verifikasinya ke revisi.',
+                'age_registration' => 'Kelompok usia ofisial tidak bisa dihapus setelah data dikirim atau disetujui. Kembalikan dulu status verifikasinya ke revisi.',
             ]);
         }
 
         if ($official->club?->lineupLists()->where('age_group_id', $ageGroup->id)->exists()) {
             throw ValidationException::withMessages([
-                'age_registration' => 'Kelompok usia official tidak bisa dihapus karena klub ini sudah memiliki DSP pada kelompok usia tersebut.',
+                'age_registration' => 'Kelompok usia ofisial tidak bisa dihapus karena klub ini sudah memiliki DSP pada kelompok usia tersebut.',
             ]);
         }
     }
@@ -504,7 +518,7 @@ class OfficialController extends Controller
         $user = auth()->user();
 
         return Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
     }
@@ -524,5 +538,4 @@ class OfficialController extends Controller
             403
         );
     }
-
 }

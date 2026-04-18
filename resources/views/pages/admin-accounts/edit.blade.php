@@ -13,7 +13,7 @@
 
 <div class="card">
     <div class="card-body">
-        <h4 class="card-title mb-1">Informasi Akun</h4>
+        <h4 class="card-title mb-1">Detail Akun</h4>
         <p class="text-muted mb-4">Ubah data admin. Kosongkan password jika tidak ingin mengganti.</p>
         <form method="POST" action="{{ route('admin-accounts.update', $adminAccount) }}">
             @csrf

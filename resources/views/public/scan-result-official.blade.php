@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
-    <meta name="description" content="Verifikasi publik data official {{ $official->name }} di Liga Anak Piaman Laweh.">
+    <meta name="description" content="Verifikasi publik data ofisial {{ $official->name }} di Liga Anak Piaman Laweh.">
     <meta name="robots" content="index,follow">
-    <link rel="canonical" href="{{ url()->current() }}">
+    <link rel="canonical" href="{{ $canonicalUrl }}">
     <meta property="og:locale" content="id_ID">
     <meta property="og:type" content="profile">
     <meta property="og:site_name" content="Liga Anak Piaman Laweh">
     <meta property="og:title" content="{{ $title }}">
-    <meta property="og:description" content="Verifikasi publik data official {{ $official->name }} di Liga Anak Piaman Laweh.">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:description" content="Verifikasi publik data ofisial {{ $official->name }} di Liga Anak Piaman Laweh.">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     <meta property="og:image" content="{{ $official->photo_file_url ?: asset('og-share-card.jpg') }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $title }}">
-    <meta name="twitter:description" content="Verifikasi publik data official {{ $official->name }} di Liga Anak Piaman Laweh.">
+    <meta name="twitter:description" content="Verifikasi publik data ofisial {{ $official->name }} di Liga Anak Piaman Laweh.">
     <meta name="twitter:image" content="{{ $official->photo_file_url ?: asset('og-share-card.jpg') }}">
     <style>
         :root {
@@ -42,6 +42,7 @@
         .name { font-size: 30px; font-weight: 800; line-height: 1.05; }
         .sub { margin-top: 8px; color: var(--muted); font-weight: 600; }
         .badge { display: inline-flex; margin-top: 14px; padding: 8px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok-text); font-size: 13px; font-weight: 700; }
+        .note { margin-top: 18px; color: var(--muted); font-size: 14px; line-height: 1.6; }
         .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
         .item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: #f8fbff; }
         .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
@@ -60,7 +61,7 @@
         <div class="card">
             <div class="head">
                 <div class="eyebrow">Verifikasi Publik</div>
-                <div class="title">Data Official</div>
+                <div class="title">Data Ofisial</div>
             </div>
             <div class="body">
                 <div>
@@ -68,16 +69,15 @@
                 </div>
                 <div>
                     <div class="name">{{ $official->name }}</div>
-                    <div class="sub">{{ $official->club?->name ?: '-' }}</div>
+                    <div class="sub">{{ $official->club?->name ?: '-' }} · {{ $official->ageGroup?->name ?: '-' }}</div>
                     <div class="badge">Terverifikasi untuk dilihat publik</div>
+                    <div class="note">Halaman QR publik ini hanya menampilkan ringkasan verifikasi ofisial. Kontak pribadi, nomor identitas, dan dokumen pendukung tidak ditampilkan.</div>
 
                     <div class="grid">
                         <div class="item"><div class="label">Peran</div><div class="value">{{ $official->role ?: '-' }}</div></div>
-                        <div class="item"><div class="label">Email</div><div class="value">{{ $official->email ?: '-' }}</div></div>
-                        <div class="item"><div class="label">Telepon</div><div class="value">{{ $official->phone ?: '-' }}</div></div>
-                        <div class="item"><div class="label">Nomor Identitas</div><div class="value">{{ $official->identity_number ?: '-' }}</div></div>
-                        <div class="item"><div class="label">Tempat, Tanggal Lahir</div><div class="value">{{ trim(($official->birth_place ?: '-').', '.(optional($official->birth_date)->format('d M Y') ?: '-')) }}</div></div>
-                        <div class="item"><div class="label">Lisensi</div><div class="value">{{ $official->license_levels ?: $official->license_number ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Klub</div><div class="value">{{ $official->club?->name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Kelompok Usia</div><div class="value">{{ $official->ageGroup?->name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Lisensi</div><div class="value">{{ $official->license_levels ?: 'Terverifikasi panitia' }}</div></div>
                     </div>
                 </div>
             </div>

@@ -16,7 +16,7 @@
         @if ($player->ageRegistrations->isNotEmpty())
             <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                 <i data-lucide="id-card" class="fs-14"></i>
-                <span>ID Card</span>
+                <span>Lihat ID Card</span>
             </a>
         @endif
         @if (auth()->user()->isAdmin() || $player->canBeSubmittedByClub())

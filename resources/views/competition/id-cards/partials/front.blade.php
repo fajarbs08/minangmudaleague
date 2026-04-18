@@ -1,4 +1,4 @@
-<div class="idc-card idc-card--front">
+<div class="idc-card idc-card--front idc-card--{{ $card['type'] }}">
     <img src="{{ $document['assets']['leagueWatermark'] }}" alt="" class="idc-watermark">
 
         <div class="idc-compact-head">

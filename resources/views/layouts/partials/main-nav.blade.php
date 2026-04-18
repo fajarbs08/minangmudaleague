@@ -172,7 +172,7 @@
                          <span class="nav-icon">
                               <i data-lucide="users-round"></i>
                          </span>
-                         <span class="nav-text">Official</span>
+                         <span class="nav-text">Ofisial</span>
                          @if (auth()->user()->isAdmin() && $adminPendingCounts['officials'] > 0)
                               <span class="badge bg-warning-subtle text-warning ms-auto">{{ $adminPendingCounts['officials'] }}</span>
                          @endif
@@ -229,41 +229,50 @@
                     </a>
                </li>
 
-               <li class="menu-title">
-                    <span class="menu-title-line" aria-hidden="true"></span>
-                    <span class="menu-title-text">Informasi</span>
-                    <span class="menu-title-line" aria-hidden="true"></span>
+               <li class="menu-item">
+                    <a class="menu-link" href="#sidebarReports" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarReports">
+                         <span class="nav-icon">
+                              <i data-lucide="file-text"></i>
+                         </span>
+                         <span class="nav-text">Laporan</span>
+                         <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
+                    </a>
+                    <div class="collapse" id="sidebarReports">
+                         <ul class="sub-menu-nav">
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link" href="{{ route('reports.standings') }}">Klasemen</a>
+                               </li>
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link" href="{{ route('reports.top-scorers') }}">Top Skor</a>
+                               </li>
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link" href="{{ route('reports.top-assists') }}">Top Assist</a>
+                               </li>
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link" href="{{ route('reports.brackets') }}">Bagan Knockout</a>
+                              </li>
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link" href="{{ route('reports.overview') }}">Rekap PDF</a>
+                              </li>
+                         </ul>
+                    </div>
                </li>
 
                @if (auth()->user()->isAdmin())
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('information-resources.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="folder-kanban"></i>
-                         </span>
-                         <span class="nav-text">Pusat Informasi</span>
-                    </a>
+               <li class="menu-title">
+                    <span class="menu-title-line" aria-hidden="true"></span>
+                    <span class="menu-title-text">Publik</span>
+                    <span class="menu-title-line" aria-hidden="true"></span>
                </li>
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('sponsors.index') }}">
-                         <span class="nav-icon">
+                <li class="menu-item">
+                     <a class="menu-link" href="{{ route('sponsors.index') }}">
+                          <span class="nav-icon">
                               <i data-lucide="badge-dollar-sign"></i>
                          </span>
-                         <span class="nav-text">Sponsor</span>
-                    </a>
-               </li>
-               @endif
-
-               @if (auth()->user()->isClubUser())
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('club-resources.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="folder-down"></i>
-                         </span>
-                         <span class="nav-text">Pusat Informasi</span>
-                    </a>
-               </li>
-               @endif
+                          <span class="nav-text">Sponsor</span>
+                     </a>
+                </li>
+                @endif
 
           </ul>
      </div>

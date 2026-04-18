@@ -38,7 +38,7 @@
         <h2>Akses & Navigasi</h2>
         <ul class="list">
             <li>Login menggunakan akun admin yang disiapkan panitia utama.</li>
-            <li>Menu utama admin: Dashboard, Klub, Official, Pemain, DSP, Manajemen Akun, dan Jadwal Match.</li>
+            <li>Menu utama admin: Dashboard, Klub, Ofisial, Pemain, DSP, Manajemen Akun, dan Jadwal Match.</li>
             <li>Gunakan dashboard untuk melihat antrian review dan ringkasan statistik.</li>
             <li>Gunakan filter status pada setiap modul untuk fokus pada item yang perlu review.</li>
         </ul>
@@ -89,7 +89,7 @@
             <li>Surat pernyataan wajib diunggah dengan tanda tangan dan cap.</li>
         </ul>
 
-        <h3>Official</h3>
+        <h3>Ofisial</h3>
         <ul class="list">
             <li>Nama, kontak, nomor lisensi, dan jabatan sesuai dokumen.</li>
             <li>Pas foto 3x4 jelas, bukan foto buram atau berlatar kompleks.</li>
@@ -125,7 +125,7 @@
         <h2>Checklist Go-Live</h2>
         <ul class="list">
             <li>Semua club aktif memiliki profil lengkap dan status Diterima.</li>
-            <li>Official dan pemain untuk tiap klub sudah diverifikasi.</li>
+            <li>Ofisial dan pemain untuk tiap klub sudah diverifikasi.</li>
             <li>Jadwal match lengkap dan DSP untuk pertandingan aktif sudah disetujui.</li>
             <li>PDF ID Card dan DSP dapat diakses serta diunduh tanpa error.</li>
         </ul>

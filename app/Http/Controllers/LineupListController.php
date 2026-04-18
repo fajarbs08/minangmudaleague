@@ -10,6 +10,7 @@ use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class LineupListController extends Controller
@@ -23,13 +24,13 @@ class LineupListController extends Controller
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
         $allowedSorts = ['title', 'club', 'age_group', 'match_date', 'verification_status', 'created_at'];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'match_date';
             $direction = 'desc';
         }
 
         $clubs = Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
 
@@ -67,7 +68,7 @@ class LineupListController extends Controller
             'title' => 'Daftar Susunan Pemain',
             'lineupLists' => $lineupLists,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -136,7 +137,7 @@ class LineupListController extends Controller
             'title' => 'Tambah DSP',
             'lineupList' => $lineupList,
             'clubs' => $this->availableClubs(),
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'availableMatches' => $this->availableMatches(),
             'lineupPlayers' => $lineupPlayers,
             'blockedLineupPlayers' => $this->blockedLineupPlayers(),
@@ -172,7 +173,7 @@ class LineupListController extends Controller
             'title' => 'Edit DSP',
             'lineupList' => $lineupList,
             'clubs' => $this->availableClubs(),
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
             'availableMatches' => $this->availableMatches($lineupList),
             'lineupPlayers' => $lineupPlayers,
             'blockedLineupPlayers' => $this->blockedLineupPlayers(),
@@ -221,7 +222,7 @@ class LineupListController extends Controller
             ->where('club_id', $lineupList->club_id)
             ->where('is_active', true)
             ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $lineupList->age_group_id))
-            ->when(!auth()->user()->isAdmin(), fn ($query) => $query->where('verification_status', Official::STATUS_APPROVED))
+            ->when(! auth()->user()->isAdmin(), fn ($query) => $query->where('verification_status', Official::STATUS_APPROVED))
             ->orderBy('name')
             ->get();
 
@@ -344,7 +345,7 @@ class LineupListController extends Controller
         $user = auth()->user();
 
         return Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
     }
@@ -384,11 +385,11 @@ class LineupListController extends Controller
     {
         $user = auth()->user();
         $clubIds = $this->availableClubs()->pluck('id');
-        $currentClubId = !$user->isAdmin() ? (int) $clubIds->first() : null;
+        $currentClubId = ! $user->isAdmin() ? (int) $clubIds->first() : null;
 
         $query = MatchSchedule::query()
             ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id'])
-            ->when(!$clubIds->isEmpty(), function ($query) use ($clubIds) {
+            ->when(! $clubIds->isEmpty(), function ($query) use ($clubIds) {
                 $query->where(function ($inner) use ($clubIds) {
                     $inner->whereIn('club_a_id', $clubIds)
                         ->orWhereIn('club_b_id', $clubIds);
@@ -414,14 +415,14 @@ class LineupListController extends Controller
             }
 
             if ($user->isAdmin()) {
-                return !(
+                return ! (
                     in_array((int) $match->club_a_id, $usedClubIds, true)
                     && in_array((int) $match->club_b_id, $usedClubIds, true)
                 );
             }
 
             return $match->includesClub($currentClubId)
-                && !in_array($currentClubId, $usedClubIds, true);
+                && ! in_array($currentClubId, $usedClubIds, true);
         })->values();
     }
 
@@ -469,7 +470,7 @@ class LineupListController extends Controller
         $lineupList->players()->sync($syncData);
     }
 
-    private function sortedPlayerIds(array $playerIds, array $orders): \Illuminate\Support\Collection
+    private function sortedPlayerIds(array $playerIds, array $orders): Collection
     {
         return collect($playerIds)
             ->map(fn ($id) => (int) $id)
@@ -486,7 +487,7 @@ class LineupListController extends Controller
     {
         $match = $this->availableMatches()->firstWhere('id', (int) $request->input('match_id'));
 
-        if (!$match) {
+        if (! $match) {
             throw ValidationException::withMessages([
                 'match_id' => 'Pertandingan yang dipilih tidak tersedia untuk akun ini.',
             ]);
@@ -550,7 +551,7 @@ class LineupListController extends Controller
             ]);
         }
 
-        if (!$match->includesClub((int) $request->input('club_id'))) {
+        if (! $match->includesClub((int) $request->input('club_id'))) {
             throw ValidationException::withMessages([
                 'club_id' => 'Klub yang dipilih tidak termasuk dalam pertandingan ini.',
             ]);

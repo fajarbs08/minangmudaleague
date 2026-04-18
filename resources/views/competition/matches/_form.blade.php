@@ -26,7 +26,7 @@
                 <option value="{{ $value }}" @selected(old('competition_format', $matchSchedule->competition_format ?? 'league') === $value)>{{ $label }}</option>
             @endforeach
         </select>
-        <div class="form-text">`Liga` untuk klasemen, `Knockout` untuk bracket.</div>
+        <div class="form-text">`Liga` untuk klasemen, `Knockout` untuk bagan babak gugur.</div>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Klub A <span class="text-danger">*</span></label>
@@ -59,7 +59,7 @@
         <div class="form-text">Contoh: Perempat Final, Semifinal, Final.</div>
     </div>
     <div class="col-lg-4 mb-3 knockout-field">
-        <label class="form-label">Posisi Kolom Bracket</label>
+        <label class="form-label">Posisi Kolom Bagan</label>
         <input
             type="number"
             name="round_order"
@@ -71,7 +71,7 @@
         <div class="form-text">Menentukan urutan kolom babak. Contoh: 1 Perempat Final, 2 Semifinal, 3 Final.</div>
     </div>
     <div class="col-lg-4 mb-3 knockout-field">
-        <label class="form-label">Posisi Match di Babak</label>
+        <label class="form-label">Posisi Laga di Babak</label>
         <input
             type="number"
             name="bracket_slot"
@@ -80,10 +80,10 @@
             value="{{ old('bracket_slot', $matchSchedule->bracket_slot) }}"
             placeholder="1"
         >
-        <div class="form-text">Menentukan urutan match dari atas ke bawah dalam babak yang sama.</div>
+        <div class="form-text">Menentukan urutan laga dari atas ke bawah dalam babak yang sama.</div>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Matchday <span class="text-danger">*</span></label>
+        <label class="form-label">Hari Pertandingan <span class="text-danger">*</span></label>
         <input type="text" name="match_day" class="form-control" value="{{ old('match_day', $matchSchedule->match_day) }}" required>
     </div>
     <div class="col-lg-4 mb-3">
@@ -98,7 +98,7 @@
         >
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Jam Kick-off <span class="text-danger">*</span></label>
+        <label class="form-label">Jam Kickoff <span class="text-danger">*</span></label>
         <input type="hidden" name="kickoff_time" value="{{ $kickoffValue }}" data-kickoff-hidden required>
         <div class="row g-2" data-kickoff-picker>
             <div class="col-6">
@@ -126,7 +126,7 @@
         @enderror
     </div>
     <div class="col-lg-8 mb-3">
-        <label class="form-label">Venue <span class="text-danger">*</span></label>
+        <label class="form-label">Lokasi <span class="text-danger">*</span></label>
         <input type="text" name="venue" class="form-control" value="{{ old('venue', $matchSchedule->venue) }}" required>
     </div>
     <div class="col-lg-12 mb-3">

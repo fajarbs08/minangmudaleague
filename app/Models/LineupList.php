@@ -2,22 +2,30 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class LineupList extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVISION = 'revision';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const ROLE_STARTER = 'starter';
+
     public const ROLE_SUBSTITUTE = 'substitute';
+
     public const REQUIRED_STARTERS = 11;
+
     public const MAX_SUBSTITUTES = 9;
 
     protected $fillable = [
@@ -119,7 +127,7 @@ class LineupList extends Model
 
     public function getDocumentFileUrlAttribute(): ?string
     {
-        if (!$this->document_url) {
+        if (! $this->document_url) {
             return null;
         }
 
@@ -155,13 +163,30 @@ class LineupList extends Model
     {
         $errors = [];
 
-        if (!$this->match_id || !$this->match) $errors['match_id'] = 'DSP harus terhubung ke jadwal pertandingan sebelum submit verifikasi.';
-        if (blank($this->coach_name)) $errors['coach_name'] = 'Nama pelatih wajib diisi sebelum submit verifikasi.';
-        if (blank($this->jersey_color)) $errors['jersey_color'] = 'Warna jersey wajib diisi sebelum submit verifikasi.';
-        if (blank($this->goalkeeper_jersey_color)) $errors['goalkeeper_jersey_color'] = 'Warna jersey kiper wajib diisi sebelum submit verifikasi.';
-        if (blank($this->played_at)) $errors['played_at'] = 'Venue pertandingan wajib tersedia sebelum submit verifikasi.';
-        if (blank($this->match_date)) $errors['match_date'] = 'Tanggal pertandingan wajib tersedia sebelum submit verifikasi.';
-        if (blank($this->played_time)) $errors['played_time'] = 'Jam pertandingan wajib tersedia sebelum submit verifikasi.';
+        if (! $this->match_id || ! $this->match) {
+            $errors['match_id'] = 'DSP harus terhubung ke jadwal pertandingan sebelum submit verifikasi.';
+        }
+        if (blank($this->coach_name)) {
+            $errors['coach_name'] = 'Nama pelatih wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->jersey_color)) {
+            $errors['jersey_color'] = 'Warna jersey wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->goalkeeper_jersey_color)) {
+            $errors['goalkeeper_jersey_color'] = 'Warna jersey kiper wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->played_at)) {
+            $errors['played_at'] = 'Venue pertandingan wajib tersedia sebelum submit verifikasi.';
+        }
+        if (blank($this->match_date)) {
+            $errors['match_date'] = 'Tanggal pertandingan wajib tersedia sebelum submit verifikasi.';
+        }
+        if (blank($this->played_time)) {
+            $errors['played_time'] = 'Jam pertandingan wajib tersedia sebelum submit verifikasi.';
+        }
+        if (! $this->ageGroup || ! $this->ageGroup->is_active || ! in_array($this->ageGroup->code, AgeGroup::COMPETITION_CODES, true)) {
+            $errors['age_group_id'] = 'DSP hanya dapat disubmit untuk kelompok umur U-10, U-12, U-14, atau U-16.';
+        }
 
         $this->loadMissing('players');
         if ($this->players->where('pivot.role', self::ROLE_STARTER)->count() !== self::REQUIRED_STARTERS) {
@@ -171,7 +196,7 @@ class LineupList extends Model
             $errors['substitute_player_ids'] = 'DSP maksimal berisi '.self::MAX_SUBSTITUTES.' cadangan sebelum submit verifikasi.';
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
     }

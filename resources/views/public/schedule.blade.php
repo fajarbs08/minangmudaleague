@@ -164,7 +164,7 @@
                             @if ($loop->first)
                                 <div class="match-bottom-action">
                                     <a href="{{ route('public.standings') }}" class="action-item first-child">{{ strtoupper($match->match_day ?: 'MATCHDAY') }}</a>
-                                    <a href="{{ route('public.information') }}" class="action-item">{{ strtoupper($match->round_display_label ?: ($match->ageGroup?->name ?: 'DETAIL MATCH')) }}</a>
+                                    <a href="#footer-kontak" class="action-item">KONTAK PANITIA</a>
                                 </div>
                             @endif
                         </div>

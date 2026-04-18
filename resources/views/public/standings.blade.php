@@ -46,8 +46,8 @@
 
             if ($finalMatch?->is_finished && $finalMatch->score_club_a !== null && $finalMatch->score_club_b !== null && $finalMatch->score_club_a !== $finalMatch->score_club_b) {
                 $championName = $finalMatch->score_club_a > $finalMatch->score_club_b
-                    ? ($finalMatch->clubA?->short_name ?: $finalMatch->clubA?->name)
-                    : ($finalMatch->clubB?->short_name ?: $finalMatch->clubB?->name);
+                    ? ($finalMatch->clubA?->name ?: $finalMatch->clubA?->short_name)
+                    : ($finalMatch->clubB?->name ?: $finalMatch->clubB?->short_name);
             }
 
             $teams = collect(range(0, $firstRoundPairCount - 1))
@@ -93,7 +93,7 @@
                                     ->filter()
                                     ->map(function ($club) use ($match) {
                                         return [
-                                            'club' => $club->short_name ?: $club->name,
+                                            'club' => $club->name ?: $club->short_name,
                                             'items' => $match->goalReportForClub($club->id),
                                         ];
                                     })
@@ -483,7 +483,7 @@
                 <div class="club-area">
                     <div class="club-logo"><img src="{{ $headlineMatch?->clubA?->logo_file_url ?: asset('kester-assets/images/icons/club-1.svg') }}" alt=""></div>
                     <div class="content">
-                        <h3 class="club-text">{{ strtoupper($headlineMatch?->clubA?->short_name ?: $headlineMatch?->clubA?->name ?: 'KLUB A') }}</h3>
+                        <h3 class="club-text">{{ strtoupper($headlineMatch?->clubA?->name ?: $headlineMatch?->clubA?->short_name ?: 'KLUB A') }}</h3>
                         <span class="match-type">{{ strtoupper($headlineMatch?->ageGroup?->name ?: 'KOMPETISI') }}</span>
                     </div>
                 </div>
@@ -497,7 +497,7 @@
                 </div>
                 <div class="club-area">
                     <div class="content text-end ml--40 mr--0">
-                        <h3 class="club-text">{{ strtoupper($headlineMatch?->clubB?->short_name ?: $headlineMatch?->clubB?->name ?: 'KLUB B') }}</h3>
+                        <h3 class="club-text">{{ strtoupper($headlineMatch?->clubB?->name ?: $headlineMatch?->clubB?->short_name ?: 'KLUB B') }}</h3>
                         <span class="match-type">{{ strtoupper($headlineMatch?->round_display_label ?: 'BRACKET') }}</span>
                     </div>
                     <div class="club-logo ml--40 mr--0"><img src="{{ $headlineMatch?->clubB?->logo_file_url ?: asset('kester-assets/images/icons/club-2.svg') }}" alt=""></div>
@@ -612,11 +612,11 @@
                                             {{ $match->round_display_label }} · {{ $match->match_day ?: 'Matchday' }} · {{ optional($match->match_date)->translatedFormat('d M Y') ?: '-' }} · {{ optional($match->kickoff_time)->format('H:i') ?: '--:--' }}
                                         </div>
                                         <div class="knockout-team-row">
-                                            <span class="knockout-team-name">{{ $match->clubA?->short_name ?: $match->clubA?->name ?: 'TBD' }}</span>
+                                            <span class="knockout-team-name">{{ $match->clubA?->name ?: $match->clubA?->short_name ?: 'TBD' }}</span>
                                             <span class="knockout-score-pill">{{ $match->score_club_a ?? '-' }}</span>
                                         </div>
                                         <div class="knockout-team-row">
-                                            <span class="knockout-team-name">{{ $match->clubB?->short_name ?: $match->clubB?->name ?: 'TBD' }}</span>
+                                            <span class="knockout-team-name">{{ $match->clubB?->name ?: $match->clubB?->short_name ?: 'TBD' }}</span>
                                             <span class="knockout-score-pill">{{ $match->score_club_b ?? '-' }}</span>
                                         </div>
                                         <div class="knockout-match-status">
@@ -630,7 +630,7 @@
                                                         $goalReport = $match->goalReportForClub($club?->id);
                                                     @endphp
                                                     @if ($club && !empty($goalReport))
-                                                        <li><strong>{{ $club->short_name ?: $club->name }}:</strong> {{ implode(', ', $goalReport) }}</li>
+                                                        <li><strong>{{ $club->name ?: $club->short_name }}:</strong> {{ implode(', ', $goalReport) }}</li>
                                                     @endif
                                                 @endforeach
                                             </ul>
@@ -727,8 +727,8 @@
                 modalRefs.meta.textContent = [matchData.match_day, matchData.match_date, matchData.kickoff_time ? `${matchData.kickoff_time} WIB` : null]
                     .filter(Boolean)
                     .join(' · ');
-                modalRefs.clubA.textContent = matchData.club_a_short || matchData.club_a || 'TBD';
-                modalRefs.clubB.textContent = matchData.club_b_short || matchData.club_b || 'TBD';
+                modalRefs.clubA.textContent = matchData.club_a || matchData.club_a_short || 'TBD';
+                modalRefs.clubB.textContent = matchData.club_b || matchData.club_b_short || 'TBD';
                 modalRefs.score.textContent = `${matchData.score_a ?? '-'} - ${matchData.score_b ?? '-'}`;
                 modalRefs.summary.textContent = matchData.result_summary || 'Pertandingan belum selesai';
                 modalRefs.venue.textContent = matchData.venue || 'Venue belum diisi';

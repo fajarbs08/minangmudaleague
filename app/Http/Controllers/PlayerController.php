@@ -6,8 +6,8 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Player;
-use App\Services\ImageAssetService;
 use App\Services\IdCards\IdentityCardService;
+use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -19,8 +19,7 @@ class PlayerController extends Controller
     public function __construct(
         private IdentityCardService $identityCardService,
         private ImageAssetService $imageAssetService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -29,13 +28,13 @@ class PlayerController extends Controller
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
         $allowedSorts = ['name', 'club', 'age_group', 'position', 'jersey_number', 'verification_status', 'created_at'];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'created_at';
             $direction = 'desc';
         }
 
         $clubs = Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
 
@@ -94,7 +93,7 @@ class PlayerController extends Controller
             'title' => 'Pemain',
             'players' => $players,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -139,9 +138,9 @@ class PlayerController extends Controller
     {
         return view('competition.players.create', [
             'title' => 'Tambah Pemain',
-            'player' => new Player(),
+            'player' => new Player,
             'clubs' => $this->availableClubs(),
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -165,7 +164,7 @@ class PlayerController extends Controller
             'title' => 'Edit Pemain',
             'player' => $player,
             'clubs' => $this->availableClubs(),
-            'ageGroups' => AgeGroup::orderBy('min_age')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
         ]);
     }
 
@@ -180,14 +179,29 @@ class PlayerController extends Controller
         ]);
     }
 
-    public function scanResult(Player $player)
+    public function publicShow(string $playerSlug)
     {
+        preg_match('/^(\d+)(?:-|$)/', $playerSlug, $matches);
+        $playerId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $player = Player::query()->findOrFail($playerId);
+
+        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
+
         $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
 
         return view('public.scan-result-player', [
             'title' => 'Hasil Scan Pemain',
             'player' => $player,
+            'canonicalUrl' => route('public.players.show', ['playerSlug' => $player->public_slug]),
         ]);
+    }
+
+    public function scanResult(Player $player)
+    {
+        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
+
+        return redirect()->route('public.players.show', ['playerSlug' => $player->public_slug]);
     }
 
     public function idCard(Player $player, AgeGroup $ageGroup, IdentityCardService $identityCardService)
@@ -195,7 +209,7 @@ class PlayerController extends Controller
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
 
-        if (!$player->registrationForAgeGroup($ageGroup->id)) {
+        if (! $player->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
 
@@ -212,7 +226,7 @@ class PlayerController extends Controller
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
 
-        if (!$player->registrationForAgeGroup($ageGroup->id)) {
+        if (! $player->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
 
@@ -257,6 +271,7 @@ class PlayerController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => $message], 422);
             }
+
             return redirect()->back()->withErrors(['age_registration' => $message]);
         }
 
@@ -421,7 +436,7 @@ class PlayerController extends Controller
     {
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
-            'primary_age_group_id' => ['nullable', 'exists:age_groups,id'],
+            'primary_age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
             'name' => ['required', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
             'school_name' => ['nullable', 'string', 'max:255'],
@@ -441,7 +456,7 @@ class PlayerController extends Controller
             'is_captain' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'age_registrations' => ['nullable', 'array'],
-            'age_registrations.*.age_group_id' => ['required_with:age_registrations', 'exists:age_groups,id'],
+            'age_registrations.*.age_group_id' => ['required_with:age_registrations', AgeGroup::competitionExistsRule()],
             'age_registrations.*.season' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.jersey_number' => ['nullable', 'integer', 'min:1', 'max:99'],
             'age_registrations.*.position' => ['nullable', 'in:GK,CB,LB,RB,LWB,RWB,DM,CM,AM,LM,RM,LW,RW,ST,CF,SS'],
@@ -488,14 +503,14 @@ class PlayerController extends Controller
                 'jersey_number' => isset($registration['jersey_number']) && $registration['jersey_number'] !== '' ? (int) $registration['jersey_number'] : null,
                 'position' => $registration['position'] ?: null,
                 'notes' => $registration['notes'] ?? null,
-                'is_starter' => !empty($registration['is_starter']),
-                'is_substitute' => !empty($registration['is_substitute']),
+                'is_starter' => ! empty($registration['is_starter']),
+                'is_substitute' => ! empty($registration['is_substitute']),
             ])
             ->filter(fn ($registration) => $registration['age_group_id'] > 0)
             ->unique('age_group_id')
             ->values();
 
-        if ($ageRegistrations->isEmpty() && !empty($data['primary_age_group_id'])) {
+        if ($ageRegistrations->isEmpty() && ! empty($data['primary_age_group_id'])) {
             $ageRegistrations = collect([[
                 'age_group_id' => (int) $data['primary_age_group_id'],
                 'season' => (string) date('Y'),
@@ -541,7 +556,7 @@ class PlayerController extends Controller
         $user = auth()->user();
 
         return Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
     }
@@ -622,5 +637,4 @@ class PlayerController extends Controller
             ]);
         }
     }
-
 }
