@@ -101,7 +101,10 @@ class OfficialController extends Controller
             }
 
             $count = $models->count();
-            $models->each->delete();
+            $models->each(function (Official $official) {
+                $this->deleteStoredFiles($official);
+                $official->delete();
+            });
 
             return redirect()->back()->with('status', $count.' data ofisial berhasil dihapus.');
         }
@@ -141,6 +144,7 @@ class OfficialController extends Controller
     public function edit(Official $official)
     {
         $this->ensureClubAccess($official->club_id);
+        abort_unless(auth()->user()->isAdmin() || $official->canBeEditedByClub(), 422);
         $official->load('ageRegistrations.ageGroup');
 
         return view('competition.officials.edit', [
@@ -162,29 +166,84 @@ class OfficialController extends Controller
         ]);
     }
 
+    public function downloadDocument(Official $official, string $document)
+    {
+        $this->ensureClubAccess($official->club_id);
+
+        $documents = $this->downloadableDocumentFieldMap();
+
+        abort_unless(array_key_exists($document, $documents), 404);
+
+        $absolutePath = $this->imageAssetService->documentAbsolutePath($official->{$documents[$document]});
+
+        abort_unless($absolutePath, 404);
+
+        return response()->file($absolutePath);
+    }
+
     public function publicShow(string $officialSlug)
     {
-        preg_match('/^(\d+)(?:-|$)/', $officialSlug, $matches);
-        $officialId = isset($matches[1]) ? (int) $matches[1] : 0;
+        $official = $this->resolveApprovedPublicOfficial($officialSlug);
 
-        $official = Official::query()->findOrFail($officialId);
+        if ($officialSlug !== $official->public_slug) {
+            return redirect()->route('public.officials.show', ['officialSlug' => $official->public_slug], 301);
+        }
 
-        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
+        $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
 
-        $official->load(['club', 'ageRegistrations.ageGroup']);
+        return view('public.official-show', [
+            'title' => $official->name.' - Detail Ofisial',
+            'official' => $official,
+            'activePublicPage' => 'clubs',
+            'bannerTitle' => 'Ofisial '.$official->name,
+            'bannerCurrent' => $official->name,
+            'pageHeadingAccentWord' => 'Ofisial',
+            'breadcrumbItems' => [
+                ['label' => 'Beranda', 'url' => route('public.home')],
+                ['label' => 'Ofisial'],
+                ['label' => $official->name],
+            ],
+            'seoTitle' => $official->name.' | Profil Ofisial Liga Anak Piaman Laweh',
+            'seoDescription' => 'Profil publik ofisial '.$official->name.' dari '.($official->club?->name ?: 'Liga Anak Piaman Laweh').' dengan detail peran dan registrasi kompetisi.',
+            'seoImage' => $official->photo_file_url ?: asset('og-share-card.jpg'),
+            'seoType' => 'profile',
+            'seoSchemaType' => 'ProfilePage',
+            'seoUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+            'seoStructuredData' => [[
+                '@context' => 'https://schema.org',
+                '@type' => 'Person',
+                'name' => $official->name,
+                'jobTitle' => $official->role ?: 'Ofisial',
+                'url' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+                'image' => $official->photo_file_url ?: asset('og-share-card.jpg'),
+                'sport' => 'Soccer',
+                'memberOf' => $official->club
+                    ? array_filter([
+                        '@type' => 'SportsTeam',
+                        'name' => $official->club->name,
+                        'url' => route('public.clubs.show', ['clubSlug' => $official->club->public_slug]),
+                    ], fn ($value) => filled($value))
+                    : null,
+            ]],
+        ]);
+    }
+
+    public function publicScanShow(string $officialSlug)
+    {
+        $official = $this->resolveApprovedPublicOfficial($officialSlug);
+
+        if ($officialSlug !== $official->public_slug) {
+            return redirect()->route('public.officials.scan', ['officialSlug' => $official->public_slug], 301);
+        }
+
+        $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
 
         return view('public.scan-result-official', [
             'title' => 'Hasil Scan Ofisial',
             'official' => $official,
             'canonicalUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+            'robotsContent' => 'noindex,nofollow',
         ]);
-    }
-
-    public function scanResult(Official $official)
-    {
-        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
-
-        return redirect()->route('public.officials.show', ['officialSlug' => $official->public_slug]);
     }
 
     public function idCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
@@ -293,6 +352,7 @@ class OfficialController extends Controller
     public function destroyAgeRegistration(Official $official, AgeGroup $ageGroup)
     {
         $this->ensureClubAccess($official->club_id);
+        abort_unless(auth()->user()->isAdmin() || $official->canBeEditedByClub(), 422);
         $this->ensureAgeRegistrationCanBeRemoved($official, $ageGroup);
 
         $official->ageRegistrations()->where('age_group_id', $ageGroup->id)->delete();
@@ -313,7 +373,7 @@ class OfficialController extends Controller
 
     public function update(Request $request, Official $official)
     {
-        [$data, $ageRegistrations] = $this->validatedData($request);
+        [$data, $ageRegistrations] = $this->validatedData($request, $official);
         $this->ensureClubAccess($official->club_id);
         $this->ensureClubAccess($data['club_id']);
         abort_unless(auth()->user()->isAdmin() || $official->canBeEditedByClub(), 422);
@@ -350,18 +410,14 @@ class OfficialController extends Controller
         $this->ensureClubAccess($official->club_id);
         abort_unless(auth()->user()->isAdmin() || $official->canBeSubmittedByClub(), 403);
 
-        foreach (['photo_path', 'license_file_path', 'identity_file_path'] as $field) {
-            if ($official->{$field}) {
-                Storage::disk('public')->delete($official->{$field});
-            }
-        }
+        $this->deleteStoredFiles($official);
 
         $official->delete();
 
         return redirect()->route('officials.index')->with('status', 'Data ofisial berhasil dihapus.');
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, ?Official $official = null): array
     {
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
@@ -370,22 +426,22 @@ class OfficialController extends Controller
             'role' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
-            'citizenship' => ['nullable', 'in:WNI,WNA'],
-            'identity_number' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'birth_place' => ['required', 'string', 'max:255'],
+            'citizenship' => ['required', 'in:WNI,WNA'],
+            'identity_number' => ['required', 'string', 'max:255'],
+            'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'license_number' => ['nullable', 'string', 'max:255'],
-            'license_levels' => ['nullable', 'string', 'max:255'],
-            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'license_levels' => ['nullable', 'in:A,B,C,Non-Lisensi'],
+            'photo_file' => [blank($official?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'identity_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'identity_file' => [blank($official?->identity_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'is_active' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'age_registrations' => ['nullable', 'array'],
             'age_registrations.*.age_group_id' => ['required_with:age_registrations', AgeGroup::competitionExistsRule()],
             'age_registrations.*.season' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.role' => ['nullable', 'string', 'max:255'],
-            'age_registrations.*.license_levels' => ['nullable', 'string', 'max:255'],
+            'age_registrations.*.license_levels' => ['nullable', 'in:A,B,C,Non-Lisensi'],
             'age_registrations.*.notes' => ['nullable', 'string', 'max:500'],
         ], [
             'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
@@ -410,9 +466,9 @@ class OfficialController extends Controller
         $ageRegistrations = collect($request->input('age_registrations', []))
             ->map(fn ($registration) => [
                 'age_group_id' => (int) ($registration['age_group_id'] ?? 0),
-                'season' => $registration['season'] ?: (string) date('Y'),
-                'role' => $registration['role'] ?: $data['role'],
-                'license_levels' => $registration['license_levels'] ?: $data['license_levels'],
+                'season' => ($registration['season'] ?? '') ?: (string) date('Y'),
+                'role' => ($registration['role'] ?? '') ?: $data['role'],
+                'license_levels' => ($registration['license_levels'] ?? '') ?: ($data['license_levels'] ?? null),
                 'notes' => $registration['notes'] ?? null,
             ])
             ->filter(fn ($registration) => $registration['age_group_id'] > 0)
@@ -434,24 +490,73 @@ class OfficialController extends Controller
             $data['age_group_id'] = $primary['age_group_id'];
         }
 
+        if ($ageRegistrations->isEmpty()) {
+            throw ValidationException::withMessages([
+                'age_registrations' => 'Minimal satu kelompok usia wajib dipilih.',
+            ]);
+        }
+
+        if (
+            $this->requiresLicenseDetails($data['license_levels'] ?? null, $ageRegistrations)
+            && blank($data['license_number'] ?? null)
+            && ! $request->hasFile('license_file')
+            && blank($official?->license_file_path)
+        ) {
+            throw ValidationException::withMessages([
+                'license_number' => 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, atau C.',
+            ]);
+        }
+
         unset($data['age_registrations']);
 
         return [$data, $ageRegistrations];
     }
 
+    private function requiresLicenseDetails(?string $licenseLevel, $ageRegistrations): bool
+    {
+        return collect([$licenseLevel])
+            ->merge(collect($ageRegistrations)->pluck('license_levels'))
+            ->contains(fn ($level) => filled($level) && $level !== 'Non-Lisensi');
+    }
+
     private function replaceUploadedFiles(Request $request, Official $official): void
     {
-        $map = [
-            'photo_file' => 'photo_path',
+        if ($request->hasFile('photo_file') && $official->photo_path) {
+            Storage::disk('public')->delete($official->photo_path);
+        }
+
+        foreach ([
             'license_file' => 'license_file_path',
             'identity_file' => 'identity_file_path',
-        ];
-
-        foreach ($map as $input => $column) {
+        ] as $input => $column) {
             if ($request->hasFile($input) && $official->{$column}) {
-                Storage::disk('public')->delete($official->{$column});
+                $this->imageAssetService->deleteDocumentUpload($official->{$column});
             }
         }
+    }
+
+    private function deleteStoredFiles(Official $official): void
+    {
+        if ($official->photo_path) {
+            Storage::disk('public')->delete($official->photo_path);
+        }
+
+        foreach ($this->sensitiveDocumentColumns() as $column) {
+            $this->imageAssetService->deleteDocumentUpload($official->{$column});
+        }
+    }
+
+    private function downloadableDocumentFieldMap(): array
+    {
+        return [
+            'license' => 'license_file_path',
+            'identity' => 'identity_file_path',
+        ];
+    }
+
+    private function sensitiveDocumentColumns(): array
+    {
+        return array_values($this->downloadableDocumentFieldMap());
     }
 
     private function syncAgeRegistrations(Official $official, $ageRegistrations): void
@@ -537,5 +642,17 @@ class OfficialController extends Controller
             Club::where('id', $clubId)->where('user_id', $user->id)->exists(),
             403
         );
+    }
+
+    private function resolveApprovedPublicOfficial(string $officialSlug): Official
+    {
+        preg_match('/^(\d+)(?:-|$)/', $officialSlug, $matches);
+        $officialId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $official = Official::query()->findOrFail($officialId);
+
+        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
+
+        return $official;
     }
 }

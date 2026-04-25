@@ -1,7 +1,6 @@
 // /**
-// * Theme: Velok- Responsive Bootstrap 5 Admin Dashboard
-// * Author: FoxPixel
-// * Module/App: Theme Layout Customizer Js
+// * Dashboard Layout Script
+// * Liga Anak Piaman Laweh
 // */
 
 // class ThemeLayout {
@@ -255,9 +254,8 @@
 
 
 /**
-* Theme: Velok- Responsive Bootstrap 5 Admin Dashboard
-* Author: FoxPixel
-* Module/App: Theme Layout Customizer Js
+* Dashboard Layout Script
+* Liga Anak Piaman Laweh
 */
 
 class ThemeLayout {
@@ -528,6 +526,12 @@ class ThemeLayout {
           this.initWindowSize();
           this._adjustLayout();
           this.setSwitchFromConfig();
+
+          window.requestAnimationFrame(() => {
+               window.requestAnimationFrame(() => {
+                    this.html.classList.remove('layout-preload');
+               });
+          });
      }
 }
 

@@ -1,11 +1,11 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @section('content')
-<div class="row mb-4">
+<div class="row lap-admin-page-head">
     <div class="col-12">
-        <div>
-            <h4 class="mb-1">Dashboard Registrasi Liga</h4>
-        <p class="text-muted mb-0">Pantau progres verifikasi klub, ofisial, pemain, dan DSP dari satu tempat.</p>
+        <div class="lap-admin-page-meta">
+            <h4 class="lap-admin-page-title">Dashboard Registrasi Liga</h4>
+            <p class="lap-admin-page-copy">Pantau progres verifikasi klub, ofisial, pemain, dan DSP dari satu tempat.</p>
         </div>
     </div>
 </div>
@@ -15,40 +15,44 @@
 <div class="row">
     <div class="col-md-6 col-xl-3">
         <a href="{{ route('clubs.index') }}" class="text-decoration-none text-reset d-block">
-            <div class="card">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-primary">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Klub</p>
-                    <h3 class="mb-0">{{ $stats['clubs'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-primary mb-3">Klub</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['clubs'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Total klub terdaftar</p>
                 </div>
             </div>
         </a>
     </div>
     <div class="col-md-6 col-xl-3">
         <a href="{{ route('officials.index') }}" class="text-decoration-none text-reset d-block">
-            <div class="card">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-support">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Ofisial</p>
-                    <h3 class="mb-0">{{ $stats['officials'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-support mb-3">Ofisial</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['officials'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Total ofisial terdaftar</p>
                 </div>
             </div>
         </a>
     </div>
     <div class="col-md-6 col-xl-3">
         <a href="{{ route('players.index') }}" class="text-decoration-none text-reset d-block">
-            <div class="card">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-support">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Pemain</p>
-                    <h3 class="mb-0">{{ $stats['players'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-support mb-3">Pemain</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['players'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Total pemain terdaftar</p>
                 </div>
             </div>
         </a>
     </div>
     <div class="col-md-6 col-xl-3">
         <a href="{{ route('lineup-lists.index') }}" class="text-decoration-none text-reset d-block">
-            <div class="card">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-primary">
                 <div class="card-body">
-                    <p class="text-muted mb-2">DSP</p>
-                    <h3 class="mb-0">{{ $stats['lineups'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-primary mb-3">DSP</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['lineups'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Total DSP terdaftar</p>
                 </div>
             </div>
         </a>
@@ -60,11 +64,11 @@
         @foreach ($adminReviewStats as $item)
             <div class="col-md-6 col-xl-3">
                 <a href="{{ $item['href'] }}" class="text-decoration-none text-reset d-block">
-                    <div class="card {{ $item['class'] }}">
+                    <div class="card lap-admin-stat-card lap-admin-stat-card-{{ $item['tone'] ?? 'support' }} {{ $item['class'] }}">
                         <div class="card-body">
-                            <p class="text-muted mb-2">{{ $item['label'] }}</p>
-                            <h3 class="mb-1">{{ $item['value'] }}</h3>
-                            <p class="text-muted mb-0">{{ $item['hint'] }}</p>
+                            <span class="lap-admin-chip lap-admin-chip-{{ $item['tone'] ?? 'support' }} mb-3">{{ $item['label'] }}</span>
+                            <h3 class="lap-admin-stat-value mb-2">{{ $item['value'] }}</h3>
+                            <p class="lap-admin-stat-copy">{{ $item['hint'] }}</p>
                         </div>
                     </div>
                 </a>
@@ -86,13 +90,13 @@
                         @foreach ($adminQueues as $queue)
                             <div class="col-md-6">
                                 <a href="{{ $queue['href'] }}" class="text-decoration-none text-reset">
-                                    <div class="border rounded p-3 h-100">
+                                    <div class="lap-admin-mini-panel p-3 h-100">
                                         <div class="d-flex justify-content-between align-items-start gap-3">
                                             <div>
                                                 <div class="fw-semibold">{{ $queue['label'] }}</div>
                                                 <div class="text-muted small">{{ $queue['hint'] }}</div>
                                             </div>
-                                            <span class="badge bg-primary-subtle text-primary fs-6">{{ $queue['count'] }}</span>
+                                            <span class="lap-admin-chip lap-admin-chip-primary lap-admin-chip-count">{{ $queue['count'] }}</span>
                                         </div>
                                     </div>
                                 </a>
@@ -150,7 +154,7 @@
                                         <td>{{ $pending['club'] ?: '-' }}</td>
                                         <td>{{ optional($pending['submitted_at'])->format('d M Y H:i') ?: '-' }}</td>
                                         <td>
-                                            <span class="badge bg-warning-subtle text-warning">
+                                            <span class="lap-admin-chip lap-admin-chip-pending">
                                                 {{ $pending['waiting_label'] }}
                                             </span>
                                         </td>
@@ -176,34 +180,38 @@
 @else
     <div class="row">
         <div class="col-md-6 col-xl-3">
-            <div class="card border-warning border-opacity-25">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Klub Menunggu Review</p>
-                    <h3 class="mb-0">{{ $stats['pending_clubs'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Klub Menunggu Review</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['pending_clubs'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Pengajuan klub menunggu keputusan admin</p>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-warning border-opacity-25">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Ofisial Menunggu Review</p>
-                    <h3 class="mb-0">{{ $stats['pending_officials'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Ofisial Menunggu Review</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['pending_officials'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Pengajuan ofisial menunggu keputusan admin</p>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-warning border-opacity-25">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Pemain Menunggu Review</p>
-                    <h3 class="mb-0">{{ $stats['pending_players'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Pemain Menunggu Review</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['pending_players'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Pengajuan pemain menunggu keputusan admin</p>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-warning border-opacity-25">
+            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
                 <div class="card-body">
-                    <p class="text-muted mb-2">DSP Menunggu Review</p>
-                    <h3 class="mb-0">{{ $stats['pending_lineups'] }}</h3>
+                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">DSP Menunggu Review</span>
+                    <h3 class="lap-admin-stat-value">{{ $stats['pending_lineups'] }}</h3>
+                    <p class="lap-admin-stat-copy mt-2">Pengajuan DSP menunggu keputusan admin</p>
                 </div>
             </div>
         </div>

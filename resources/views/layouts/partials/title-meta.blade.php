@@ -14,6 +14,7 @@
 <meta name="description" content="{{ $resolvedDescription }}" />
 <meta name="author" content="{{ config('app.name') }}" />
 <meta name="robots" content="{{ $resolvedRobots }}" />
+<meta name="theme-color" content="#e41b23" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <link rel="canonical" href="{{ $resolvedUrl }}">
 <meta property="og:locale" content="id_ID" />
@@ -31,7 +32,9 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="{{ $resolvedTitle }}" />
 <meta name="twitter:description" content="{{ $resolvedDescription }}" />
+<meta name="twitter:url" content="{{ $resolvedUrl }}" />
 <meta name="twitter:image" content="{{ $resolvedImage }}" />
+<meta name="twitter:image:alt" content="{{ $resolvedTitle }}" />
 <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">

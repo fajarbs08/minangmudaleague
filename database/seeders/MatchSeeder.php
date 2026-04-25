@@ -18,6 +18,8 @@ class MatchSeeder extends AbstractDemoSeeder
         $admin = $this->adminUser();
 
         MatchGoal::query()->delete();
+        LineupList::query()->whereNotNull('match_id')->delete();
+        MatchSchedule::query()->delete();
 
         foreach ($this->matchPlans() as $plan) {
             $this->seedMatchPlan($plan, $admin);
@@ -29,6 +31,9 @@ class MatchSeeder extends AbstractDemoSeeder
         $ageGroup = $this->getAgeGroup($plan['age_group']);
         $homeClub = $this->getClub($plan['home_club']);
         $awayClub = $this->getClub($plan['away_club']);
+        $competitionFormat = $plan['competition_format'] ?? MatchSchedule::FORMAT_LEAGUE;
+        $homeTitleSuffix = $plan['home_title_suffix'] ?? 'Home';
+        $awayTitleSuffix = $plan['away_title_suffix'] ?? 'Away';
 
         $match = $this->upsertMatchSchedule(
             [
@@ -38,10 +43,10 @@ class MatchSeeder extends AbstractDemoSeeder
                 'match_day' => $plan['match_day'],
             ],
             [
-                'competition_format' => MatchSchedule::FORMAT_LEAGUE,
-                'round_label' => null,
-                'round_order' => null,
-                'bracket_slot' => null,
+                'competition_format' => $competitionFormat,
+                'round_label' => $plan['round_label'] ?? null,
+                'round_order' => $plan['round_order'] ?? null,
+                'bracket_slot' => $plan['bracket_slot'] ?? null,
                 'venue' => $plan['venue'],
                 'match_date' => $plan['match_date'],
                 'kickoff_time' => $plan['kickoff_time'],
@@ -61,7 +66,7 @@ class MatchSeeder extends AbstractDemoSeeder
             venue: $plan['venue'],
             kickoffTime: $plan['kickoff_time'],
             admin: $admin,
-            titleSuffix: 'Home'
+            titleSuffix: $homeTitleSuffix
         );
 
         $this->seedLineup(
@@ -74,7 +79,7 @@ class MatchSeeder extends AbstractDemoSeeder
             venue: $plan['venue'],
             kickoffTime: $plan['kickoff_time'],
             admin: $admin,
-            titleSuffix: 'Away'
+            titleSuffix: $awayTitleSuffix
         );
 
         foreach ($plan['goals'] as $order => $goal) {
@@ -164,6 +169,11 @@ class MatchSeeder extends AbstractDemoSeeder
 
     private function matchPlans(): array
     {
+        return array_merge($this->leagueMatchPlans(), $this->knockoutMatchPlans());
+    }
+
+    private function leagueMatchPlans(): array
+    {
         return [
             [
                 'age_group' => 'U12',
@@ -223,6 +233,242 @@ class MatchSeeder extends AbstractDemoSeeder
                     ['side' => 'home', 'scorer' => 10, 'assist' => 8],
                     ['side' => 'home', 'scorer' => 11, 'assist' => 6],
                     ['side' => 'away', 'scorer' => 9, 'assist' => 7],
+                ],
+            ],
+        ];
+    }
+
+    private function knockoutMatchPlans(): array
+    {
+        return [
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Babak Play-in',
+                'round_order' => 1,
+                'bracket_slot' => 1,
+                'home_club' => 'Mutiara Selatan',
+                'away_club' => 'Laskar Minang',
+                'match_day' => 'Knockout Play-in 1',
+                'venue' => 'Stadion Garuda',
+                'match_date' => now()->addDays(11)->toDateString(),
+                'kickoff_time' => '14:00',
+                'score_home' => 0,
+                'score_away' => 2,
+                'home_color' => 'Putih',
+                'away_color' => 'Hijau',
+                'home_gk_color' => 'Biru',
+                'away_gk_color' => 'Hitam',
+                'home_title_suffix' => 'KO R1-1 Home',
+                'away_title_suffix' => 'KO R1-1 Away',
+                'goals' => [
+                    ['side' => 'away', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'away', 'scorer' => 10, 'assist' => 8],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Babak Play-in',
+                'round_order' => 1,
+                'bracket_slot' => 2,
+                'home_club' => 'Singa Laut FC',
+                'away_club' => 'Satria Padang',
+                'match_day' => 'Knockout Play-in 2',
+                'venue' => 'Stadion Garuda',
+                'match_date' => now()->addDays(11)->toDateString(),
+                'kickoff_time' => '16:00',
+                'score_home' => 1,
+                'score_away' => 3,
+                'home_color' => 'Biru',
+                'away_color' => 'Merah',
+                'home_gk_color' => 'Kuning',
+                'away_gk_color' => 'Hitam',
+                'home_title_suffix' => 'KO R1-2 Home',
+                'away_title_suffix' => 'KO R1-2 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'away', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'away', 'scorer' => 10, 'assist' => 8],
+                    ['side' => 'away', 'scorer' => 11, 'assist' => 6],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Perempat Final',
+                'round_order' => 2,
+                'bracket_slot' => 1,
+                'home_club' => 'Garuda Muda FC',
+                'away_club' => 'Laskar Minang',
+                'match_day' => 'Knockout Quarterfinal 1',
+                'venue' => 'Stadion Garuda',
+                'match_date' => now()->addDays(13)->toDateString(),
+                'kickoff_time' => '14:00',
+                'score_home' => 2,
+                'score_away' => 0,
+                'home_color' => 'Merah',
+                'away_color' => 'Hijau',
+                'home_gk_color' => 'Hitam',
+                'away_gk_color' => 'Putih',
+                'home_title_suffix' => 'KO QF-1 Home',
+                'away_title_suffix' => 'KO QF-1 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'home', 'scorer' => 10, 'assist' => 8],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Perempat Final',
+                'round_order' => 2,
+                'bracket_slot' => 2,
+                'home_club' => 'Elang Nusantara',
+                'away_club' => 'Satria Padang',
+                'match_day' => 'Knockout Quarterfinal 2',
+                'venue' => 'Lapangan Nusantara',
+                'match_date' => now()->addDays(13)->toDateString(),
+                'kickoff_time' => '16:00',
+                'score_home' => 2,
+                'score_away' => 1,
+                'home_color' => 'Biru',
+                'away_color' => 'Merah',
+                'home_gk_color' => 'Putih',
+                'away_gk_color' => 'Kuning',
+                'home_title_suffix' => 'KO QF-2 Home',
+                'away_title_suffix' => 'KO QF-2 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'home', 'scorer' => 10, 'assist' => 8],
+                    ['side' => 'away', 'scorer' => 11, 'assist' => 6],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Perempat Final',
+                'round_order' => 2,
+                'bracket_slot' => 3,
+                'home_club' => 'Rajawali City',
+                'away_club' => 'Harimau Selatan FC',
+                'match_day' => 'Knockout Quarterfinal 3',
+                'venue' => 'Rajawali Arena',
+                'match_date' => now()->addDays(14)->toDateString(),
+                'kickoff_time' => '14:00',
+                'score_home' => 3,
+                'score_away' => 1,
+                'home_color' => 'Navy',
+                'away_color' => 'Putih',
+                'home_gk_color' => 'Kuning',
+                'away_gk_color' => 'Hijau',
+                'home_title_suffix' => 'KO QF-3 Home',
+                'away_title_suffix' => 'KO QF-3 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'home', 'scorer' => 10, 'assist' => 8],
+                    ['side' => 'home', 'scorer' => 11, 'assist' => 6],
+                    ['side' => 'away', 'scorer' => 9, 'assist' => 7],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Perempat Final',
+                'round_order' => 2,
+                'bracket_slot' => 4,
+                'home_club' => 'Cendrawasih United',
+                'away_club' => 'Bintang Timur FC',
+                'match_day' => 'Knockout Quarterfinal 4',
+                'venue' => 'Lapangan Timur',
+                'match_date' => now()->addDays(14)->toDateString(),
+                'kickoff_time' => '16:00',
+                'score_home' => 1,
+                'score_away' => 0,
+                'home_color' => 'Putih',
+                'away_color' => 'Biru',
+                'home_gk_color' => 'Kuning',
+                'away_gk_color' => 'Hitam',
+                'home_title_suffix' => 'KO QF-4 Home',
+                'away_title_suffix' => 'KO QF-4 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Semifinal',
+                'round_order' => 3,
+                'bracket_slot' => 1,
+                'home_club' => 'Garuda Muda FC',
+                'away_club' => 'Elang Nusantara',
+                'match_day' => 'Knockout Semifinal 1',
+                'venue' => 'Stadion Garuda',
+                'match_date' => now()->addDays(16)->toDateString(),
+                'kickoff_time' => '15:00',
+                'score_home' => 2,
+                'score_away' => 1,
+                'home_color' => 'Merah',
+                'away_color' => 'Putih',
+                'home_gk_color' => 'Hitam',
+                'away_gk_color' => 'Kuning',
+                'home_title_suffix' => 'KO SF-1 Home',
+                'away_title_suffix' => 'KO SF-1 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'home', 'scorer' => 10, 'assist' => 8],
+                    ['side' => 'away', 'scorer' => 11, 'assist' => 6],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Semifinal',
+                'round_order' => 3,
+                'bracket_slot' => 2,
+                'home_club' => 'Rajawali City',
+                'away_club' => 'Cendrawasih United',
+                'match_day' => 'Knockout Semifinal 2',
+                'venue' => 'Rajawali Arena',
+                'match_date' => now()->addDays(17)->toDateString(),
+                'kickoff_time' => '15:30',
+                'score_home' => 1,
+                'score_away' => 2,
+                'home_color' => 'Navy',
+                'away_color' => 'Putih',
+                'home_gk_color' => 'Kuning',
+                'away_gk_color' => 'Hijau',
+                'home_title_suffix' => 'KO SF-2 Home',
+                'away_title_suffix' => 'KO SF-2 Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'away', 'scorer' => 9, 'assist' => 7],
+                    ['side' => 'away', 'scorer' => 10, 'assist' => 8],
+                ],
+            ],
+            [
+                'age_group' => 'U12',
+                'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                'round_label' => 'Final',
+                'round_order' => 4,
+                'bracket_slot' => 1,
+                'home_club' => 'Garuda Muda FC',
+                'away_club' => 'Cendrawasih United',
+                'match_day' => 'Knockout Final',
+                'venue' => 'Stadion Garuda',
+                'match_date' => now()->addDays(19)->toDateString(),
+                'kickoff_time' => '16:00',
+                'score_home' => 1,
+                'score_away' => 0,
+                'home_color' => 'Merah',
+                'away_color' => 'Putih',
+                'home_gk_color' => 'Hitam',
+                'away_gk_color' => 'Kuning',
+                'home_title_suffix' => 'KO FINAL Home',
+                'away_title_suffix' => 'KO FINAL Away',
+                'goals' => [
+                    ['side' => 'home', 'scorer' => 9, 'assist' => 7],
                 ],
             ],
         ];

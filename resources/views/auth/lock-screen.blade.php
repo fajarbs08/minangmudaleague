@@ -31,7 +31,7 @@
                               </div> <!-- end col -->
                          </div> <!-- end card-body -->
                     </div> <!-- end card -->
-                    <p class="mb-0 text-center">Not you? return <a class="link-primary fst-italic text-decoration-underline fw-semibold" href="{{ route('second', ['auth', 'signup']) }}">Sign Up</a></p>
+                    <p class="mb-0 text-center">Not you? return <a class="link-primary fst-italic text-decoration-underline fw-semibold" href="{{ route('login') }}">Back to login</a></p>
                </div> <!-- end col -->
           </div> <!-- end row -->
      </div>

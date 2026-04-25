@@ -36,7 +36,6 @@
     </div>
 </div>
 
-@include('competition.matches.partials.report-nav')
 @include('competition.partials.flash')
 @include('competition.matches.partials.standings-section', [
     'sectionTitle' => 'Klasemen',

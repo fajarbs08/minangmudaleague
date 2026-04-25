@@ -1,6 +1,7 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @section('content')
+@php($canManageAgeRegistrations = auth()->user()->isAdmin() || $player->canBeEditedByClub())
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h4 class="mb-1">Detail Pemain</h4>
@@ -117,6 +118,7 @@
                                             data-age-group-id="{{ $registration->age_group_id }}"
                                             data-role="starter"
                                             @checked($registration->is_starter)
+                                            @disabled(! $canManageAgeRegistrations)
                                         >
                                     </td>
                                     <td>
@@ -126,6 +128,7 @@
                                             data-age-group-id="{{ $registration->age_group_id }}"
                                             data-role="substitute"
                                             @checked($registration->is_substitute)
+                                            @disabled(! $canManageAgeRegistrations)
                                         >
                                     </td>
                                     <td>
@@ -133,33 +136,37 @@
                                         <div class="text-danger small mt-1 d-none" data-age-error></div>
                                     </td>
                                     <td>
-                                        <div class="d-flex gap-1">
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-primary js-edit-age px-2"
-                                                title="Edit kelompok usia"
-                                                aria-label="Edit kelompok usia"
-                                                data-age-group-id="{{ $registration->age_group_id }}"
-                                                data-season="{{ $registration->season }}"
-                                                data-jersey-number="{{ $registration->jersey_number }}"
-                                                data-position="{{ $registration->position }}"
-                                                data-notes="{{ $registration->notes }}"
-                                            >
-                                                <i data-lucide="square-pen" class="fs-14"></i>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-danger js-delete-player-age px-2"
-                                                title="Hapus kelompok usia"
-                                                aria-label="Hapus kelompok usia"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deletePlayerAgeModal"
-                                                data-action="{{ route('players.age-registrations.destroy', [$player, $registration->age_group_id]) }}"
-                                                data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
-                                            >
-                                                <i data-lucide="trash-2" class="fs-14"></i>
-                                            </button>
-                                        </div>
+                                        @if ($canManageAgeRegistrations)
+                                            <div class="d-flex gap-1">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-primary js-edit-age px-2"
+                                                    title="Edit kelompok usia"
+                                                    aria-label="Edit kelompok usia"
+                                                    data-age-group-id="{{ $registration->age_group_id }}"
+                                                    data-season="{{ $registration->season }}"
+                                                    data-jersey-number="{{ $registration->jersey_number }}"
+                                                    data-position="{{ $registration->position }}"
+                                                    data-notes="{{ $registration->notes }}"
+                                                >
+                                                    <i data-lucide="square-pen" class="fs-14"></i>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-danger js-delete-player-age px-2"
+                                                    title="Hapus kelompok usia"
+                                                    aria-label="Hapus kelompok usia"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deletePlayerAgeModal"
+                                                    data-action="{{ route('players.age-registrations.destroy', [$player, $registration->age_group_id]) }}"
+                                                    data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
+                                                >
+                                                    <i data-lucide="trash-2" class="fs-14"></i>
+                                                </button>
+                                            </div>
+                                        @else
+                                            <span class="text-muted small">Tidak tersedia</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

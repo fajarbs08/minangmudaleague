@@ -89,7 +89,6 @@ class Official extends Model
     {
         return in_array($this->verification_status, [
             self::STATUS_DRAFT,
-            self::STATUS_SUBMITTED,
             self::STATUS_REVISION,
         ], true);
     }
@@ -114,12 +113,12 @@ class Official extends Model
 
     public function getLicenseFileUrlAttribute(): ?string
     {
-        return $this->fileUrl($this->license_file_path);
+        return $this->documentUrl($this->license_file_path, 'license');
     }
 
     public function getIdentityFileUrlAttribute(): ?string
     {
-        return $this->fileUrl($this->identity_file_path);
+        return $this->documentUrl($this->identity_file_path, 'identity');
     }
 
     public function getPublicSlugAttribute(): string
@@ -132,6 +131,7 @@ class Official extends Model
     public function validateForSubmission(): void
     {
         $errors = [];
+        $registrations = $this->ageRegistrations()->get();
 
         if (blank($this->name)) {
             $errors['name'] = 'Nama official wajib diisi sebelum submit verifikasi.';
@@ -154,13 +154,13 @@ class Official extends Model
         if (blank($this->photo_path)) {
             $errors['photo_path'] = 'Foto official wajib diunggah sebelum submit verifikasi.';
         }
-        if (blank($this->license_file_path) && blank($this->license_number)) {
-            $errors['license_file_path'] = 'Lisensi official wajib dilengkapi sebelum submit verifikasi.';
+        if ($this->requiresLicenseDetails($registrations) && blank($this->license_file_path) && blank($this->license_number)) {
+            $errors['license_number'] = 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, atau C.';
         }
         if (blank($this->identity_file_path)) {
             $errors['identity_file_path'] = 'Dokumen identitas official wajib diunggah sebelum submit verifikasi.';
         }
-        $registrations = $this->ageRegistrations()->get();
+
         if ($registrations->isEmpty()) {
             $errors['age_registrations'] = 'Official harus memiliki minimal satu kelompok usia sebelum submit verifikasi.';
         } elseif ($registrations->contains(fn ($registration) => ! $registration->ageGroup || ! $registration->ageGroup->is_active || ! in_array($registration->ageGroup->code, AgeGroup::COMPETITION_CODES, true))) {
@@ -170,6 +170,21 @@ class Official extends Model
         if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    private function requiresLicenseDetails($registrations): bool
+    {
+        return collect([$this->license_levels])
+            ->merge(collect($registrations)->pluck('license_levels'))
+            ->contains(fn ($level) => filled($level) && $level !== 'Non-Lisensi');
+    }
+
+    public function syncVerificationChildrenStatus(): void
+    {
+        $this->ageRegistrations()->update([
+            'registration_status' => $this->verification_status,
+            'status_date' => $this->reviewed_at ?? $this->submitted_at ?? now(),
+        ]);
     }
 
     private function fileUrl(?string $path): ?string
@@ -189,5 +204,27 @@ class Official extends Model
         }
 
         return url('/storage/'.$path);
+    }
+
+    private function documentUrl(?string $path, string $document): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (! Storage::disk('local')->exists($path) && ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return route('officials.documents.download', [
+            'official' => $this,
+            'document' => $document,
+        ]);
     }
 }

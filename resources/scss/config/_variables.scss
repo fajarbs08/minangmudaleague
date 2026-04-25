@@ -40,6 +40,9 @@ $indigo:  #3b4f8c;
 $purple:  #6d4cc2;
 $pink:    #ff86c8;
 $red:     #e41b23;
+$brand-ink: #030523;
+$brand-navy-soft: #0d2f67;
+$brand-accent: #fe5900;
 $orange:  #ed8d55;
 $yellow:  #f6c54d;
 $green:   #72a398;
@@ -48,7 +51,7 @@ $cyan:    #32bbe5;
 // scss-docs-end color-variables
 
 // scss-docs-start theme-color-variables
-$primary:       $red;
+ $primary:       $brand-accent;
 $secondary:     $gray-600;
 $blue:          $blue;
 $indigo:        $indigo;
@@ -57,10 +60,10 @@ $pink:          $pink;
 $danger:        $red;
 $orange:        $orange;
 $warning:       $yellow;
-$success:       $blue;
-$info:          $cyan;
-$light:         $gray-200;
-$dark:          $gray-900;
+ $success:       $brand-ink;
+ $info:          $cyan;
+ $light:         $gray-200;
+ $dark:          $brand-ink;
 // scss-docs-end theme-color-variables
 
 // scss-docs-start gray-colors-map

@@ -19,8 +19,16 @@ class PlayerSeeder extends AbstractDemoSeeder
             ['club' => 'Garuda Muda FC', 'age_group' => 'U16', 'names' => $this->garudaU16Names()],
             ['club' => 'Elang Nusantara', 'age_group' => 'U12', 'names' => $this->elangU12Names()],
             ['club' => 'Elang Nusantara', 'age_group' => 'U14', 'names' => $this->elangU14Names()],
+            ['club' => 'Rajawali City', 'age_group' => 'U12', 'names' => $this->rajawaliU12Names()],
             ['club' => 'Rajawali City', 'age_group' => 'U14', 'names' => $this->rajawaliU14Names()],
             ['club' => 'Rajawali City', 'age_group' => 'U16', 'names' => $this->rajawaliU16Names()],
+            ['club' => 'Harimau Selatan FC', 'age_group' => 'U12', 'names' => $this->generatedNames('HSF')],
+            ['club' => 'Cendrawasih United', 'age_group' => 'U12', 'names' => $this->generatedNames('CU')],
+            ['club' => 'Bintang Timur FC', 'age_group' => 'U12', 'names' => $this->generatedNames('BTF')],
+            ['club' => 'Laskar Minang', 'age_group' => 'U12', 'names' => $this->generatedNames('LSM')],
+            ['club' => 'Satria Padang', 'age_group' => 'U12', 'names' => $this->generatedNames('SPD')],
+            ['club' => 'Mutiara Selatan', 'age_group' => 'U12', 'names' => $this->generatedNames('MST')],
+            ['club' => 'Singa Laut FC', 'age_group' => 'U12', 'names' => $this->generatedNames('SLF')],
         ];
 
         foreach ($rosters as $roster) {
@@ -84,6 +92,28 @@ class PlayerSeeder extends AbstractDemoSeeder
             ['number' => 12, 'position' => 'Midfielder'],
             ['number' => 13, 'position' => 'Defender'],
         ];
+    }
+
+    private function generatedNames(string $suffix): array
+    {
+        return array_map(
+            fn (string $name) => $name.' '.$suffix,
+            [
+                'Adit',
+                'Bima',
+                'Candra',
+                'Daffa',
+                'Erlangga',
+                'Fajar',
+                'Galih',
+                'Hafiz',
+                'Ilham',
+                'Jovan',
+                'Kurnia',
+                'Lutfi',
+                'Maulana',
+            ]
+        );
     }
 
     private function garudaU12Names(): array
@@ -159,6 +189,25 @@ class PlayerSeeder extends AbstractDemoSeeder
             'Yusril Akbar',
             'Fauzan Kurnia',
             'Farrel Pradana',
+        ];
+    }
+
+    private function rajawaliU12Names(): array
+    {
+        return [
+            'Damar Pratama',
+            'Revan Mahendra',
+            'Fadlan Ramadhan',
+            'Irfan Saputra',
+            'Bima Kurniawan',
+            'Arga Prakoso',
+            'Farel Nugroho',
+            'Galang Hidayat',
+            'Rafif Putra',
+            'Zidan Maulana',
+            'Yudha Wicaksono',
+            'Aldo Rahman',
+            'Tegar Saputro',
         ];
     }
 

@@ -27447,7 +27447,7 @@ tr:first-child {
   -webkit-box-pack: justify;
       -ms-flex-pack: justify;
           justify-content: space-between;
-  padding: 14px 16px;
+  padding: 14px 10px;
 }
 .rts-team-section.volleyball .team-section-inner .team-wraper .player-stat .identity .wrapper li:nth-child(1), .rts-team-section.volleyball .team-section-inner .team-wraper .player-stat .identity .wrapper li:nth-child(3) {
   background: #ECECEC;
@@ -27507,7 +27507,7 @@ tr:first-child {
   -webkit-box-pack: justify;
       -ms-flex-pack: justify;
           justify-content: space-between;
-  padding: 14px 16px;
+  padding: 14px 10px;
 }
 .rts-team-section.volleyball .team-section-inner .team-wraper .player-stat .stats .wrapper li:nth-child(1), .rts-team-section.volleyball .team-section-inner .team-wraper .player-stat .stats .wrapper li:nth-child(3) {
   background: #ECECEC;

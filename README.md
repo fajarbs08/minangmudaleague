@@ -27,18 +27,30 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
 - `APP_NAME="Liga Anak Piaman Laweh"`
 - `APP_URL`
+- `TRUSTED_PROXIES` untuk IP/CIDR reverse proxy yang benar-benar dipakai
 - kredensial database di `.env`
 - konfigurasi mail bila fitur email dipakai
+
+## Catatan Produksi
+
+- Registrasi publik dinonaktifkan. Akun klub dibuat admin dari dashboard.
+- Dokumen sensitif disimpan di private storage. Jika ada data lama, jalankan `php artisan documents:secure-sensitive-files` setelah deploy.
+- Untuk deploy server biasa di belakang reverse proxy, isi `APP_URL` dan `TRUSTED_PROXIES` sesuai IP/CIDR proxy yang benar-benar dipakai.
+- Gunakan cache non-Redis bawaan project: `CACHE_STORE=database`.
+- Mulai dari template `./.env.production.example`, lalu salin ke `.env` di server dan isi semua secret yang sebenarnya.
+- Setelah `php artisan migrate --force` dan asset selesai dibuild, aktifkan cache production dengan `composer run production:cache`.
+- Jika perlu rollback cache saat troubleshooting atau deploy ulang, jalankan `composer run production:clear`.
+- Jalankan worker queue terpisah di production, misalnya `php artisan queue:work database --queue=default --tries=1` lewat `systemd` atau `supervisor`.
 
 ## Catatan
 
 Project ini menggunakan Laravel sebagai framework, tetapi branding aplikasi yang ditampilkan ke pengguna adalah `Liga Anak Piaman Laweh`.
 
-## Railway dan Browsershot
+## Browsershot
 
-Project ini sudah memakai `spatie/browsershot` untuk render PDF kartu identitas. Di Railway, dependency runtime untuk Browsershot dipasang lewat `Dockerfile`, bukan lewat environment PHP default saja.
+Project ini memakai `spatie/browsershot` untuk render PDF kartu identitas dan beberapa dokumen cetak lain.
 
-Runtime yang ikut dipasang di image:
+Runtime yang perlu tersedia:
 
 - `chromium`
 - `nodejs`
@@ -47,7 +59,7 @@ Runtime yang ikut dipasang di image:
 - `imagemagick`
 - ekstensi PHP `imagick`
 
-Default environment di container:
+Contoh environment runtime:
 
 - `ID_CARDS_CHROME_PATH=/usr/bin/chromium`
 - `ID_CARDS_NODE_BINARY=/usr/bin/node`
@@ -55,3 +67,7 @@ Default environment di container:
 - `ID_CARDS_NO_SANDBOX=true`
 
 Kalau render `Browsershot` gagal, service akan fallback ke `dompdf`, jadi aplikasi tetap bisa menghasilkan PDF walau kualitas layout browser-rendered tidak terpakai.
+
+## Credit
+
+- Fajar Budi Setiawan

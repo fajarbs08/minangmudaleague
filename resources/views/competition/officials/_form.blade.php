@@ -61,7 +61,7 @@
     <div class="col-lg-6 mb-3">
         <label class="form-label">No. Lisensi</label>
         <input type="text" name="license_number" class="form-control" value="{{ old('license_number', $official->license_number) }}">
-        <small class="text-muted d-block mt-2">Isi jika ada.</small>
+        <small class="text-muted d-block mt-2">Isi jika memilih level lisensi A, B, atau C.</small>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Pas Foto 3x4 <span class="text-danger">*</span></label>
@@ -76,7 +76,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Bukti Lisensi</label>
         <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-1">Wajib salah satu dengan No. Lisensi.</small>
+        <small class="text-muted d-block mt-1">Unggah salah satu dengan No. Lisensi jika memilih level A, B, atau C. Untuk Non-Lisensi, keduanya boleh kosong.</small>
         @if ($official->license_file_url)
             <a href="{{ $official->license_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -140,6 +140,7 @@
             <option value="C" @selected($licenseValue === 'C')>C</option>
             <option value="Non-Lisensi" @selected($licenseValue === 'Non-Lisensi')>Non-Lisensi</option>
         </select>
+        <small class="text-muted d-block mt-2">Pilih Non-Lisensi bila ofisial tidak memiliki lisensi resmi.</small>
     </div>
     <div class="col-12 mb-3">
         <div class="form-check">
@@ -301,7 +302,7 @@
     const reindex = () => {
         list.querySelectorAll('[data-age-registration-row]').forEach((row, index) => {
             row.querySelectorAll('[name], [data-name]').forEach((field) => {
-                const key = field.getAttribute('data-name') ?? field.name.match(/\\]\\[([^\\]]+)\\]$/)?.[1];
+                const key = field.getAttribute('data-name') ?? field.name.match(/\]\[([^\]]+)\]$/)?.[1];
                 if (!key) {
                     return;
                 }

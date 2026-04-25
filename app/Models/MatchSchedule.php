@@ -19,6 +19,8 @@ class MatchSchedule extends Model
         'round_label',
         'round_order',
         'bracket_slot',
+        'source_match_a_id',
+        'source_match_b_id',
         'club_a_id',
         'club_b_id',
         'match_day',
@@ -53,6 +55,16 @@ class MatchSchedule extends Model
     public function clubB(): BelongsTo
     {
         return $this->belongsTo(Club::class, 'club_b_id');
+    }
+
+    public function sourceMatchA(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'source_match_a_id');
+    }
+
+    public function sourceMatchB(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'source_match_b_id');
     }
 
     public function lineupLists(): HasMany
@@ -143,6 +155,37 @@ class MatchSchedule extends Model
         }
 
         return (int) $this->score_club_a === 0 || (int) $this->score_club_b === 0;
+    }
+
+    public function getHasWinnerAttribute(): bool
+    {
+        return $this->winner_club_id !== null;
+    }
+
+    public function getWinnerClubIdAttribute(): ?int
+    {
+        if (! $this->is_finished || $this->score_club_a === null || $this->score_club_b === null) {
+            return null;
+        }
+
+        if ((int) $this->score_club_a === (int) $this->score_club_b) {
+            return null;
+        }
+
+        return (int) $this->score_club_a > (int) $this->score_club_b
+            ? (int) $this->club_a_id
+            : (int) $this->club_b_id;
+    }
+
+    public function getWinnerClubNameAttribute(): ?string
+    {
+        if (! $this->winner_club_id) {
+            return null;
+        }
+
+        return (int) $this->winner_club_id === (int) $this->club_a_id
+            ? ($this->clubA?->name ?: $this->clubA?->short_name)
+            : ($this->clubB?->name ?: $this->clubB?->short_name);
     }
 
     public function getPublicSlugAttribute(): string

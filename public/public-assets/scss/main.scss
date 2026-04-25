@@ -1,0 +1,114 @@
+/*
+Theme Name: Nitro 
+Author: Gramentheme
+Author URI: https://themeforest.net/user/Gramentheme/portfolio
+Description: Nitro - Sports Multipurpose HTML Template
+Service Html Template 
+Version: 1.0.0
+*/
+
+/*==========================================================================
+    Table of Contents
+==========================================================================
+
+01. Basic
+    01.1 Mixins
+    01.2 Variables
+    01.3 Buttons
+    01.4 Typography
+
+02. Template Sections
+    02.1 About
+    02.2 Animation
+    02.3 Brand
+    02.4 Contact
+    02.5 Call To Action (CTA)
+    02.6 Match
+    02.7 Feature
+    02.8 Footer
+    02.9 Header
+    02.10 Helping
+    02.11 Hero
+    02.12 MeanMenu
+    02.13 News
+    02.14 Preloader
+    02.15 Section
+    02.16 Team
+    02.17 Testimonial
+
+==========================================================================*/
+
+
+/*==========================================================================
+    01. Basic
+==========================================================================*/
+
+/* 01.1 Mixins */
+@import "_mixins";
+
+/* 01.2 Variables */
+@import "_variables";
+
+/* 01.3 Buttons */
+@import "_buttons";
+
+/* 01.4 Typography */
+@import "_typography";
+
+
+/*==========================================================================
+    02. Template Sections
+==========================================================================*/
+
+/* 02.1 About */
+@import "_about";
+
+/* 02.2 Animation */
+@import "_animation";
+
+/* 02.3 Brand */
+@import "_brand";
+
+/* 02.4 Contact */
+@import "_contact";
+
+/* 02.5 Call To Action */
+@import "_cta";
+
+/* 02.6 Match */
+@import "_match";
+
+/* 02.7 Feature */
+@import "_feature";
+
+/* 02.8 Footer */
+@import "_footer";
+
+/* 02.9 Header */
+@import "_header";
+
+/* 02.10 Helping */
+@import "_helping";
+
+/* 02.11 Hero */
+@import "_hero";
+
+/* 02.12 MeanMenu */
+@import "_meanmenu";
+
+/* 02.13 News */
+@import "_news";
+
+/* 02.14 Preloader */
+@import "_preloader";
+
+/* 02.15 Section */
+@import "_section";
+
+/* 02.16 Team */
+@import "_team";
+
+/* 02.17 Testimonial */
+@import "_testimonial";
+
+

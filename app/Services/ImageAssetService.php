@@ -8,6 +8,10 @@ use RuntimeException;
 
 class ImageAssetService
 {
+    private const PRIVATE_DISK = 'local';
+
+    private const PUBLIC_DISK = 'public';
+
     public function storeLogo(UploadedFile $file, string $directory = 'club-logos'): string
     {
         return $this->storeBinary(
@@ -17,7 +21,8 @@ class ImageAssetService
                 'mode' => 'square',
                 'canvas_size' => 512,
                 'padding' => 16,
-            ]
+            ],
+            self::PUBLIC_DISK
         );
     }
 
@@ -30,14 +35,15 @@ class ImageAssetService
                 'mode' => 'contain',
                 'max_width' => 1600,
                 'max_height' => 1600,
-            ]
+            ],
+            self::PUBLIC_DISK
         );
     }
 
     public function storeDocumentUpload(UploadedFile $file, string $directory): string
     {
-        if (!$this->isImageUpload($file)) {
-            return $file->store($directory, 'public');
+        if (! $this->isImageUpload($file)) {
+            return $file->store($directory, self::PRIVATE_DISK);
         }
 
         return $this->storeBinary(
@@ -47,14 +53,15 @@ class ImageAssetService
                 'mode' => 'contain',
                 'max_width' => 2800,
                 'max_height' => 2800,
-            ]
+            ],
+            self::PRIVATE_DISK
         );
     }
 
     public function storeResourceUpload(UploadedFile $file, string $directory): string
     {
-        if (!$this->isImageUpload($file)) {
-            return $file->store($directory, 'public');
+        if (! $this->isImageUpload($file)) {
+            return $file->store($directory, self::PUBLIC_DISK);
         }
 
         return $this->storeBinary(
@@ -64,33 +71,108 @@ class ImageAssetService
                 'mode' => 'contain',
                 'max_width' => 2200,
                 'max_height' => 2200,
-            ]
+            ],
+            self::PUBLIC_DISK
         );
     }
 
-    public function normalizeStoredPathIfImage(string $path, string $directory, array $profile): ?string
+    public function normalizeStoredPathIfImage(string $path, string $directory, array $profile, string $disk = self::PUBLIC_DISK): ?string
     {
         $normalizedPath = ltrim($path, '/');
-        $disk = Storage::disk('public');
 
-        if (!$disk->exists($normalizedPath)) {
-            throw new RuntimeException('File sumber tidak ditemukan pada penyimpanan publik.');
+        $sourceDisk = $this->resolveStoredDisk($normalizedPath, [$disk, self::PUBLIC_DISK, self::PRIVATE_DISK]);
+
+        if ($sourceDisk === null) {
+            throw new RuntimeException('File sumber tidak ditemukan pada penyimpanan.');
         }
 
-        $mime = (string) ($disk->mimeType($normalizedPath) ?: '');
+        $storage = Storage::disk($sourceDisk);
+
+        $mime = (string) ($storage->mimeType($normalizedPath) ?: '');
         $extension = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
 
-        if (!$this->isImageMime($mime) && $extension !== 'svg') {
+        if (! $this->isImageMime($mime) && $extension !== 'svg') {
             return null;
         }
 
-        $binary = $disk->get($normalizedPath);
+        $binary = $storage->get($normalizedPath);
 
         if ($binary === false) {
             throw new RuntimeException('File sumber tidak dapat dibaca dari penyimpanan.');
         }
 
-        return $this->storeBinary($binary, $directory, $profile);
+        return $this->storeBinary($binary, $directory, $profile, $disk);
+    }
+
+    public function documentAbsolutePath(?string $path): ?string
+    {
+        $location = $this->documentStorageLocation($path);
+
+        if ($location === null) {
+            return null;
+        }
+
+        return Storage::disk($location['disk'])->path($location['path']);
+    }
+
+    public function documentExists(?string $path): bool
+    {
+        return $this->documentStorageLocation($path) !== null;
+    }
+
+    public function deleteDocumentUpload(?string $path): void
+    {
+        $path = $this->normalizeManagedPath($path);
+
+        if ($path === null) {
+            return;
+        }
+
+        foreach ([self::PRIVATE_DISK, self::PUBLIC_DISK] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
+    }
+
+    public function moveDocumentUploadToPrivateDisk(?string $path): bool
+    {
+        $path = $this->normalizeManagedPath($path);
+
+        if ($path === null) {
+            return false;
+        }
+
+        $privateDisk = Storage::disk(self::PRIVATE_DISK);
+        $publicDisk = Storage::disk(self::PUBLIC_DISK);
+
+        if ($privateDisk->exists($path)) {
+            if ($publicDisk->exists($path)) {
+                $publicDisk->delete($path);
+            }
+
+            return true;
+        }
+
+        if (! $publicDisk->exists($path)) {
+            return false;
+        }
+
+        $binary = $publicDisk->get($path);
+
+        if ($binary === false) {
+            throw new RuntimeException('Dokumen sensitif tidak dapat dibaca dari penyimpanan publik.');
+        }
+
+        $privateDisk->put($path, $binary);
+        $publicDisk->delete($path);
+
+        return true;
+    }
+
+    public function isExternalPath(?string $path): bool
+    {
+        return filled($path) && (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'));
     }
 
     public function isNormalizedPath(?string $path, string $directory): bool
@@ -117,6 +199,46 @@ class ImageAssetService
         return str_starts_with($mime, 'image/');
     }
 
+    private function documentStorageLocation(?string $path): ?array
+    {
+        $path = $this->normalizeManagedPath($path);
+
+        if ($path === null) {
+            return null;
+        }
+
+        $disk = $this->resolveStoredDisk($path, [self::PRIVATE_DISK, self::PUBLIC_DISK]);
+
+        if ($disk === null) {
+            return null;
+        }
+
+        return [
+            'disk' => $disk,
+            'path' => $path,
+        ];
+    }
+
+    private function normalizeManagedPath(?string $path): ?string
+    {
+        if (blank($path) || $this->isExternalPath($path)) {
+            return null;
+        }
+
+        return ltrim((string) $path, '/');
+    }
+
+    private function resolveStoredDisk(string $path, array $candidateDisks): ?string
+    {
+        foreach (array_unique($candidateDisks) as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                return $disk;
+            }
+        }
+
+        return null;
+    }
+
     private function readUploadedFile(UploadedFile $file): string
     {
         $binary = file_get_contents($file->getRealPath());
@@ -128,7 +250,7 @@ class ImageAssetService
         return $binary;
     }
 
-    private function storeBinary(string $binary, string $directory, array $profile): string
+    private function storeBinary(string $binary, string $directory, array $profile, string $disk = self::PUBLIC_DISK): string
     {
         $source = $this->createSourceFromBinary($binary);
 
@@ -212,7 +334,7 @@ class ImageAssetService
         $directory = trim($directory, '/');
         $path = $directory.'/'.now()->format('Y/m').'/'.str_replace('/', '_', $directory).'_'.uniqid('', true).'.png';
 
-        Storage::disk('public')->put($path, $pngBinary);
+        Storage::disk($disk)->put($path, $pngBinary);
 
         return $path;
     }

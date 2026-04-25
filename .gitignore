@@ -19,6 +19,9 @@
 /storage/*.key
 /storage/pail
 /vendor
+/\.npm-cache/
+/artifacts-trash/*
+!/artifacts-trash/.gitkeep
 Homestead.json
 Homestead.yaml
 Thumbs.db

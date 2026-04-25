@@ -1,24 +1,47 @@
 /**
-* Theme: Velok- Responsive Bootstrap 5 Admin Dashboard
-* Author: FoxPixel
-* Module/App: Main Js
+* Dashboard App Script
+* Liga Anak Piaman Laweh
 */
 
-import $ from 'jquery'
+import Collapse from 'bootstrap/js/dist/collapse'
+import Dropdown from 'bootstrap/js/dist/dropdown'
+import Modal from 'bootstrap/js/dist/modal'
+import Offcanvas from 'bootstrap/js/dist/offcanvas'
+import Popover from 'bootstrap/js/dist/popover'
+import Toast from 'bootstrap/js/dist/toast'
+import Tooltip from 'bootstrap/js/dist/tooltip'
 
-window.jQuery = window.$ = $
-
-import bootstrap from 'bootstrap/dist/js/bootstrap.min.js'
-window.bootstrap = bootstrap;
+window.bootstrap = {
+  Collapse,
+  Dropdown,
+  Modal,
+  Offcanvas,
+  Popover,
+  Toast,
+  Tooltip,
+}
 
 import 'simplebar'
-import 'iconify-icon'
-import { createIcons, icons } from "lucide";
+import dragula from 'dragula';
 
-import Inputmask from 'inputmask';
-import Choices from 'choices.js';
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
+window.dragula = dragula;
+
+if (document.querySelector('iconify-icon')) {
+  void import('iconify-icon')
+}
+
+const lucideIconsPromise = document.querySelector('[data-lucide]')
+  ? import('./lucide-icons')
+  : null
+
+let choicesPromise
+const loadChoices = () => {
+  if (!choicesPromise) {
+    choicesPromise = import('choices.js').then(({ default: Choices }) => Choices)
+  }
+
+  return choicesPromise
+}
 
 // Components
 class Components {
@@ -27,15 +50,15 @@ class Components {
 
     // Popovers
     const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
-    const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl))
+    const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new Popover(popoverTriggerEl))
 
     // Tooltips
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new Tooltip(tooltipTriggerEl))
 
     // offcanvas
     const offcanvasElementList = document.querySelectorAll('.offcanvas')
-    const offcanvasList = [...offcanvasElementList].map(offcanvasEl => new bootstrap.Offcanvas(offcanvasEl))
+    const offcanvasList = [...offcanvasElementList].map(offcanvasEl => new Offcanvas(offcanvasEl))
 
     //Toasts
     var toastPlacement = document.getElementById("toastPlacement");
@@ -50,7 +73,7 @@ class Components {
 
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
     var toastList = toastElList.map(function (toastEl) {
-      return new bootstrap.Toast(toastEl)
+      return new Toast(toastEl)
     })
 
 
@@ -124,29 +147,10 @@ class Components {
     }
   }
 
-  initFlatpickrInputs() {
-    document.querySelectorAll('[data-time-picker-24h]').forEach((input) => {
-      if (input.dataset.flatpickrReady === '1') return
-
-      flatpickr(input, {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: 'H:i',
-        time_24hr: true,
-        disableMobile: true,
-        minuteIncrement: 5,
-        allowInput: true,
-      })
-
-      input.dataset.flatpickrReady = '1'
-    })
-  }
-
   init() {
     this.initBootstrapComponents();
     this.initfullScreenListener();
     this.initCounter();
-    this.initFlatpickrInputs();
   }
 }
 
@@ -387,7 +391,7 @@ const initSearchAutocomplete = () => {
 }
 
 const initFormDraftAutosave = () => {
-  const storagePrefix = 'velok:form-draft'
+  const storagePrefix = 'lap-dashboard:form-draft'
   const skippedInputTypes = new Set(['button', 'submit', 'reset', 'file', 'password'])
   const skippedNames = new Set(['_token', '_method'])
 
@@ -595,19 +599,15 @@ class FormValidation {
 
 //  Form Advanced
 class FormAdvanced {
-
-  initMask() {
-    document.querySelectorAll('[data-toggle="input-mask"]').forEach(e => {
-      const maskFormat = e.getAttribute('data-mask-format').toString().replaceAll('0', '9');
-      e.setAttribute("data-mask-format", maskFormat);
-      const im = new Inputmask(maskFormat);
-      im.mask(e);
-    });
-  }
-
   // Choices Select plugin
-  initFormChoices() {
+  async initFormChoices() {
     var choicesExamples = document.querySelectorAll("[data-choices]");
+    if (!choicesExamples.length) {
+      return;
+    }
+
+    const Choices = await loadChoices();
+
     choicesExamples.forEach(function (item) {
       if (item.dataset.choicesInitialized === 'true') {
         return;
@@ -740,8 +740,7 @@ class FormAdvanced {
   }
 
   init() {
-    this.initMask();
-    this.initFormChoices();
+    void this.initFormChoices();
   }
 
 }
@@ -754,102 +753,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearchAutocomplete()
   initFormDraftAutosave()
 })
-
-// Dragula (Draggable Components)
-class Dragula {
-
-  initDragula() {
-
-    document.querySelectorAll("[data-plugin=dragula]")
-
-      .forEach(function (element) {
-
-        const containersIds = JSON.parse(element.getAttribute('data-containers'));
-        let containers = [];
-        if (containersIds) {
-          for (let i = 0; i < containersIds.length; i++) {
-            containers.push(document.querySelectorAll("#" + containersIds[i])[0]);
-          }
-        } else {
-          containers = [element];
-        }
-
-        // if handle provided
-        const handleClass = element.getAttribute('data-handleclass');
-
-        // init dragula
-        if (handleClass) {
-          dragula(containers, {
-            moves: function (el, container, handle) {
-              return handle.classList.contains(handleClass);
-            }
-          });
-        } else {
-          dragula(containers);
-        }
-
-      });
-  }
-
-  init() {
-    this.initDragula();
-  }
-
-}
-
-// Toast Notification
-class ToastNotification {
-  initToastNotification() {
-
-    document.querySelectorAll("[data-toast]").forEach(function (element) {
-      element.addEventListener("click", function () {
-        var toastData = {};
-        if (element.attributes["data-toast-text"]) {
-          toastData.text = element.attributes["data-toast-text"].value.toString();
-        }
-        if (element.attributes["data-toast-gravity"]) {
-          toastData.gravity = element.attributes["data-toast-gravity"].value.toString();
-        }
-        if (element.attributes["data-toast-position"]) {
-          toastData.position = element.attributes["data-toast-position"].value.toString();
-        }
-        if (element.attributes["data-toast-className"]) {
-          toastData.className = element.attributes["data-toast-className"].value.toString();
-        }
-        if (element.attributes["data-toast-duration"]) {
-          toastData.duration = element.attributes["data-toast-duration"].value.toString();
-        }
-        if (element.attributes["data-toast-close"]) {
-          toastData.close = element.attributes["data-toast-close"].value.toString();
-        }
-        if (element.attributes["data-toast-style"]) {
-          toastData.style = element.attributes["data-toast-style"].value.toString();
-        }
-        if (element.attributes["data-toast-offset"]) {
-          toastData.offset = element.attributes["data-toast-offset"];
-        }
-        Toastify({
-          newWindow: true,
-          text: toastData.text,
-          gravity: toastData.gravity,
-          position: toastData.position,
-          className: "bg-" + toastData.className,
-          stopOnFocus: true,
-          offset: {
-            x: toastData.offset ? 50 : 0,
-            y: toastData.offset ? 10 : 0, // vertical axis - can be a number or a string indicating unity. eg: '2em'
-          },
-          duration: toastData.duration,
-          close: toastData.close == "close" ? true : false,
-        }).showToast();
-      });
-    });
-  }
-
-  init() {
-    this.initToastNotification();
-  }
-}
 
 const initPagePreloader = () => {
   const preloader = document.getElementById('rts__preloader')
@@ -874,8 +777,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
   new Components().init();
   new FormValidation().init();
   new FormAdvanced().init();
-  new Dragula().init();
-  new ToastNotification().init();
   initPagePreloader();
-  createIcons({ icons })
+
+  if (lucideIconsPromise) {
+    void lucideIconsPromise.then(({ createIcons, appIcons }) => {
+      createIcons({ icons: appIcons })
+    })
+  }
 });

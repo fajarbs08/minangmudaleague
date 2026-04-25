@@ -5,6 +5,7 @@
     <title>Tahapan Workflow Dashboard Club</title>
     <style>
         @page {
+            size: A4;
             margin: 28px 28px 32px 28px;
         }
 
@@ -418,7 +419,7 @@
     ];
 
     $stepCtas = [
-        '1' => 'CTA: Buka Dashboard',
+        '1' => 'CTA: Ikon Login',
         '2' => 'CTA: Simpan Draft / Ajukan Verifikasi',
         '3' => 'CTA: Simpan Draft Official',
         '4' => 'CTA: Simpan Draft Pemain',

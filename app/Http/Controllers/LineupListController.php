@@ -166,6 +166,7 @@ class LineupListController extends Controller
     public function edit(LineupList $lineupList)
     {
         $this->ensureClubAccess($lineupList->club_id);
+        abort_unless(auth()->user()->isAdmin() || $lineupList->canBeEditedByClub(), 422);
         $lineupPlayers = $this->lineupPlayers();
         $eligibleIds = $lineupPlayers->pluck('id');
 
@@ -517,7 +518,7 @@ class LineupListController extends Controller
 
         if ($invalidPlayerIds->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'starter_player_ids' => 'Hanya pemain yang sudah diterima admin yang bisa masuk ke DSP. Perbaiki data pemain lalu ajukan ulang untuk verifikasi.',
+                'starter_player_ids' => 'Hanya pemain yang sesuai klub, kelompok usia, dan sudah diterima admin yang bisa masuk ke DSP. Perbaiki data pemain lalu ajukan ulang untuk verifikasi.',
             ]);
         }
 

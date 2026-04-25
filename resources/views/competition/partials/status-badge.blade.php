@@ -1,10 +1,10 @@
 @php
     $classes = match ($status) {
-        'approved' => 'bg-success-subtle text-success',
-        'submitted' => 'bg-warning-subtle text-warning',
-        'revision' => 'bg-info-subtle text-info',
-        'rejected' => 'bg-danger-subtle text-danger',
-        default => 'bg-secondary-subtle text-secondary',
+        'approved' => 'lap-admin-chip lap-admin-chip-approved',
+        'submitted' => 'lap-admin-chip lap-admin-chip-pending',
+        'revision' => 'lap-admin-chip lap-admin-chip-revision',
+        'rejected' => 'lap-admin-chip lap-admin-chip-danger',
+        default => 'lap-admin-chip lap-admin-chip-draft',
     };
 
     $label = match ($status) {
@@ -15,4 +15,4 @@
         default => 'Draft',
     };
 @endphp
-<span class="badge {{ $classes }}">{{ $label }}</span>
+<span class="{{ $classes }}">{{ $label }}</span>

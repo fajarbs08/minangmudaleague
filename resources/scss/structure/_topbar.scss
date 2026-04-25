@@ -10,7 +10,7 @@
      height: $topbar-height;
      background-color: $topbar-bg;
      padding-left: $main-nav-width;
-     box-shadow: $box-shadow;
+     box-shadow: 0 12px 28px rgba(3, 5, 35, 0.08);
 
      .logo-box {
           position: fixed;
@@ -28,14 +28,15 @@
      .app-search {
 
           .form-control {
-               border: none;
-               padding-left: 40px;
-               padding-right: 15px;
-               background-color: $topbar-search-bg;
-               box-shadow: none;
-               height: 38px;
-               border-radius: 30px;
-          }
+                border: none;
+                padding-left: 40px;
+                padding-right: 15px;
+                background-color: $topbar-search-bg;
+                border: 1px solid rgba(3, 5, 35, 0.06);
+                box-shadow: none;
+                height: 38px;
+                border-radius: 30px;
+           }
 
           .search-widget-icon {
                position: absolute;
@@ -62,21 +63,23 @@
           height: $topbar-height;
 
           .topbar-button {
-               border: none;
-               background-color: transparent;
-               transition: all 0.3s ease-in-out;
-               color: $topbar-item-color;
-               padding: $btn-padding-y $btn-padding-y;
-               position: relative;
+                border: none;
+                background-color: transparent;
+                border-radius: 999px;
+                transition: all 0.3s ease-in-out;
+                color: $topbar-item-color;
+                padding: $btn-padding-y $btn-padding-y;
+                position: relative;
 
-               &.show,
-               &.active,
-               &:active,
-               &:hover {
-                    color: $primary;
-               }
-          }
-     }
+                &.show,
+                &.active,
+                &:active,
+                &:hover {
+                     background-color: rgba($primary, 0.08);
+                     color: $primary;
+                }
+           }
+      }
 
      .topbar-badge {
           height: 32px;
@@ -121,14 +124,15 @@
 
                .topbar-button {
 
-                    &.show,
-                    &.active,
-                    &:active,
-                    &:hover {
-                         color: $white;
-                    }
-               }
-          }
+                &.show,
+                &.active,
+                &:active,
+                &:hover {
+                          background-color: rgba($white, 0.08);
+                          color: $white;
+                     }
+                }
+           }
      }
 }
 

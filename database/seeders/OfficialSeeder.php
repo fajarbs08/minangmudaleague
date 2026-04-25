@@ -16,8 +16,16 @@ class OfficialSeeder extends AbstractDemoSeeder
             ['club' => 'Garuda Muda FC', 'age_group' => 'U16', 'name' => 'Indra Satria', 'role' => 'Head Coach', 'license_levels' => 'A'],
             ['club' => 'Elang Nusantara', 'age_group' => 'U12', 'name' => 'Dimas Saputra', 'role' => 'Manager', 'license_levels' => 'B'],
             ['club' => 'Elang Nusantara', 'age_group' => 'U14', 'name' => 'Budi Firmansyah', 'role' => 'Assistant Coach', 'license_levels' => 'C'],
+            ['club' => 'Rajawali City', 'age_group' => 'U12', 'name' => 'Dewi Lestari', 'role' => 'Manager', 'license_levels' => 'B'],
             ['club' => 'Rajawali City', 'age_group' => 'U14', 'name' => 'Bagas Mahendra', 'role' => 'Manager', 'license_levels' => 'B'],
             ['club' => 'Rajawali City', 'age_group' => 'U16', 'name' => 'Ilham Ramadhan', 'role' => 'Dokter', 'license_levels' => 'Non-Lisensi'],
+            ['club' => 'Harimau Selatan FC', 'age_group' => 'U12', 'name' => 'Rizky Ananda', 'role' => 'Manager', 'license_levels' => 'B'],
+            ['club' => 'Cendrawasih United', 'age_group' => 'U12', 'name' => 'Fajar Mahendra', 'role' => 'Head Coach', 'license_levels' => 'A'],
+            ['club' => 'Bintang Timur FC', 'age_group' => 'U12', 'name' => 'Hendra Saputra', 'role' => 'Manager', 'license_levels' => 'B'],
+            ['club' => 'Laskar Minang', 'age_group' => 'U12', 'name' => 'Ilham Prakoso', 'role' => 'Assistant Coach', 'license_levels' => 'C'],
+            ['club' => 'Satria Padang', 'age_group' => 'U12', 'name' => 'Rudi Hartono', 'role' => 'Manager', 'license_levels' => 'B'],
+            ['club' => 'Mutiara Selatan', 'age_group' => 'U12', 'name' => 'Andi Kurniawan', 'role' => 'Head Coach', 'license_levels' => 'B'],
+            ['club' => 'Singa Laut FC', 'age_group' => 'U12', 'name' => 'Yoga Ramadhan', 'role' => 'Manager', 'license_levels' => 'Non-Lisensi'],
         ] as $index => $official) {
             $club = $this->getClub($official['club']);
             $ageGroup = $this->getAgeGroup($official['age_group']);

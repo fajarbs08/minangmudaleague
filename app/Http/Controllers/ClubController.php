@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\Club;
+use App\Models\Official;
+use App\Models\Player;
 use App\Services\ClubLogoService;
 use App\Services\ImageAssetService;
 use Illuminate\Http\Request;
@@ -17,9 +19,7 @@ class ClubController extends Controller
     public function __construct(
         private ClubLogoService $clubLogoService,
         private ImageAssetService $imageAssetService
-    )
-    {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -28,13 +28,13 @@ class ClubController extends Controller
         $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
         $allowedSorts = ['name', 'zone', 'officials_count', 'players_count', 'lineup_lists_count', 'verification_status', 'created_at'];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'created_at';
             $direction = 'desc';
         }
 
         $clubs = Club::query()
-            ->when(!$user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->withCount(['officials', 'players', 'lineupLists'])
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
@@ -75,13 +75,7 @@ class ClubController extends Controller
             }
 
             $clubs->each(function (Club $club) {
-                if ($club->logo_url && !str_starts_with($club->logo_url, 'http')) {
-                    Storage::disk('public')->delete($club->logo_url);
-                }
-
-                if ($club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
-                    Storage::disk('public')->delete($club->statement_file_path);
-                }
+                $this->deleteStoredFiles($club);
 
                 $club->delete();
             });
@@ -108,7 +102,7 @@ class ClubController extends Controller
 
         return view('competition.clubs.create', [
             'title' => 'Tambah Klub',
-            'club' => new Club(),
+            'club' => new Club,
         ]);
     }
 
@@ -145,6 +139,7 @@ class ClubController extends Controller
     public function edit(Club $club)
     {
         $this->authorizeClub($club);
+        abort_unless(auth()->user()->isAdmin() || $club->canBeEditedByClub(), 422);
 
         return view('competition.clubs.edit', [
             'title' => 'Edit Klub',
@@ -162,6 +157,17 @@ class ClubController extends Controller
         ]);
     }
 
+    public function downloadStatement(Club $club)
+    {
+        $this->authorizeClub($club);
+
+        $absolutePath = $this->imageAssetService->documentAbsolutePath($club->statement_file_path);
+
+        abort_unless($absolutePath, 404);
+
+        return response()->file($absolutePath);
+    }
+
     public function update(Request $request, Club $club)
     {
         $this->authorizeClub($club);
@@ -169,16 +175,16 @@ class ClubController extends Controller
 
         $oldLogoPath = $club->logo_url;
         $oldStatementPath = $club->statement_file_path;
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $club);
 
         $club->update($data);
 
-        if (array_key_exists('logo_url', $data) && $oldLogoPath && !str_starts_with($oldLogoPath, 'http')) {
+        if (array_key_exists('logo_url', $data) && $oldLogoPath && ! str_starts_with($oldLogoPath, 'http')) {
             Storage::disk('public')->delete($oldLogoPath);
         }
 
-        if (array_key_exists('statement_file_path', $data) && $oldStatementPath && !str_starts_with($oldStatementPath, 'http')) {
-            Storage::disk('public')->delete($oldStatementPath);
+        if (array_key_exists('statement_file_path', $data) && $oldStatementPath) {
+            $this->imageAssetService->deleteDocumentUpload($oldStatementPath);
         }
 
         return redirect()->route('clubs.index')->with('status', 'Data klub berhasil diperbarui.');
@@ -208,33 +214,27 @@ class ClubController extends Controller
         $this->authorizeClub($club);
         abort_unless(auth()->user()->isAdmin() || $club->canBeSubmittedByClub(), 403);
 
-        if ($club->logo_url && !str_starts_with($club->logo_url, 'http')) {
-            Storage::disk('public')->delete($club->logo_url);
-        }
-
-        if ($club->statement_file_path && !str_starts_with($club->statement_file_path, 'http')) {
-            Storage::disk('public')->delete($club->statement_file_path);
-        }
+        $this->deleteStoredFiles($club);
 
         $club->delete();
 
         return redirect()->route('clubs.index')->with('status', 'Data klub berhasil dihapus.');
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, ?Club $club = null): array
     {
         $data = $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
-            'short_name' => ['nullable', 'string', 'max:50'],
+            'short_name' => ['required', 'string', 'max:50'],
             'manager_name' => ['required', 'string', 'max:255'],
             'manager_title' => ['required', 'string', 'max:255'],
-            'zone' => ['nullable', 'string', 'max:255'],
-            'founded_year' => ['nullable', 'integer', 'min:1900', 'max:'.date('Y')],
-            'logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072', 'dimensions:min_width=120,min_height=120'],
-            'statement_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
-            'address' => ['nullable', 'string'],
-            'training_address' => ['nullable', 'string'],
+            'zone' => ['required', 'string', 'max:255'],
+            'founded_year' => ['required', 'integer', 'min:1900', 'max:'.date('Y')],
+            'logo_file' => [blank($club?->logo_url) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072', 'dimensions:min_width=120,min_height=120'],
+            'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
+            'address' => ['required', 'string'],
+            'training_address' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -256,5 +256,39 @@ class ClubController extends Controller
         $user = auth()->user();
 
         abort_unless($user->isAdmin() || $club->user_id === $user->id, 403);
+    }
+
+    private function deleteStoredFiles(Club $club): void
+    {
+        if ($club->logo_url && ! str_starts_with($club->logo_url, 'http')) {
+            Storage::disk('public')->delete($club->logo_url);
+        }
+
+        $this->imageAssetService->deleteDocumentUpload($club->statement_file_path);
+
+        $club->loadMissing([
+            'players:id,club_id,photo_path,diploma_file_path,report_file_path,birth_certificate_file_path,family_card_file_path',
+            'officials:id,club_id,photo_path,license_file_path,identity_file_path',
+        ]);
+
+        $club->players->each(function (Player $player) {
+            if ($player->photo_path) {
+                Storage::disk('public')->delete($player->photo_path);
+            }
+
+            foreach (['diploma_file_path', 'report_file_path', 'birth_certificate_file_path', 'family_card_file_path'] as $field) {
+                $this->imageAssetService->deleteDocumentUpload($player->{$field});
+            }
+        });
+
+        $club->officials->each(function (Official $official) {
+            if ($official->photo_path) {
+                Storage::disk('public')->delete($official->photo_path);
+            }
+
+            foreach (['license_file_path', 'identity_file_path'] as $field) {
+                $this->imageAssetService->deleteDocumentUpload($official->{$field});
+            }
+        });
     }
 }

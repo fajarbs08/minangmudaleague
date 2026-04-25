@@ -1,10 +1,16 @@
 @php
     $eliminatedClubIdsByAgeGroup = $knockoutEliminatedClubIdsByAgeGroup ?? [];
+    $knockoutSourceOptionsByAgeGroup = $knockoutSourceOptionsByAgeGroup ?? [];
     $currentMatchClubIds = collect($currentMatchClubIds ?? [])->map(fn ($id) => (int) $id)->values()->all();
     $kickoffValue = old('kickoff_time', optional($matchSchedule->kickoff_time)->format('H:i'));
     [$kickoffHour, $kickoffMinute] = str_contains((string) $kickoffValue, ':')
         ? explode(':', $kickoffValue, 2)
         : [null, null];
+    $knockoutRoundLabel = old('round_label', $matchSchedule->round_label);
+    $knockoutRoundOrder = old('round_order', $matchSchedule->round_order);
+    $knockoutBracketSlot = old('bracket_slot', $matchSchedule->bracket_slot);
+    $knockoutSourceMatchAId = old('source_match_a_id', $matchSchedule->source_match_a_id);
+    $knockoutSourceMatchBId = old('source_match_b_id', $matchSchedule->source_match_b_id);
 @endphp
 
 <div class="text-muted small mb-3"><span class="text-danger">*</span> wajib diisi.</div>
@@ -47,44 +53,66 @@
         </select>
         <div class="form-text" data-knockout-club-hint hidden>Klub yang sudah gugur di knockout untuk kelompok usia ini otomatis tidak bisa dipilih.</div>
     </div>
+    <div class="col-12 knockout-field">
+        <div class="rounded-3 border bg-light-subtle p-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <div>
+                    <div class="small text-uppercase fw-semibold text-muted">Posisi Bracket</div>
+                    <div class="fw-semibold mt-1" data-knockout-position-copy>
+                        @if (filled($knockoutRoundOrder) && filled($knockoutBracketSlot))
+                            {{ $knockoutRoundLabel ?: 'Babak '.$knockoutRoundOrder }} • Urutan {{ $knockoutRoundOrder }} • Slot {{ $knockoutBracketSlot }}
+                        @else
+                            Pilih slot dari board knockout.
+                        @endif
+                    </div>
+                </div>
+                <span class="badge bg-warning-subtle text-warning" data-knockout-slot-badge>
+                    @if (filled($knockoutBracketSlot))
+                        Slot {{ $knockoutBracketSlot }}
+                    @else
+                        Posisi belum dipilih
+                    @endif
+                </span>
+            </div>
+        </div>
+        <input type="hidden" name="round_order" value="{{ $knockoutRoundOrder }}" data-round-order-input>
+        <input type="hidden" name="bracket_slot" value="{{ $knockoutBracketSlot }}" data-bracket-slot-input>
+    </div>
     <div class="col-lg-4 mb-3 knockout-field">
-        <label class="form-label">Label Babak</label>
+        <label class="form-label">Label Babak <span class="text-danger">*</span></label>
         <input
             type="text"
             name="round_label"
             class="form-control"
-            value="{{ old('round_label', $matchSchedule->round_label) }}"
-            placeholder="Contoh: Perempat Final"
+            data-round-label-input
+            value="{{ $knockoutRoundLabel }}"
+            placeholder="Contoh: Semifinal"
         >
-        <div class="form-text">Contoh: Perempat Final, Semifinal, Final.</div>
+        <div class="form-text">Nama babak yang tampil di board dan laporan bracket.</div>
     </div>
-    <div class="col-lg-4 mb-3 knockout-field">
-        <label class="form-label">Posisi Kolom Bagan</label>
-        <input
-            type="number"
-            name="round_order"
-            min="1"
-            class="form-control"
-            value="{{ old('round_order', $matchSchedule->round_order) }}"
-            placeholder="1"
-        >
-        <div class="form-text">Menentukan urutan kolom babak. Contoh: 1 Perempat Final, 2 Semifinal, 3 Final.</div>
+    <div class="col-lg-6 mb-3 knockout-field">
+        <label class="form-label">Sumber Tim A</label>
+        <select name="source_match_a_id" class="form-select" data-source-match-a-select data-selected-value="{{ $knockoutSourceMatchAId }}">
+            <option value="">Tim A ditentukan manual / belum ada sumber</option>
+        </select>
+        <div class="form-text">Pilih pertandingan babak sebelumnya yang menghasilkan peserta untuk posisi Tim A.</div>
     </div>
-    <div class="col-lg-4 mb-3 knockout-field">
-        <label class="form-label">Posisi Laga di Babak</label>
-        <input
-            type="number"
-            name="bracket_slot"
-            min="1"
-            class="form-control"
-            value="{{ old('bracket_slot', $matchSchedule->bracket_slot) }}"
-            placeholder="1"
-        >
-        <div class="form-text">Menentukan urutan laga dari atas ke bawah dalam babak yang sama.</div>
+    <div class="col-lg-6 mb-3 knockout-field">
+        <label class="form-label">Sumber Tim B</label>
+        <select name="source_match_b_id" class="form-select" data-source-match-b-select data-selected-value="{{ $knockoutSourceMatchBId }}">
+            <option value="">Tim B ditentukan manual / belum ada sumber</option>
+        </select>
+        <div class="form-text">Pilih pertandingan babak sebelumnya yang menghasilkan peserta untuk posisi Tim B.</div>
+    </div>
+    <div class="col-12 knockout-field d-none" data-knockout-board-alert>
+        <div class="alert alert-warning border border-warning-subtle mb-0">
+            Posisi bracket knockout dipilih dari halaman <strong>Jadwal Match Knockout</strong>. Pilih slot di board dulu, lalu isi detail match di form ini.
+        </div>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Hari Pertandingan <span class="text-danger">*</span></label>
-        <input type="text" name="match_day" class="form-control" value="{{ old('match_day', $matchSchedule->match_day) }}" required>
+        <label class="form-label">Label Jadwal <span class="text-danger">*</span></label>
+        <input type="text" name="match_day" class="form-control" value="{{ old('match_day', $matchSchedule->match_day) }}" placeholder="Contoh: Pekan 1, Putaran 3, Semifinal 1" required>
+        <div class="form-text">Bukan nama hari kalender. Kolom ini dipakai untuk label matchday atau nama sesi pertandingan.</div>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Tanggal <span class="text-danger">*</span></label>
@@ -155,8 +183,96 @@
                 const clubSelects = document.querySelectorAll('[data-club-select]');
                 const knockoutFields = document.querySelectorAll('.knockout-field');
                 const clubHint = document.querySelector('[data-knockout-club-hint]');
+                const boardAlert = document.querySelector('[data-knockout-board-alert]');
+                const roundLabelInput = document.querySelector('[data-round-label-input]');
+                const roundOrderInput = document.querySelector('[data-round-order-input]');
+                const bracketSlotInput = document.querySelector('[data-bracket-slot-input]');
+                const sourceMatchASelect = document.querySelector('[data-source-match-a-select]');
+                const sourceMatchBSelect = document.querySelector('[data-source-match-b-select]');
+                const positionCopy = document.querySelector('[data-knockout-position-copy]');
+                const slotBadge = document.querySelector('[data-knockout-slot-badge]');
+                const submitButton = document.querySelector('form button[type="submit"]');
                 const eliminatedClubIdsByAgeGroup = @json($eliminatedClubIdsByAgeGroup);
+                const knockoutSourceOptionsByAgeGroup = @json($knockoutSourceOptionsByAgeGroup);
                 const currentMatchClubIds = @json($currentMatchClubIds);
+
+                const hasKnockoutPosition = () => Boolean(roundOrderInput?.value && bracketSlotInput?.value);
+
+                const syncKnockoutPositionSummary = () => {
+                    if (!positionCopy || !slotBadge) {
+                        return;
+                    }
+
+                    if (!hasKnockoutPosition()) {
+                        positionCopy.textContent = 'Pilih slot dari board knockout.';
+                        slotBadge.textContent = 'Posisi belum dipilih';
+                        return;
+                    }
+
+                    const label = roundLabelInput?.value?.trim() || `Babak ${roundOrderInput.value}`;
+                    positionCopy.textContent = `${label} • Urutan ${roundOrderInput.value} • Slot ${bracketSlotInput.value}`;
+                    slotBadge.textContent = `Slot ${bracketSlotInput.value}`;
+                };
+
+                const renderSourceSelectOptions = (select, options, selectedValue, pairedSelectedValue) => {
+                    if (!select) {
+                        return;
+                    }
+
+                    const placeholderText = select === sourceMatchASelect
+                        ? 'Tim A ditentukan manual / belum ada sumber'
+                        : 'Tim B ditentukan manual / belum ada sumber';
+                    const normalizedSelectedValue = String(selectedValue || '');
+                    const normalizedPairedValue = String(pairedSelectedValue || '');
+
+                    select.innerHTML = '';
+
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = placeholderText;
+                    select.appendChild(placeholderOption);
+
+                    let hasSelectedOption = false;
+
+                    options.forEach((option) => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = String(option.id);
+                        optionElement.textContent = option.label;
+                        optionElement.disabled = normalizedPairedValue !== '' && normalizedPairedValue === optionElement.value;
+
+                        if (optionElement.value === normalizedSelectedValue && !optionElement.disabled) {
+                            optionElement.selected = true;
+                            hasSelectedOption = true;
+                        }
+
+                        select.appendChild(optionElement);
+                    });
+
+                    if (!hasSelectedOption) {
+                        select.value = '';
+                    }
+                };
+
+                const syncKnockoutSourceOptions = () => {
+                    if (!sourceMatchASelect || !sourceMatchBSelect || !ageGroupSelect || !roundOrderInput || !formatSelect) {
+                        return;
+                    }
+
+                    const isKnockout = formatSelect.value === 'knockout';
+                    const ageGroupId = ageGroupSelect.value;
+                    const currentRoundOrder = Number(roundOrderInput.value || 0);
+                    const availableOptions = isKnockout
+                        ? (knockoutSourceOptionsByAgeGroup[String(ageGroupId)] || []).filter((option) => Number(option.round_order) < currentRoundOrder)
+                        : [];
+
+                    renderSourceSelectOptions(sourceMatchASelect, availableOptions, sourceMatchASelect.value || sourceMatchASelect.dataset.selectedValue, sourceMatchBSelect.value);
+                    renderSourceSelectOptions(sourceMatchBSelect, availableOptions, sourceMatchBSelect.value || sourceMatchBSelect.dataset.selectedValue, sourceMatchASelect.value);
+
+                    sourceMatchASelect.dataset.selectedValue = sourceMatchASelect.value;
+                    sourceMatchBSelect.dataset.selectedValue = sourceMatchBSelect.value;
+                    sourceMatchASelect.disabled = !isKnockout || currentRoundOrder <= 1;
+                    sourceMatchBSelect.disabled = !isKnockout || currentRoundOrder <= 1;
+                };
 
                 if (formatSelect && knockoutFields.length) {
                     const syncKnockoutFields = () => {
@@ -169,6 +285,17 @@
                         if (clubHint) {
                             clubHint.hidden = !isKnockout;
                         }
+
+                        if (boardAlert) {
+                            boardAlert.classList.toggle('d-none', !(isKnockout && !hasKnockoutPosition()));
+                        }
+
+                        if (submitButton) {
+                            submitButton.disabled = isKnockout && !hasKnockoutPosition();
+                        }
+
+                        syncKnockoutPositionSummary();
+                        syncKnockoutSourceOptions();
                     };
 
                     formatSelect.addEventListener('change', syncKnockoutFields);
@@ -203,6 +330,29 @@
                     formatSelect.addEventListener('change', syncKnockoutClubOptions);
                     ageGroupSelect.addEventListener('change', syncKnockoutClubOptions);
                     syncKnockoutClubOptions();
+                }
+
+                if (roundLabelInput) {
+                    roundLabelInput.addEventListener('input', syncKnockoutPositionSummary);
+                    syncKnockoutPositionSummary();
+                }
+
+                if (sourceMatchASelect && sourceMatchBSelect) {
+                    if (ageGroupSelect) {
+                        ageGroupSelect.addEventListener('change', syncKnockoutSourceOptions);
+                    }
+
+                    sourceMatchASelect.addEventListener('change', () => {
+                        sourceMatchASelect.dataset.selectedValue = sourceMatchASelect.value;
+                        syncKnockoutSourceOptions();
+                    });
+
+                    sourceMatchBSelect.addEventListener('change', () => {
+                        sourceMatchBSelect.dataset.selectedValue = sourceMatchBSelect.value;
+                        syncKnockoutSourceOptions();
+                    });
+
+                    syncKnockoutSourceOptions();
                 }
 
                 document.querySelectorAll('[data-kickoff-picker]').forEach((picker) => {

@@ -1,6 +1,7 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @section('content')
+@php($canManageAgeRegistrations = auth()->user()->isAdmin() || $official->canBeEditedByClub())
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h4 class="mb-1">Detail Ofisial</h4>
@@ -96,28 +97,32 @@
                                     <td>{{ optional($registration->status_date)->format('d M Y H:i') ?: '-' }}</td>
                                     <td>{{ $registration->notes ?: '-' }}</td>
                                     <td>
-                                        <div class="d-flex gap-1">
-                                            <a
-                                                href="{{ route('officials.edit', $official) }}#age-registrations"
-                                                class="btn btn-sm btn-outline-primary px-2"
-                                                title="Edit kelompok usia"
-                                                aria-label="Edit kelompok usia"
-                                            >
-                                                <i data-lucide="square-pen" class="fs-14"></i>
-                                            </a>
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-danger js-delete-official-age px-2"
-                                                title="Hapus kelompok usia"
-                                                aria-label="Hapus kelompok usia"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteOfficialAgeModal"
-                                                data-action="{{ route('officials.age-registrations.destroy', [$official, $registration->age_group_id]) }}"
-                                                data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
-                                            >
-                                                <i data-lucide="trash-2" class="fs-14"></i>
-                                            </button>
-                                        </div>
+                                        @if ($canManageAgeRegistrations)
+                                            <div class="d-flex gap-1">
+                                                <a
+                                                    href="{{ route('officials.edit', $official) }}#age-registrations"
+                                                    class="btn btn-sm btn-outline-primary px-2"
+                                                    title="Edit kelompok usia"
+                                                    aria-label="Edit kelompok usia"
+                                                >
+                                                    <i data-lucide="square-pen" class="fs-14"></i>
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-danger js-delete-official-age px-2"
+                                                    title="Hapus kelompok usia"
+                                                    aria-label="Hapus kelompok usia"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteOfficialAgeModal"
+                                                    data-action="{{ route('officials.age-registrations.destroy', [$official, $registration->age_group_id]) }}"
+                                                    data-name="{{ $registration->ageGroup?->name ?: 'Kelompok usia' }}"
+                                                >
+                                                    <i data-lucide="trash-2" class="fs-14"></i>
+                                                </button>
+                                            </div>
+                                        @else
+                                            <span class="text-muted small">Tidak tersedia</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

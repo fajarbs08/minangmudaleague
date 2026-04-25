@@ -55,21 +55,18 @@
 @endphp
 
 @section('content')
-@php
-    $overviewColClass = auth()->user()->isAdmin() ? 'col-lg-4' : 'col-lg-6';
-@endphp
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div>
+<div class="lap-admin-page-head">
+    <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Hasil Pertandingan</li>
             </ol>
         </nav>
-        <h4 class="mb-1">Hasil Pertandingan</h4>
-        <p class="text-muted mb-0">Kelola hasil laga untuk pertandingan yang sudah terjadwal.</p>
+        <h4 class="lap-admin-page-title">Hasil Pertandingan</h4>
+        <p class="lap-admin-page-copy">Kelola hasil laga untuk pertandingan yang sudah terjadwal.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="lap-admin-page-actions">
         <button
             type="button"
             class="btn btn-outline-secondary position-relative d-inline-flex align-items-center gap-2"
@@ -99,50 +96,33 @@
         padding: .85rem;
         background: rgba(248, 250, 252, 0.7);
     }
-</style>
 
-<div class="row g-3 mb-4">
-    <div class="{{ $overviewColClass }} col-md-6">
-        <div class="card h-100">
-            <div class="card-body d-flex flex-column">
-                <span class="badge bg-primary-subtle text-primary align-self-start mb-3">Klasemen</span>
-                <h5 class="mb-2">Buka klasemen dari modul laporan</h5>
-                <p class="text-muted mb-4">Tabel klasemen dipisah dari input hasil supaya pemantauan posisi klub lebih fokus.</p>
-                <a href="{{ route('reports.standings', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Klasemen</a>
-            </div>
-        </div>
-    </div>
-    <div class="{{ $overviewColClass }} col-md-6">
-        <div class="card h-100">
-            <div class="card-body d-flex flex-column">
-                <span class="badge bg-success-subtle text-success align-self-start mb-3">Top Skor</span>
-                <h5 class="mb-2">Pantau pencetak gol terbanyak</h5>
-                <p class="text-muted mb-4">Laporan top skor sekarang punya page khusus agar rekap gol tidak bercampur dengan input hasil.</p>
-                <a href="{{ route('reports.top-scorers', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Top Skor</a>
-            </div>
-        </div>
-    </div>
-    <div class="{{ $overviewColClass }} col-md-6">
-        <div class="card h-100">
-            <div class="card-body d-flex flex-column">
-                <span class="badge bg-info-subtle text-info align-self-start mb-3">Top Assist</span>
-                <h5 class="mb-2">Pisahkan laporan assist</h5>
-                <p class="text-muted mb-4">Daftar pemberi assist terbanyak tersedia di page khusus supaya analisis pemain lebih rapi.</p>
-                <a href="{{ route('reports.top-assists', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-light mt-auto">Buka Top Assist</a>
-            </div>
-        </div>
-    </div>
-    <div class="{{ $overviewColClass }} col-md-6">
-        <div class="card h-100 border-primary border-opacity-25">
-            <div class="card-body d-flex flex-column">
-                <span class="badge bg-dark-subtle text-dark align-self-start mb-3">Rekap PDF</span>
-                <h5 class="mb-2">Generate report gabungan dan PDF</h5>
-                <p class="text-muted mb-4">Buka modul laporan untuk rekap klasemen, top skor, top assist, dan unduh PDF per halaman atau gabungan.</p>
-                <a href="{{ route('reports.overview', array_filter(['age_group_id' => request('age_group_id')], fn ($value) => filled($value))) }}" class="btn btn-primary mt-auto">Buka Rekap</a>
-            </div>
-        </div>
-    </div>
-</div>
+    .match-results-table > :not(caption) > * > * {
+        padding-top: .72rem;
+        padding-bottom: .72rem;
+    }
+
+    .match-results-table .small {
+        line-height: 1.3;
+    }
+
+    @media (max-width: 600px) {
+        .match-results-table > :not(caption) > * > * {
+            padding-top: .58rem;
+            padding-bottom: .58rem;
+        }
+
+        .match-results-table .lap-admin-chip {
+            font-size: 0.58rem;
+            padding: 0.28rem 0.46rem;
+        }
+
+        .match-results-table .small {
+            font-size: 0.72rem;
+            line-height: 1.2;
+        }
+    }
+</style>
 
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -162,10 +142,10 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive competition-table-wrap">
-            <table class="table competition-table align-middle text-nowrap">
+            <table class="table competition-table competition-table-compact match-results-table align-middle text-nowrap">
                 <thead>
                     <tr>
-                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Hari Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
+                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Label Jadwal', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'matchup', 'label' => 'Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
                         @include('competition.partials.sortable-th', ['key' => 'competition_format', 'label' => 'Format', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc'])
@@ -188,7 +168,7 @@
                             <td>{{ $match->clubA?->name }} vs {{ $match->clubB?->name }}</td>
                             <td>{{ $match->ageGroup?->name ?: '-' }}</td>
                             <td>
-                                <span class="badge {{ $match->competition_format === 'knockout' ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary' }}">
+                                <span class="badge {{ $match->competition_format === 'knockout' ? 'lap-admin-chip lap-admin-chip-pending' : 'lap-admin-chip lap-admin-chip-primary' }}">
                                     {{ $match->competition_format_label }}
                                 </span>
                             </td>
@@ -199,7 +179,7 @@
                             </td>
                             <td>{{ $match->venue }}</td>
                             <td>
-                                <span class="badge {{ $isComplete ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' }}">
+                                <span class="badge {{ $isComplete ? 'lap-admin-chip lap-admin-chip-approved' : 'lap-admin-chip lap-admin-chip-pending' }}">
                                     {{ $isComplete ? 'Lengkap' : 'Belum lengkap' }}
                                 </span>
                             </td>
@@ -356,7 +336,7 @@
     </div>
 </div>
 
-<script type="application/json" id="match-results-payload">{{ json_encode($resultModalPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</script>
+<script type="application/json" id="match-results-payload">@json($resultModalPayload)</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

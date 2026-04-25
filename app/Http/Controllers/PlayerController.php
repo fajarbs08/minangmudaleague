@@ -122,7 +122,10 @@ class PlayerController extends Controller
             }
 
             $count = $models->count();
-            $models->each->delete();
+            $models->each(function (Player $player) {
+                $this->deleteStoredFiles($player);
+                $player->delete();
+            });
 
             return redirect()->back()->with('status', $count.' data pemain berhasil dihapus.');
         }
@@ -158,6 +161,7 @@ class PlayerController extends Controller
     public function edit(Player $player)
     {
         $this->ensureClubAccess($player->club_id);
+        abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
         $player->load('ageRegistrations.ageGroup');
 
         return view('competition.players.edit', [
@@ -179,14 +183,74 @@ class PlayerController extends Controller
         ]);
     }
 
+    public function downloadDocument(Player $player, string $document)
+    {
+        $this->ensureClubAccess($player->club_id);
+
+        $documents = $this->downloadableDocumentFieldMap();
+
+        abort_unless(array_key_exists($document, $documents), 404);
+
+        $absolutePath = $this->imageAssetService->documentAbsolutePath($player->{$documents[$document]});
+
+        abort_unless($absolutePath, 404);
+
+        return response()->file($absolutePath);
+    }
+
     public function publicShow(string $playerSlug)
     {
-        preg_match('/^(\d+)(?:-|$)/', $playerSlug, $matches);
-        $playerId = isset($matches[1]) ? (int) $matches[1] : 0;
+        $player = $this->resolveApprovedPublicPlayer($playerSlug);
 
-        $player = Player::query()->findOrFail($playerId);
+        if ($playerSlug !== $player->public_slug) {
+            return redirect()->route('public.players.show', ['playerSlug' => $player->public_slug], 301);
+        }
 
-        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
+        $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
+
+        return view('public.player-show', [
+            'title' => $player->name.' - Detail Pemain',
+            'player' => $player,
+            'activePublicPage' => 'clubs',
+            'bannerTitle' => 'Pemain '.$player->name,
+            'bannerCurrent' => $player->name,
+            'pageHeadingAccentWord' => 'Pemain',
+            'breadcrumbItems' => [
+                ['label' => 'Beranda', 'url' => route('public.home')],
+                ['label' => 'Pemain'],
+                ['label' => $player->name],
+            ],
+            'seoTitle' => $player->name.' | Profil Pemain Liga Anak Piaman Laweh',
+            'seoDescription' => 'Profil publik pemain '.$player->name.' dari '.($player->club?->name ?: 'Liga Anak Piaman Laweh').' dengan detail roster dan registrasi kompetisi.',
+            'seoImage' => $player->photo_file_url ?: asset('og-share-card.jpg'),
+            'seoType' => 'profile',
+            'seoSchemaType' => 'ProfilePage',
+            'seoUrl' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+            'seoStructuredData' => [[
+                '@context' => 'https://schema.org',
+                '@type' => 'Person',
+                'name' => $player->name,
+                'url' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+                'image' => $player->photo_file_url ?: asset('og-share-card.jpg'),
+                'sport' => 'Soccer',
+                'memberOf' => $player->club
+                    ? array_filter([
+                        '@type' => 'SportsTeam',
+                        'name' => $player->club->name,
+                        'url' => route('public.clubs.show', ['clubSlug' => $player->club->public_slug]),
+                    ], fn ($value) => filled($value))
+                    : null,
+            ]],
+        ]);
+    }
+
+    public function publicScanShow(string $playerSlug)
+    {
+        $player = $this->resolveApprovedPublicPlayer($playerSlug);
+
+        if ($playerSlug !== $player->public_slug) {
+            return redirect()->route('public.players.scan', ['playerSlug' => $player->public_slug], 301);
+        }
 
         $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
 
@@ -194,14 +258,8 @@ class PlayerController extends Controller
             'title' => 'Hasil Scan Pemain',
             'player' => $player,
             'canonicalUrl' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+            'robotsContent' => 'noindex,nofollow',
         ]);
-    }
-
-    public function scanResult(Player $player)
-    {
-        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
-
-        return redirect()->route('public.players.show', ['playerSlug' => $player->public_slug]);
     }
 
     public function idCard(Player $player, AgeGroup $ageGroup, IdentityCardService $identityCardService)
@@ -251,6 +309,7 @@ class PlayerController extends Controller
     public function updateAgeRegistration(Player $player, AgeGroup $ageGroup, Request $request)
     {
         $this->ensureClubAccess($player->club_id);
+        abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
 
         $data = $request->validate([
             'season' => ['nullable', 'string', 'max:255'],
@@ -294,6 +353,7 @@ class PlayerController extends Controller
     public function destroyAgeRegistration(Player $player, AgeGroup $ageGroup)
     {
         $this->ensureClubAccess($player->club_id);
+        abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
         $this->ensureAgeRegistrationCanBeRemoved($player, $ageGroup);
 
         $player->ageRegistrations()->where('age_group_id', $ageGroup->id)->delete();
@@ -378,7 +438,7 @@ class PlayerController extends Controller
 
     public function update(Request $request, Player $player)
     {
-        [$data, $ageRegistrations] = $this->validatedData($request);
+        [$data, $ageRegistrations] = $this->validatedData($request, $player);
         $this->ensureClubAccess($player->club_id);
         $this->ensureClubAccess($data['club_id']);
         abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
@@ -415,41 +475,31 @@ class PlayerController extends Controller
         $this->ensureClubAccess($player->club_id);
         abort_unless(auth()->user()->isAdmin() || $player->canBeSubmittedByClub(), 403);
 
-        foreach ([
-            'photo_path',
-            'diploma_file_path',
-            'report_file_path',
-            'birth_certificate_file_path',
-            'family_card_file_path',
-        ] as $field) {
-            if ($player->{$field}) {
-                Storage::disk('public')->delete($player->{$field});
-            }
-        }
+        $this->deleteStoredFiles($player);
 
         $player->delete();
 
         return redirect()->route('players.index')->with('status', 'Data pemain berhasil dihapus.');
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, ?Player $player = null): array
     {
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
             'primary_age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
             'name' => ['required', 'string', 'max:255'],
-            'mother_name' => ['nullable', 'string', 'max:255'],
-            'school_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['required', 'string', 'max:255'],
+            'school_name' => ['required', 'string', 'max:255'],
             'jersey_number' => ['nullable', 'integer', 'min:1', 'max:99'],
             'position' => ['nullable', 'string', 'max:255'],
-            'citizenship' => ['nullable', 'in:WNI,WNA'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
-            'photo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
-            'diploma_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'report_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'birth_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'family_card_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'citizenship' => ['required', 'in:WNI,WNA'],
+            'birth_place' => ['required', 'string', 'max:255'],
+            'photo_file' => [blank($player?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'diploma_file' => [blank($player?->diploma_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'report_file' => [blank($player?->report_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'birth_certificate_file' => [blank($player?->birth_certificate_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'family_card_file' => [blank($player?->family_card_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
             'weight_kg' => ['nullable', 'integer', 'min:10', 'max:200'],
             'dominant_foot' => ['nullable', 'in:Kanan,Kiri,Keduanya'],
@@ -499,9 +549,9 @@ class PlayerController extends Controller
         $ageRegistrations = collect($request->input('age_registrations', []))
             ->map(fn ($registration) => [
                 'age_group_id' => (int) ($registration['age_group_id'] ?? 0),
-                'season' => $registration['season'] ?: (string) date('Y'),
+                'season' => ($registration['season'] ?? '') ?: (string) date('Y'),
                 'jersey_number' => isset($registration['jersey_number']) && $registration['jersey_number'] !== '' ? (int) $registration['jersey_number'] : null,
-                'position' => $registration['position'] ?: null,
+                'position' => ($registration['position'] ?? '') ?: null,
                 'notes' => $registration['notes'] ?? null,
                 'is_starter' => ! empty($registration['is_starter']),
                 'is_substitute' => ! empty($registration['is_substitute']),
@@ -529,6 +579,12 @@ class PlayerController extends Controller
             $data['position'] = $primary['position'];
         }
 
+        if ($ageRegistrations->isEmpty()) {
+            throw ValidationException::withMessages([
+                'age_registrations' => 'Minimal satu kelompok usia wajib dipilih.',
+            ]);
+        }
+
         unset($data['age_registrations']);
 
         return [$data, $ageRegistrations];
@@ -536,19 +592,46 @@ class PlayerController extends Controller
 
     private function replaceUploadedFiles(Request $request, Player $player): void
     {
-        $map = [
-            'photo_file' => 'photo_path',
+        if ($request->hasFile('photo_file') && $player->photo_path) {
+            Storage::disk('public')->delete($player->photo_path);
+        }
+
+        foreach ([
             'diploma_file' => 'diploma_file_path',
             'report_file' => 'report_file_path',
             'birth_certificate_file' => 'birth_certificate_file_path',
             'family_card_file' => 'family_card_file_path',
-        ];
-
-        foreach ($map as $input => $column) {
+        ] as $input => $column) {
             if ($request->hasFile($input) && $player->{$column}) {
-                Storage::disk('public')->delete($player->{$column});
+                $this->imageAssetService->deleteDocumentUpload($player->{$column});
             }
         }
+    }
+
+    private function deleteStoredFiles(Player $player): void
+    {
+        if ($player->photo_path) {
+            Storage::disk('public')->delete($player->photo_path);
+        }
+
+        foreach ($this->sensitiveDocumentColumns() as $column) {
+            $this->imageAssetService->deleteDocumentUpload($player->{$column});
+        }
+    }
+
+    private function downloadableDocumentFieldMap(): array
+    {
+        return [
+            'diploma' => 'diploma_file_path',
+            'report' => 'report_file_path',
+            'birth-certificate' => 'birth_certificate_file_path',
+            'family-card' => 'family_card_file_path',
+        ];
+    }
+
+    private function sensitiveDocumentColumns(): array
+    {
+        return array_values($this->downloadableDocumentFieldMap());
     }
 
     private function availableClubs()
@@ -575,6 +658,18 @@ class PlayerController extends Controller
             Club::where('id', $clubId)->where('user_id', $user->id)->exists(),
             403
         );
+    }
+
+    private function resolveApprovedPublicPlayer(string $playerSlug): Player
+    {
+        preg_match('/^(\d+)(?:-|$)/', $playerSlug, $matches);
+        $playerId = isset($matches[1]) ? (int) $matches[1] : 0;
+
+        $player = Player::query()->findOrFail($playerId);
+
+        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
+
+        return $player;
     }
 
     private function syncAgeRegistrations(Player $player, $ageRegistrations): void

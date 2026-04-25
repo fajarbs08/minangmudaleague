@@ -230,7 +230,7 @@ class IdentityCardService
         $role = $registration?->role ?: $official->role ?: 'Official';
         $license = $registration?->license_levels ?: $official->license_levels ?: $official->license_number ?: '-';
         $identifier = $official->identity_number ?: $official->license_number ?: 'OFF-'.str_pad((string) $official->id, 4, '0', STR_PAD_LEFT);
-        $qrPayload = $this->absoluteRoute('public.officials.show', ['officialSlug' => $official->public_slug]);
+        $qrPayload = $this->absoluteRoute('public.officials.scan', ['officialSlug' => $official->public_slug]);
 
         return [
             'id' => 'official-'.$official->id.'-'.$ageGroup->id,
@@ -291,7 +291,7 @@ class IdentityCardService
         $position = $player->displayPosition($ageGroup->id) ?: 'Player';
         $jersey = $player->displayJerseyNumber($ageGroup->id);
         $identifier = 'PLY-'.str_pad((string) $player->id, 4, '0', STR_PAD_LEFT);
-        $qrPayload = $this->absoluteRoute('public.players.show', ['playerSlug' => $player->public_slug]);
+        $qrPayload = $this->absoluteRoute('public.players.scan', ['playerSlug' => $player->public_slug]);
 
         return [
             'id' => 'player-'.$player->id.'-'.$ageGroup->id,

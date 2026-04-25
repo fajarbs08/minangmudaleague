@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
     <meta name="description" content="Verifikasi publik data ofisial {{ $official->name }} di Liga Anak Piaman Laweh.">
-    <meta name="robots" content="index,follow">
+    <meta name="robots" content="{{ $robotsContent ?? 'noindex,nofollow' }}">
+    <meta name="theme-color" content="#e41b23">
     <link rel="canonical" href="{{ $canonicalUrl }}">
     <meta property="og:locale" content="id_ID">
     <meta property="og:type" content="profile">
@@ -17,7 +18,13 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $title }}">
     <meta name="twitter:description" content="Verifikasi publik data ofisial {{ $official->name }} di Liga Anak Piaman Laweh.">
+    <meta name="twitter:url" content="{{ $canonicalUrl }}">
     <meta name="twitter:image" content="{{ $official->photo_file_url ?: asset('og-share-card.jpg') }}">
+    <meta name="twitter:image:alt" content="{{ $title }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <style>
         :root {
             --bg: #f8fafc;
@@ -39,6 +46,20 @@
         .title { margin-top: 8px; font-size: 28px; font-weight: 800; }
         .body { display: grid; grid-template-columns: 180px 1fr; gap: 24px; padding: 24px; }
         .photo { width: 100%; border-radius: 16px; border: 1px solid var(--line); background: #f8fafc; display: block; }
+
+        .photo-fallback {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: linear-gradient(135deg, #111827 0%, #334155 100%);
+            color: rgba(255, 255, 255, 0.94);
+            display: grid;
+            place-items: center;
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
         .name { font-size: 30px; font-weight: 800; line-height: 1.05; }
         .sub { margin-top: 8px; color: var(--muted); font-weight: 600; }
         .badge { display: inline-flex; margin-top: 14px; padding: 8px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok-text); font-size: 13px; font-weight: 700; }
@@ -65,7 +86,12 @@
             </div>
             <div class="body">
                 <div>
-                    <img src="{{ $official->photo_file_url ?: asset('images/users/avatar-1.jpg') }}" alt="{{ $official->name }}" class="photo">
+                    @if ($official->photo_file_url)
+                        <img src="{{ $official->photo_file_url }}" alt="{{ $official->name }}" class="photo">
+                    @else
+                        @php($officialInitial = \Illuminate\Support\Str::of($official->name)->trim()->substr(0, 1)->upper())
+                        <div class="photo-fallback" aria-hidden="true">{{ $officialInitial ?: 'O' }}</div>
+                    @endif
                 </div>
                 <div>
                     <div class="name">{{ $official->name }}</div>

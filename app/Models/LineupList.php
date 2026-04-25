@@ -102,7 +102,6 @@ class LineupList extends Model
     {
         return in_array($this->verification_status, [
             self::STATUS_DRAFT,
-            self::STATUS_SUBMITTED,
             self::STATUS_REVISION,
         ], true);
     }
@@ -165,15 +164,6 @@ class LineupList extends Model
 
         if (! $this->match_id || ! $this->match) {
             $errors['match_id'] = 'DSP harus terhubung ke jadwal pertandingan sebelum submit verifikasi.';
-        }
-        if (blank($this->coach_name)) {
-            $errors['coach_name'] = 'Nama pelatih wajib diisi sebelum submit verifikasi.';
-        }
-        if (blank($this->jersey_color)) {
-            $errors['jersey_color'] = 'Warna jersey wajib diisi sebelum submit verifikasi.';
-        }
-        if (blank($this->goalkeeper_jersey_color)) {
-            $errors['goalkeeper_jersey_color'] = 'Warna jersey kiper wajib diisi sebelum submit verifikasi.';
         }
         if (blank($this->played_at)) {
             $errors['played_at'] = 'Venue pertandingan wajib tersedia sebelum submit verifikasi.';

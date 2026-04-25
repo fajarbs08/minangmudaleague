@@ -81,11 +81,11 @@
      <div class="container-fluid">
           <div class="navbar-header">
 
-               <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-link d-inline-flex d-lg-none button-toggle-menu" aria-label="Buka menu">
-                         <i data-lucide="menu" class="button-sm-hover-icon"></i>
-                    </button>
-                    <!-- App Search-->
+                <div class="d-flex align-items-center gap-2">
+                     <button type="button" class="btn btn-link d-inline-flex d-lg-none button-toggle-menu" aria-label="Buka menu">
+                          <i data-lucide="menu" class="button-sm-hover-icon"></i>
+                     </button>
+                     <!-- App Search-->
                     <form class="app-search d-none d-md-block me-auto" method="GET" action="{{ route('search.index') }}" role="search" data-search-form>
                          <div class="position-relative">
                               <input

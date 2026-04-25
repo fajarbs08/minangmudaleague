@@ -1,321 +1,497 @@
-@extends('public.layout')
+@extends('public.public-layout')
+
+@push('styles')
+    <style>
+        .lap-public .lap-logo-frame .lap-results-club-mark {
+            align-items: center;
+            background: #ffffff;
+            border-radius: 50%;
+            color: #030523;
+            display: inline-flex;
+            font-family: 'Big Shoulders', sans-serif;
+            font-size: clamp(1rem, 1.8vw, 1.5rem);
+            font-weight: 800;
+            height: 100%;
+            justify-content: center;
+            letter-spacing: .08em;
+            line-height: 1;
+            text-transform: uppercase;
+            width: 100%;
+        }
+    </style>
+@endpush
 
 @php
-    $selectedAgeGroupId = $resultFilters['age_group_id'] ?? null;
-    $selectedKeyword = $resultFilters['q'] ?? '';
-    $selectedDateFrom = $resultFilters['date_from'] ?? null;
-    $selectedDateTo = $resultFilters['date_to'] ?? null;
+    $filters = $filters ?? $resultFilters ?? [];
+    $ageGroups = $ageGroups ?? $resultAgeGroups ?? collect();
+    $resultFormatOptions = $resultFormatOptions ?? [];
+    $filterActionUrl = $filterActionUrl ?? route('public.results');
+    $resetUrl = route('public.results');
 
-    $normalizeResult = function ($match): array {
-        $homeName = $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A';
-        $awayName = $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B';
-        $homeShort = $match->clubA?->short_name ?: 'HOME';
-        $awayShort = $match->clubB?->short_name ?: 'AWAY';
-        $homeScore = (int) ($match->score_club_a ?? 0);
-        $awayScore = (int) ($match->score_club_b ?? 0);
-        $status = $match->is_finished ? 'FT' : 'LIVE';
+    $selectedClub = $selectedClub ?? $filters['q'] ?? '';
+    $selectedAgeGroupId = $filters['age_group_id'] ?? $selectedAgeGroupId ?? null;
+    $selectedCompetitionFormat = $filters['competition_format'] ?? $selectedCompetitionFormat ?? null;
+    $selectedDateFrom = $filters['date_from'] ?? $selectedDateFrom ?? $selectedDate ?? null;
+    $selectedDateTo = $filters['date_to'] ?? $selectedDateTo ?? null;
+    $selectedStatus = $selectedStatus ?? $filters['status'] ?? request('status');
+    $resultStats = $resultStats ?? [];
+
+    $sanitizeImageUrl = function ($imageUrl): ?string {
+        if (! filled($imageUrl)) {
+            return null;
+        }
+
+        $path = parse_url((string) $imageUrl, PHP_URL_PATH) ?: '';
+
+        if (str_contains($path, '/kester-assets/images/icons/club-') || str_contains($path, '/public-assets/img/inner/flag/')) {
+            return null;
+        }
+
+        return (string) $imageUrl;
+    };
+
+    $clubLogoUrl = function ($club) use ($sanitizeImageUrl): ?string {
+        if (! $club) {
+            return null;
+        }
+
+        if (filled($club->logo_file_url)) {
+            return $sanitizeImageUrl($club->logo_file_url);
+        }
+
+        if (filled($club->logo_url)) {
+            return $sanitizeImageUrl(str_starts_with($club->logo_url, 'http')
+                ? $club->logo_url
+                : url('/storage/'.ltrim($club->logo_url, '/')));
+        }
+
+        return null;
+    };
+    $resultsSource = $matches ?? $recentResults ?? collect();
+    $featuredSource = $featuredMatch ?? $featuredResult ?? null;
+
+    $statusLabelMap = [
+        'FT' => 'FT',
+        'LIVE' => 'Live',
+        'SCHEDULED' => 'Scheduled',
+    ];
+
+    $formatDate = function ($value, string $format, string $fallback): string {
+        if (blank($value)) {
+            return $fallback;
+        }
+
+        if ($value instanceof \Carbon\CarbonInterface || $value instanceof \DateTimeInterface) {
+            return \Illuminate\Support\Carbon::instance($value)->translatedFormat($format);
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->translatedFormat($format);
+        } catch (\Throwable $exception) {
+            return (string) $value;
+        }
+    };
+
+    $formatTime = function ($value, string $fallback = 'Kickoff TBD'): string {
+        if (blank($value)) {
+            return $fallback;
+        }
+
+        if ($value instanceof \Carbon\CarbonInterface || $value instanceof \DateTimeInterface) {
+            return \Illuminate\Support\Carbon::instance($value)->format('H:i').' WIB';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('H:i').' WIB';
+        } catch (\Throwable $exception) {
+            return (string) $value;
+        }
+    };
+
+    $normalizeStatus = function ($value, $fallbackFinished = false): string {
+        $status = strtoupper((string) ($value ?: ($fallbackFinished ? 'FT' : 'SCHEDULED')));
+
+        return match ($status) {
+            'FINISHED', 'FULL_TIME' => 'FT',
+            'UPCOMING' => 'SCHEDULED',
+            default => $status,
+        };
+    };
+
+    $normalizeMatch = function ($match) use ($clubLogoUrl, $sanitizeImageUrl, $formatDate, $formatTime, $normalizeStatus): ?array {
+        if (blank($match)) {
+            return null;
+        }
+
+        $competitionFormat = strtolower((string) data_get($match, 'competition_format'));
+
+        $homeName = data_get($match, 'home_name')
+            ?: data_get($match, 'clubA.name')
+            ?: data_get($match, 'clubA.short_name')
+            ?: 'Klub Home';
+        $awayName = data_get($match, 'away_name')
+            ?: data_get($match, 'clubB.name')
+            ?: data_get($match, 'clubB.short_name')
+            ?: 'Klub Away';
+
+        $homeScore = (int) data_get($match, 'home_score', data_get($match, 'score_club_a', 0));
+        $awayScore = (int) data_get($match, 'away_score', data_get($match, 'score_club_b', 0));
+        $matchDateValue = data_get($match, 'match_date', data_get($match, 'date_full'));
+        $status = $normalizeStatus(data_get($match, 'status'), (bool) data_get($match, 'is_finished'));
+        $detailUrl = data_get($match, 'detail_url');
+        $publicSlug = data_get($match, 'public_slug');
+
+        if (! $detailUrl && filled($publicSlug)) {
+            $detailUrl = route('public.results.show', ['matchSlug' => $publicSlug]);
+        }
 
         return [
-            'date_short' => optional($match->match_date)->translatedFormat('d M') ?: '-- ---',
-            'date_full' => optional($match->match_date)->translatedFormat('d F Y') ?: 'Tanggal belum diatur',
-            'time' => optional($match->kickoff_time)->format('H:i') ? optional($match->kickoff_time)->format('H:i').' WIB' : '- WIB',
-            'age_group' => $match->ageGroup?->name ?: '-',
+            'key' => (string) (data_get($match, 'id') ?: $publicSlug ?: md5($homeName.$awayName.$matchDateValue.$homeScore.$awayScore)),
+            'date_short' => data_get($match, 'date_short') ?: $formatDate($matchDateValue, 'd M', '-- ---'),
+            'date_full' => data_get($match, 'date_full') ?: $formatDate($matchDateValue, 'd F Y', 'Tanggal belum tersedia'),
+            'time' => data_get($match, 'time') ?: $formatTime(data_get($match, 'kickoff_time')),
+            'age_group' => data_get($match, 'age_group') ?: data_get($match, 'ageGroup.name') ?: '-',
+            'competition_format' => $competitionFormat,
+            'competition_format_label' => data_get($match, 'competition_format_label') ?: match ($competitionFormat) {
+                'knockout' => 'Knockout',
+                'league' => 'Liga',
+                default => 'Arsip resmi',
+            },
             'home_name' => $homeName,
-            'home_short' => $homeShort,
-            'home_logo' => $match->clubA?->logo_file_url ?: asset('kester-assets/images/icons/club-3.svg'),
-            'home_score' => $homeScore,
-            'home_outcome' => $homeScore > $awayScore ? 'Menang' : ($homeScore === $awayScore ? 'Imbang' : 'Kalah'),
+            'home_short' => data_get($match, 'home_short') ?: data_get($match, 'clubA.short_name') ?: 'HOME',
+            'home_logo' => $sanitizeImageUrl(data_get($match, 'home_logo')) ?: $clubLogoUrl(data_get($match, 'clubA')),
             'away_name' => $awayName,
-            'away_short' => $awayShort,
-            'away_logo' => $match->clubB?->logo_file_url ?: asset('kester-assets/images/icons/club-4.svg'),
+            'away_short' => data_get($match, 'away_short') ?: data_get($match, 'clubB.short_name') ?: 'AWAY',
+            'away_logo' => $sanitizeImageUrl(data_get($match, 'away_logo')) ?: $clubLogoUrl(data_get($match, 'clubB')),
+            'home_score' => $homeScore,
             'away_score' => $awayScore,
-            'away_outcome' => $awayScore > $homeScore ? 'Menang' : ($homeScore === $awayScore ? 'Imbang' : 'Kalah'),
-            'score' => $match->score_label,
+            'score' => data_get($match, 'score') ?: data_get($match, 'score_label') ?: $homeScore.' - '.$awayScore,
             'status' => $status,
-            'status_label' => $status === 'FT' ? 'Selesai' : 'Sedang Berjalan',
-            'venue' => $match->venue ?: 'Lokasi belum diisi',
-            'summary' => $match->result_summary,
-            'detail_url' => route('public.results.show', ['matchSlug' => $match->public_slug]),
-            'is_dummy' => false,
+            'status_label' => match ($status) {
+                'LIVE' => 'Sedang berlangsung',
+                'SCHEDULED' => 'Belum dimulai',
+                default => 'Full time',
+            },
+            'venue' => data_get($match, 'venue') ?: 'Venue belum tersedia',
+            'detail_url' => $detailUrl,
+            'summary' => data_get($match, 'summary', data_get($match, 'result_summary')),
+            'date_group' => data_get($match, 'date_full') ?: $formatDate($matchDateValue, 'l, d F Y', 'Arsip pertandingan'),
         ];
     };
 
-    $dummyResults = collect([
-        [
-            'date_short' => '12 Mei',
-            'date_full' => '12 Mei 2026',
-            'time' => '15:30 WIB',
-            'age_group' => 'U-12',
-            'home_name' => 'Garuda Muda FC',
-            'home_short' => 'GMF',
-            'home_logo' => asset('kester-assets/images/icons/club-3.svg'),
-            'home_score' => 3,
-            'home_outcome' => 'Menang',
-            'away_name' => 'Elang Junior',
-            'away_short' => 'ELG',
-            'away_logo' => asset('kester-assets/images/icons/club-4.svg'),
-            'away_score' => 1,
-            'away_outcome' => 'Kalah',
-            'score' => '3 - 1',
-            'status' => 'FT',
-            'status_label' => 'Selesai',
-            'venue' => 'Stadion Piaman Utama',
-            'summary' => 'Garuda Muda FC menang meyakinkan lewat tekanan sejak babak pertama.',
-            'detail_url' => '#',
-            'is_dummy' => true,
-        ],
-        [
-            'date_short' => '12 Mei',
-            'date_full' => '12 Mei 2026',
-            'time' => '17:00 WIB',
-            'age_group' => 'U-12',
-            'home_name' => 'Rajawali Soccer School',
-            'home_short' => 'RJS',
-            'home_logo' => asset('kester-assets/images/icons/club-4.svg'),
-            'home_score' => 2,
-            'home_outcome' => 'Imbang',
-            'away_name' => 'Bintang Pesisir',
-            'away_short' => 'BPS',
-            'away_logo' => asset('kester-assets/images/icons/club-3.svg'),
-            'away_score' => 2,
-            'away_outcome' => 'Imbang',
-            'score' => '2 - 2',
-            'status' => 'FT',
-            'status_label' => 'Selesai',
-            'venue' => 'Lapangan Andalas',
-            'summary' => 'Pertandingan ketat berakhir imbang setelah gol penyeimbang di penghujung laga.',
-            'detail_url' => '#',
-            'is_dummy' => true,
-        ],
-        [
-            'date_short' => '13 Mei',
-            'date_full' => '13 Mei 2026',
-            'time' => '14:30 WIB',
-            'age_group' => 'U-14',
-            'home_name' => 'Satria Minang Academy',
-            'home_short' => 'SMA',
-            'home_logo' => asset('kester-assets/images/icons/club-3.svg'),
-            'home_score' => 0,
-            'home_outcome' => 'Kalah',
-            'away_name' => 'Harimau Barat FC',
-            'away_short' => 'HBF',
-            'away_logo' => asset('kester-assets/images/icons/club-4.svg'),
-            'away_score' => 2,
-            'away_outcome' => 'Menang',
-            'score' => '0 - 2',
-            'status' => 'FT',
-            'status_label' => 'Selesai',
-            'venue' => 'Stadion Piaman Utama',
-            'summary' => 'Harimau Barat FC tampil disiplin dan menutup laga dengan clean sheet.',
-            'detail_url' => '#',
-            'is_dummy' => true,
-        ],
-        [
-            'date_short' => '13 Mei',
-            'date_full' => '13 Mei 2026',
-            'time' => '16:15 WIB',
-            'age_group' => 'U-14',
-            'home_name' => 'Persada Talenta',
-            'home_short' => 'PST',
-            'home_logo' => asset('kester-assets/images/icons/club-4.svg'),
-            'home_score' => 4,
-            'home_outcome' => 'Menang',
-            'away_name' => 'Tunas Laut United',
-            'away_short' => 'TLU',
-            'away_logo' => asset('kester-assets/images/icons/club-3.svg'),
-            'away_score' => 3,
-            'away_outcome' => 'Kalah',
-            'score' => '4 - 3',
-            'status' => 'FT',
-            'status_label' => 'Selesai',
-            'venue' => 'Lapangan Bahari',
-            'summary' => 'Tujuh gol tercipta dalam laga terbuka dengan tempo tinggi sepanjang babak kedua.',
-            'detail_url' => '#',
-            'is_dummy' => true,
-        ],
-        [
-            'date_short' => '14 Mei',
-            'date_full' => '14 Mei 2026',
-            'time' => '15:45 WIB',
-            'age_group' => 'U-16',
-            'home_name' => 'Piaman Elite Youth',
-            'home_short' => 'PEY',
-            'home_logo' => asset('kester-assets/images/icons/club-3.svg'),
-            'home_score' => 1,
-            'home_outcome' => 'Imbang',
-            'away_name' => 'Mutiara Selatan',
-            'away_short' => 'MTS',
-            'away_logo' => asset('kester-assets/images/icons/club-4.svg'),
-            'away_score' => 1,
-            'away_outcome' => 'Imbang',
-            'score' => '1 - 1',
-            'status' => 'FT',
-            'status_label' => 'Selesai',
-            'venue' => 'Stadion Piaman Utama',
-            'summary' => 'Dua tim berbagi poin setelah saling menekan namun gagal menemukan gol tambahan.',
-            'detail_url' => '#',
-            'is_dummy' => true,
-        ],
-    ]);
+    $resultCollection = method_exists($resultsSource, 'getCollection')
+        ? $resultsSource->getCollection()->values()
+        : collect($resultsSource)->values();
 
-    $actualRows = $recentResults->getCollection()->values();
-    $featuredMatch = $featuredResult ? $normalizeResult($featuredResult) : $dummyResults->first();
-    $resultRows = $actualRows
-        ->reject(fn ($match) => $featuredResult && (int) $match->id === (int) $featuredResult->id)
-        ->map($normalizeResult)
+    $normalizedFeatured = $featuredSource ? $normalizeMatch($featuredSource) : null;
+    $normalizedMatches = $resultCollection->map($normalizeMatch)->filter()->values();
+
+    $availableStatuses = collect([$normalizedFeatured])
+        ->filter()
+        ->merge($normalizedMatches)
+        ->pluck('status')
+        ->filter()
+        ->unique()
         ->values();
 
-    if ($resultRows->isEmpty()) {
-        $resultRows = $dummyResults->slice(1)->values();
+    $selectedStatus = filled($selectedStatus) ? $normalizeStatus($selectedStatus) : null;
+
+    if (filled($selectedStatus) && ! $availableStatuses->contains($selectedStatus)) {
+        $selectedStatus = null;
     }
 
-    $displayResultCount = $actualRows->isNotEmpty() ? $recentResults->total() : $dummyResults->count();
+    $statusOptions = collect([['value' => '', 'label' => 'Semua status']])
+        ->merge($availableStatuses->map(fn ($status) => [
+            'value' => $status,
+            'label' => $statusLabelMap[$status] ?? $status,
+        ]))
+        ->values()
+        ->all();
 
+    if (filled($selectedStatus)) {
+        $normalizedMatches = $normalizedMatches
+            ->filter(fn ($match) => $match['status'] === $selectedStatus)
+            ->values();
+
+        if ($normalizedFeatured && $normalizedFeatured['status'] !== $selectedStatus) {
+            $normalizedFeatured = null;
+        }
+    }
+
+    if (! $normalizedFeatured && $normalizedMatches->isNotEmpty()) {
+        $normalizedFeatured = $normalizedMatches->first();
+    }
+
+    $feedMatches = $normalizedMatches;
+    $groupedMatches = $feedMatches->groupBy('date_group');
+    $activeArchiveCount = $activeArchiveCount ?? (method_exists($resultsSource, 'total') ? $resultsSource->total() : $normalizedMatches->count());
+    $activeFilterCount = collect([$selectedClub, $selectedAgeGroupId, $selectedCompetitionFormat, $selectedDateFrom, $selectedDateTo, $selectedStatus])
+        ->filter(fn ($value) => filled($value))
+        ->count();
+
+    $selectedAgeGroupLabel = collect($ageGroups)
+        ->first(fn ($ageGroup) => (string) data_get($ageGroup, 'id') === (string) $selectedAgeGroupId);
+    $selectedAgeGroupLabel = data_get($selectedAgeGroupLabel, 'name');
+    $selectedCompetitionFormatLabel = filled($selectedCompetitionFormat)
+        ? ($resultFormatOptions[$selectedCompetitionFormat] ?? ucfirst((string) $selectedCompetitionFormat))
+        : null;
+
+    $selectedDateWindow = match (true) {
+        filled($selectedDateFrom) && filled($selectedDateTo) => $formatDate($selectedDateFrom, 'd M', '...').' - '.$formatDate($selectedDateTo, 'd M Y', '...'),
+        filled($selectedDateFrom) => 'Mulai '.$formatDate($selectedDateFrom, 'd M Y', '...'),
+        filled($selectedDateTo) => 'Sampai '.$formatDate($selectedDateTo, 'd M Y', '...'),
+        default => null,
+    };
+
+    $totalGoals = (int) data_get($resultStats, 'goals', $normalizedMatches->sum(fn ($match) => (int) $match['home_score'] + (int) $match['away_score']));
+    $cleanSheetCount = (int) data_get($resultStats, 'clean_sheets', $normalizedMatches->filter(fn ($match) => (int) $match['home_score'] === 0 || (int) $match['away_score'] === 0)->count());
+    $summaryMetrics = [
+        [
+            'label' => 'Arsip aktif',
+            'value' => number_format($activeArchiveCount),
+            'caption' => $activeFilterCount > 0 ? 'hasil resmi sesuai filter saat ini' : 'hasil resmi siap dipindai publik',
+        ],
+        [
+            'label' => 'Gol tercatat',
+            'value' => number_format($totalGoals),
+            'caption' => 'total gol pada arsip yang sedang tampil',
+        ],
+        [
+            'label' => 'Clean sheet',
+            'value' => number_format($cleanSheetCount),
+            'caption' => $cleanSheetCount > 0 ? 'laga tanpa kebobolan dari salah satu tim' : 'belum ada clean sheet di arsip aktif',
+        ],
+    ];
+    $activeFilterLabels = collect([
+        filled($selectedClub) ? 'Klub: '.$selectedClub : null,
+        filled($selectedAgeGroupLabel) ? 'Kategori: '.$selectedAgeGroupLabel : null,
+        filled($selectedCompetitionFormatLabel) ? 'Format: '.$selectedCompetitionFormatLabel : null,
+        filled($selectedDateWindow) ? 'Periode: '.$selectedDateWindow : null,
+        filled($selectedStatus) ? 'Status: '.($statusLabelMap[$selectedStatus] ?? $selectedStatus) : null,
+    ])->filter()->values()->all();
+    $archiveStatement = $activeFilterCount > 0
+        ? 'Arsip sedang dipersempit supaya keluarga dan panitia bisa langsung fokus ke pertandingan yang dicari.'
+        : 'Semua hasil di halaman ini berasal dari laga yang sudah selesai dan siap dibagikan sebagai arsip resmi kompetisi.';
     $paginationPages = collect();
 
-    if ($recentResults->hasPages()) {
+    if (method_exists($resultsSource, 'hasPages') && $resultsSource->hasPages()) {
         $paginationPages = collect([
             1,
-            $recentResults->currentPage() - 1,
-            $recentResults->currentPage(),
-            $recentResults->currentPage() + 1,
-            $recentResults->lastPage(),
-        ])->filter(fn ($page) => $page >= 1 && $page <= $recentResults->lastPage())
+            $resultsSource->currentPage() - 1,
+            $resultsSource->currentPage(),
+            $resultsSource->currentPage() + 1,
+            $resultsSource->lastPage(),
+        ])->filter(fn ($page) => $page >= 1 && $page <= $resultsSource->lastPage())
             ->unique()
             ->values();
     }
 @endphp
 
 @section('content')
-    <div class="tw-bg-[#f4f6fa] tw-py-8 lg:tw-py-12">
-        <div class="tw-mx-auto tw-w-full tw-max-w-[1320px] tw-space-y-10 tw-px-4 sm:tw-px-6 lg:tw-px-8">
-            <section class="tw-space-y-6">
-                <div class="tw-flex tw-flex-col tw-gap-5 lg:tw-flex-row lg:tw-items-end lg:tw-justify-between">
-                    <div class="tw-max-w-4xl">
-                        <p class="tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.28em] tw-text-lap-red">Liga Sepak Bola</p>
-                        <h2 class="tw-mt-3 tw-font-display tw-text-3xl tw-font-black tw-leading-[0.96] tw-tracking-[-0.04em] tw-text-slate-950 lg:tw-text-4xl">Pantau hasil terbaru dengan format match center.</h2>
-                        <p class="tw-mt-4 tw-max-w-2xl tw-text-sm tw-leading-7 tw-text-slate-600 lg:tw-text-base">Banner hero publik tetap tampil di atas. Di bawahnya, filter dan papan skor utama tetap dipertahankan agar halaman hasil tetap cepat dipakai.</p>
-                    </div>
-                    <div class="tw-border-l-4 tw-border-l-lap-red tw-pl-4 lg:tw-text-right">
-                        <div class="tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.24em] tw-text-slate-500">Arsip Aktif</div>
-                        <div class="tw-mt-2 tw-text-4xl tw-font-black tw-leading-none tw-text-slate-950">{{ $displayResultCount }}</div>
-                        <div class="tw-mt-2 tw-text-sm tw-text-slate-500">hasil pertandingan</div>
-                    </div>
-                </div>
+    <div class="lap-page-shell is-dark">
+        <div class="container">
+            <section class="lap-dark-card lap-spacer-bottom wow fadeInUp" data-wow-delay=".15s">
+                <span class="lap-section-kicker">Arsip Hasil</span>
+                <span class="visually-hidden">Daftar Hasil Pertandingan</span>
+                <h2 class="lap-card-title">Skor resmi dan ringkasan pertandingan yang sudah selesai</h2>
+                <p class="lap-card-copy">Gunakan halaman ini untuk memindai skor akhir, kategori usia, venue, dan detail pertandingan yang siap dibagikan ke publik.</p>
 
-                @include('public.results.filter-bar', [
-                    'resultAgeGroups' => $resultAgeGroups,
-                    'selectedAgeGroupId' => $selectedAgeGroupId,
-                    'selectedDateFrom' => $selectedDateFrom,
-                    'selectedDateTo' => $selectedDateTo,
-                    'selectedKeyword' => $selectedKeyword,
-                ])
-
+                @if ($normalizedFeatured)
+                    <div class="lap-spacer-top">
+                        <div class="lap-card-meta">
+                            <span>{{ strtoupper($normalizedFeatured['competition_format_label']) }}</span>
+                            <span>{{ strtoupper($normalizedFeatured['age_group']) }}</span>
+                            <span>{{ strtoupper($normalizedFeatured['status_label']) }}</span>
+                        </div>
+                        <div class="lap-scoreboard">
+                            <div class="lap-team-stack">
+                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['home_logo'], 'label' => $normalizedFeatured['home_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                <h3 class="lap-team-name">{{ $normalizedFeatured['home_name'] }}</h3>
+                            </div>
+                            <div class="text-center">
+                                <div class="lap-score-pill">{{ $normalizedFeatured['score'] }}</div>
+                                <p class="lap-card-copy mt-3">{{ $normalizedFeatured['date_full'] }}</p>
+                                <p class="lap-card-copy">{{ $normalizedFeatured['time'] }} · {{ $normalizedFeatured['venue'] }}</p>
+                            </div>
+                            <div class="lap-team-stack is-away">
+                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['away_logo'], 'label' => $normalizedFeatured['away_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                <h3 class="lap-team-name">{{ $normalizedFeatured['away_name'] }}</h3>
+                            </div>
+                        </div>
+                        <p class="lap-card-copy lap-spacer-top">{{ $normalizedFeatured['summary'] ?: 'Skor akhir resmi telah dicatat pada arsip kompetisi.' }}</p>
+                        @if ($normalizedFeatured['detail_url'])
+                            <div class="lap-spacer-top">
+                                <a href="{{ $normalizedFeatured['detail_url'] }}" class="theme-btn">Lihat Detail Hasil <i class="fa-solid fa-arrow-up-right"></i></a>
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <div class="lap-empty-card lap-spacer-top">
+                        <h3 class="lap-card-title-sm">Belum ada hasil yang bisa disorot</h3>
+                        <p class="lap-card-copy">Sorotan utama akan otomatis terisi ketika pertandingan selesai dan skor akhir sudah dicatat.</p>
+                    </div>
+                @endif
             </section>
 
-            <div class="tw-relative tw-isolate tw-overflow-hidden tw-border-y tw-border-slate-900/10 tw-bg-[radial-gradient(circle_at_top,rgba(228,27,35,0.16),transparent_26%),linear-gradient(180deg,#08111d_0%,#0d1624_38%,#0a1320_100%)]">
-                <div class="tw-absolute tw-inset-x-0 tw-top-0 tw-h-px tw-bg-white/10"></div>
-                <div class="tw-absolute tw-inset-x-0 tw-bottom-0 tw-h-px tw-bg-white/10"></div>
-                <div class="tw-absolute tw-left-1/2 tw-top-0 tw-h-56 tw-w-56 tw--translate-x-1/2 tw-rounded-full tw-bg-lap-red/10 tw-blur-3xl"></div>
-
-                <div class="tw-relative tw-space-y-8 tw-py-8 lg:tw-space-y-10 lg:tw-py-10">
-                    @include('public.results.featured-match', ['match' => $featuredMatch])
-
-                    <section aria-labelledby="result-list-heading" class="tw-space-y-5">
-                        <div class="tw-flex tw-flex-col tw-gap-4 lg:tw-flex-row lg:tw-items-end lg:tw-justify-between">
-                            <div class="tw-max-w-3xl">
-                                <p class="tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.28em] tw-text-lap-red">Result Feed</p>
-                                <h2 id="result-list-heading" class="tw-mt-3 tw-font-display tw-text-3xl tw-font-black tw-tracking-[-0.03em] tw-text-white lg:tw-text-4xl">Daftar Hasil Pertandingan</h2>
-                                <p class="tw-mt-2 tw-text-sm tw-leading-7 tw-text-slate-300">Setiap hasil ditampilkan sebagai row livescore yang ringan, tegas, dan cepat dipindai saat pengguna scroll panjang.</p>
-                            </div>
-
-                            <div class="tw-flex tw-items-center tw-gap-3 tw-text-sm tw-text-slate-300">
-                                <span class="tw-inline-flex tw-items-center tw-gap-2">
-                                    <span class="tw-h-2 tw-w-2 tw-rounded-full tw-bg-lap-red"></span>
-                                    {{ $displayResultCount }} arsip hasil
-                                </span>
-                                @if ($recentResults->hasPages())
-                                    <span class="tw-hidden tw-h-4 tw-w-px tw-bg-white/10 sm:tw-block"></span>
-                                    <span>Menampilkan {{ $recentResults->firstItem() }}-{{ $recentResults->lastItem() }}</span>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="tw-border-y tw-border-white/10 tw-bg-white/[0.02]">
-                            <ul class="tw-divide-y tw-divide-white/10" role="list">
-                                @foreach ($resultRows as $row)
-                                    @include('public.results.result-row', ['row' => $row])
-                                @endforeach
-                            </ul>
-                        </div>
-
-                        @if ($recentResults->hasPages())
-                            <nav aria-label="Navigasi halaman hasil pertandingan" class="tw-flex tw-flex-col tw-gap-4 tw-border-t tw-border-white/10 tw-pt-5 lg:tw-flex-row lg:tw-items-center lg:tw-justify-between">
-                                <p class="tw-text-sm tw-text-slate-400">Halaman {{ $recentResults->currentPage() }} dari {{ $recentResults->lastPage() }} untuk arsip hasil pertandingan.</p>
-
-                                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-                                    @if ($recentResults->onFirstPage())
-                                        <span class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-white/10 tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-slate-500">Prev</span>
-                                    @else
-                                        <a href="{{ $recentResults->previousPageUrl() }}" class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-white/10 tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-white hover:tw-border-lap-red hover:tw-text-lap-red">Prev</a>
-                                    @endif
-
-                                    @php $previousPaginationPage = null; @endphp
-                                    @foreach ($paginationPages as $page)
-                                        @if (! is_null($previousPaginationPage) && $page - $previousPaginationPage > 1)
-                                            <span class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-px-2 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-slate-500">...</span>
-                                        @endif
-
-                                        @if ($page === $recentResults->currentPage())
-                                            <span aria-current="page" class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-lap-red tw-bg-lap-red tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-white">{{ $page }}</span>
-                                        @else
-                                            <a href="{{ $recentResults->url($page) }}" class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-white/10 tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-white hover:tw-border-lap-red hover:tw-text-lap-red">{{ $page }}</a>
-                                        @endif
-
-                                        @php $previousPaginationPage = $page; @endphp
-                                    @endforeach
-
-                                    @if ($recentResults->hasMorePages())
-                                        <a href="{{ $recentResults->nextPageUrl() }}" class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-white/10 tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-white hover:tw-border-lap-red hover:tw-text-lap-red">Next</a>
-                                    @else
-                                        <span class="tw-inline-flex tw-min-w-[44px] tw-items-center tw-justify-center tw-border tw-border-white/10 tw-px-4 tw-py-2 tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.18em] tw-text-slate-500">Next</span>
-                                    @endif
+            <div class="lap-result-layout">
+                <div>
+                    <section class="lap-filter-shell lap-spacer-bottom wow fadeInUp" data-wow-delay=".2s">
+                        <span class="lap-section-kicker">Filter Arsip</span>
+                        <span class="visually-hidden">Kontrol pencarian hasil pertandingan</span>
+                        <h3 class="lap-card-title-sm">Persempit hasil yang ingin ditinjau</h3>
+                        <form method="GET" action="{{ $filterActionUrl }}" class="lap-spacer-top">
+                            <div class="lap-form-grid">
+                                <div class="lap-form-group is-span-2">
+                                    <label for="result-q">Cari klub</label>
+                                    <input id="result-q" type="text" name="q" value="{{ $selectedClub }}" placeholder="Nama klub">
                                 </div>
-                            </nav>
+                                <div class="lap-form-group">
+                                    <label for="result-status">Status</label>
+                                    <select id="result-status" name="status">
+                                        @foreach ($statusOptions as $statusOption)
+                                            <option value="{{ $statusOption['value'] }}" @selected((string) $selectedStatus === (string) $statusOption['value'])>{{ $statusOption['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="lap-form-group">
+                                    <label for="result-age-group">Kelompok usia</label>
+                                    <select id="result-age-group" name="age_group_id">
+                                        <option value="">Semua kategori</option>
+                                        @foreach ($ageGroups as $ageGroup)
+                                            <option value="{{ $ageGroup->id }}" @selected((string) $selectedAgeGroupId === (string) $ageGroup->id)>{{ $ageGroup->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="lap-form-group">
+                                    <label for="result-format">Format</label>
+                                    <select id="result-format" name="competition_format">
+                                        <option value="">Semua format</option>
+                                        @foreach ($resultFormatOptions as $formatValue => $formatLabel)
+                                            <option value="{{ $formatValue }}" @selected((string) $selectedCompetitionFormat === (string) $formatValue)>{{ $formatLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="lap-form-group">
+                                    <label for="result-date-from">Dari tanggal</label>
+                                    <input id="result-date-from" type="date" name="date_from" value="{{ $selectedDateFrom }}">
+                                </div>
+                                <div class="lap-form-group">
+                                    <label for="result-date-to">Sampai tanggal</label>
+                                    <input id="result-date-to" type="date" name="date_to" value="{{ $selectedDateTo }}">
+                                </div>
+                            </div>
+                            <div class="lap-form-actions">
+                                <button type="submit" class="theme-btn">Terapkan Filter <i class="fa-solid fa-arrow-up-right"></i></button>
+                                <a href="{{ $resetUrl }}" class="theme-btn style-border">Reset Arsip</a>
+                            </div>
+                        </form>
+                    </section>
+
+                    @forelse ($groupedMatches as $dateGroup => $matches)
+                        <section class="lap-result-group wow fadeInUp" data-wow-delay=".25s">
+                            <div class="lap-light-card">
+                                <span class="lap-section-kicker">{{ $dateGroup }}</span>
+                                <div class="lap-list-stack lap-spacer-top">
+                                    @foreach ($matches as $match)
+                                        <article class="lap-result-card wow fadeInUp" data-wow-delay=".35s">
+                                            <div class="lap-result-meta">
+                                                <span>{{ strtoupper($match['competition_format_label']) }}</span>
+                                                <span>{{ strtoupper($match['age_group']) }}</span>
+                                                <span>{{ strtoupper($match['status_label']) }}</span>
+                                            </div>
+                                            <div class="lap-match-teams">
+                                                <div class="lap-team-stack">
+                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['home_logo'], 'label' => $match['home_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                                    <strong class="lap-team-name">{{ $match['home_name'] }}</strong>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div class="lap-result-score">@include('public.partials.match-score', ['homeScore' => $match['home_score'], 'awayScore' => $match['away_score'], 'separator' => ' - '])</div>
+                                                    <p class="lap-card-copy">{{ $match['time'] }}</p>
+                                                    <p class="lap-card-copy">{{ $match['venue'] }}</p>
+                                                </div>
+                                                <div class="lap-team-stack is-away">
+                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['away_logo'], 'label' => $match['away_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                                    <strong class="lap-team-name">{{ $match['away_name'] }}</strong>
+                                                </div>
+                                            </div>
+                                            <p class="lap-result-summary">{{ $match['summary'] ?: 'Skor akhir resmi tersedia di arsip pertandingan.' }}</p>
+                                            @if ($match['detail_url'])
+                                                <div class="lap-spacer-top">
+                                                    <a href="{{ $match['detail_url'] }}" class="lap-card-link">Lihat detail pertandingan <i class="fa-solid fa-arrow-right"></i></a>
+                                                </div>
+                                            @endif
+                                        </article>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </section>
+                    @empty
+                        <section class="wow fadeInUp" data-wow-delay=".25s">
+                            <div class="lap-empty-card">
+                                <h3 class="lap-card-title-sm">Belum ada hasil yang cocok</h3>
+                                <p class="lap-card-copy">Coba longgarkan filter pencarian atau kembali ke arsip utama untuk melihat seluruh hasil yang tersedia.</p>
+                            </div>
+                        </section>
+                    @endforelse
+
+                    @if ($paginationPages->isNotEmpty())
+                        <div class="lap-pagination wow fadeInUp" data-wow-delay=".25s">
+                            @if ($resultsSource->onFirstPage())
+                                <span>&laquo;</span>
+                            @else
+                                <a href="{{ $resultsSource->previousPageUrl() }}">&laquo;</a>
+                            @endif
+
+                            @foreach ($paginationPages as $page)
+                                @if ($page === $resultsSource->currentPage())
+                                    <span class="is-active">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $resultsSource->url($page) }}">{{ $page }}</a>
+                                @endif
+                            @endforeach
+
+                            @if ($resultsSource->hasMorePages())
+                                <a href="{{ $resultsSource->nextPageUrl() }}">&raquo;</a>
+                            @else
+                                <span>&raquo;</span>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                <aside class="lap-section-stack">
+                    @foreach ($summaryMetrics as $metric)
+                        <article class="lap-stat-card">
+                            <div class="lap-value">{{ $metric['value'] }}</div>
+                            <span class="lap-label">{{ $metric['label'] }}</span>
+                            <span class="lap-caption">{{ $metric['caption'] }}</span>
+                        </article>
+                    @endforeach
+
+                    <section class="lap-side-card">
+                        <span class="lap-section-kicker">Ringkasan Arsip</span>
+                        <h3 class="lap-card-title-sm">Status filter saat ini</h3>
+                        <p class="lap-card-copy">{{ $archiveStatement }}</p>
+                        @if (!empty($activeFilterLabels))
+                            <div class="lap-chip-list">
+                                @foreach ($activeFilterLabels as $filterLabel)
+                                    <span class="lap-pill">{{ $filterLabel }}</span>
+                                @endforeach
+                            </div>
                         @endif
                     </section>
-                </div>
+
+                    <section class="lap-side-card">
+                        <span class="lap-section-kicker">Navigasi</span>
+                        <h3 class="lap-card-title-sm">Lanjut ke halaman lain</h3>
+                        <div class="lap-list-stack lap-spacer-top">
+                            <a href="{{ route('public.schedule') }}" class="lap-card-link">Buka jadwal pertandingan <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="{{ route('public.standings') }}" class="lap-card-link">Lihat klasemen dan bracket <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="{{ route('public.clubs') }}" class="lap-card-link">Jelajahi profil klub <i class="fa-solid fa-arrow-right"></i></a>
+                        </div>
+                    </section>
+                </aside>
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const form = document.querySelector('[data-results-filter-form]')?.closest('form');
-            if (!form) return;
-
-            const submitForm = () => {
-                if (typeof form.requestSubmit === 'function') {
-                    form.requestSubmit();
-                    return;
-                }
-
-                form.submit();
-            };
-
-            form.querySelectorAll('[data-results-auto-submit]').forEach((element) => {
-                element.addEventListener('change', submitForm);
-            });
-
-            const searchField = form.querySelector('[data-results-auto-search]');
-            if (!searchField) return;
-
-            let timer = null;
-
-            searchField.addEventListener('input', function () {
-                window.clearTimeout(timer);
-                timer = window.setTimeout(submitForm, 400);
-            });
-        });
-    </script>
 @endsection

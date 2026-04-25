@@ -236,7 +236,7 @@
         <input type="text" class="form-control" value="{{ $lineupList->opponent()?->name ?? '-' }}" readonly data-lineup-opponent>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Hari Pertandingan</label>
+        <label class="form-label">Label Jadwal</label>
         <input type="text" class="form-control" value="{{ old('match_day', $lineupList->match_day) }}" readonly data-lineup-matchday>
     </div>
     <div class="col-lg-4 mb-3">
@@ -441,7 +441,7 @@
         const progressNode = root.querySelector('[data-lineup-progress]');
         const requiredStarters = {{ \App\Models\LineupList::REQUIRED_STARTERS }};
         const maxSubstitutes = {{ \App\Models\LineupList::MAX_SUBSTITUTES }};
-        const draftKey = `velok:lineup-form-draft:${window.location.pathname}`;
+        const draftKey = `lap-dashboard:lineup-form-draft:${window.location.pathname}`;
         const currentLineupClubId = clubInput?.dataset.currentClubId || '';
         let isRestoringDraft = false;
         let saveDraftTimer = null;
@@ -572,6 +572,43 @@
             'goalkeeper_jersey_color',
             'notes',
         ];
+
+        const isVisibleForSelection = (option, clubId, ageId) => {
+            return !!(
+                clubId
+                && ageId
+                && option.dataset.playerClub === clubId
+                && (option.dataset.playerAges || '').split(',').includes(ageId)
+            );
+        };
+
+        const syncOptionRoleState = (option) => {
+            const playerId = Number(option.dataset.playerId);
+            const role = selectedPlayers.starter.includes(playerId)
+                ? 'starter'
+                : (selectedPlayers.substitute.includes(playerId) ? 'substitute' : '');
+
+            option.dataset.currentRole = role;
+            setRoleButtonsState(option, role);
+        };
+
+        const sanitizeSelectedPlayers = (clubId, ageId) => {
+            ['starter', 'substitute'].forEach((role) => {
+                const seen = new Set();
+
+                selectedPlayers[role] = selectedPlayers[role].filter((playerId) => {
+                    if (seen.has(playerId)) {
+                        return false;
+                    }
+
+                    seen.add(playerId);
+
+                    const option = root.querySelector(`[data-player-id="${playerId}"]`);
+
+                    return !!option && isVisibleForSelection(option, clubId, ageId);
+                });
+            });
+        };
 
         const persistDraft = () => {
             if (isRestoringDraft) return;
@@ -829,29 +866,25 @@
             saveDraft({ immediate: true });
         };
 
-        const refreshOptions = ({ preserveSelection = false } = {}) => {
+        const refreshOptions = () => {
             syncMatchDetails();
 
             const clubId = clubInput.value;
             const ageId = ageInput.value;
             let visibleCount = 0;
 
+            sanitizeSelectedPlayers(clubId, ageId);
+
             refreshPlayerMeta();
 
             root.querySelectorAll('[data-player-option]').forEach((option) => {
-                const isVisible =
-                    clubId &&
-                    ageId &&
-                    option.dataset.playerClub === clubId &&
-                    (option.dataset.playerAges || '').split(',').includes(ageId);
+                const isVisible = isVisibleForSelection(option, clubId, ageId);
 
                 option.hidden = !isVisible;
-                if (!isVisible) {
-                    if (!preserveSelection) {
-                        setPlayerRole(Number(option.dataset.playerId), '');
-                    }
-                    return;
-                }
+
+                syncOptionRoleState(option);
+
+                if (!isVisible) return;
 
                 visibleCount += 1;
             });
@@ -859,6 +892,7 @@
             if (guideNode) guideNode.hidden = !!(clubId && ageId);
             if (countNode) countNode.textContent = visibleCount;
             if (availableEmptyNode) availableEmptyNode.hidden = visibleCount > 0 || !clubId || !ageId;
+            renderSelectedLists();
         };
 
         restoreDraft();
@@ -878,7 +912,6 @@
             });
         });
 
-        renderSelectedLists();
         matchInput?.addEventListener('change', () => {
             refreshOptions();
             saveDraft();
@@ -896,6 +929,6 @@
         });
         window.addEventListener('pagehide', persistDraft);
         window.addEventListener('beforeunload', persistDraft);
-        refreshOptions({ preserveSelection: true });
+        refreshOptions();
     })();
 </script>

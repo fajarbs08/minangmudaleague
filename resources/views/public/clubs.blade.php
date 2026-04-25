@@ -1,370 +1,288 @@
-@extends('public.layout')
+@extends('public.public-layout')
+
+@php
+    $clubCount = $featuredClubs->count();
+    $zoneCount = $featuredClubs->pluck('zone')->filter()->unique()->count();
+    $managerCount = $featuredClubs->filter(fn ($club) => filled($club->manager_name))->count();
+@endphp
 
 @push('styles')
     <style>
-        .lap-sponsor-clubs {
+        .lap-public .latest-world-ranking-section {
+            background: #ffffff;
+            padding-top: 80px;
+            padding-bottom: 96px;
+            color: #030523;
+        }
+
+        .lap-public .latest-world-ranking-section .container {
+            max-width: 1620px;
+        }
+
+        .lap-public .latest-world-ranking-wrapper .content h3,
+        .lap-public .latest-world-ranking-wrapper .text-item p,
+        .lap-public .latest-world-ranking-wrapper table th,
+        .lap-public .latest-world-ranking-wrapper table td {
+            color: #030523;
+        }
+
+        .lap-public .latest-world-ranking-wrapper .content h3 {
+            font-family: 'Big Shoulders', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            text-transform: uppercase;
+        }
+
+        .lap-public .latest-world-ranking-wrapper .text-item p {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            text-transform: uppercase;
+        }
+
+        .lap-public .latest-world-ranking-wrapper .club-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 24px;
+            margin-top: 18px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .lap-public .latest-world-ranking-wrapper .club-summary span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lap-public .latest-world-ranking-table {
+            margin-top: 48px;
+        }
+
+        .lap-public .latest-world-ranking-table .table-responsive {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .lap-public .latest-world-ranking-table table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .85), 0 8px 18px rgba(15, 23, 42, .06);
+        }
+
+        .lap-public .latest-world-ranking-table table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            background: #ffffff;
+            text-align: left;
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr {
+            transition: background-color .18s ease, transform .18s ease;
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr:nth-child(odd) td {
             background: #ffffff;
         }
 
-        .lap-sponsor-clubs .section-title-area {
-            position: relative;
-            z-index: 1;
-            padding-top: 28px;
+        .lap-public .latest-world-ranking-table tbody tr:nth-child(even) td {
+            background: #f8fafc;
         }
 
-        .lap-sponsor-clubs .section-title-area::before {
-            content: "PESERTA";
-            position: absolute;
-            left: 50%;
-            top: -56px;
-            transform: translateX(-50%);
-            font-size: clamp(120px, 18vw, 260px);
-            font-weight: 800;
-            letter-spacing: .04em;
-            color: rgba(15, 23, 42, 0.035);
-            line-height: 1;
-            z-index: -1;
-            pointer-events: none;
-            white-space: nowrap;
+        .lap-public .latest-world-ranking-table tbody tr:hover {
+            transform: translateY(-1px);
         }
 
-        .lap-sponsor-clubs .section-title-area .pretitle {
+        .lap-public .latest-world-ranking-table tbody tr:hover td {
+            background: #eef4ff;
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr:hover td:first-child {
+            border-left: 3px solid #e41b23;
+            padding-left: 12px;
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr:hover td:last-child .lap-table-detail-link {
+            transform: translateY(-1px) scale(1.08);
             color: #e41b23;
-            position: relative !important;
-            left: auto !important;
-            top: auto !important;
-            transform: none !important;
-            display: inline-block;
-            font-size: 14px !important;
+            box-shadow: 0 10px 18px rgba(228, 27, 35, .14);
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr:hover td:last-child .lap-table-detail-link i {
+            transform: scale(1.08) rotate(-10deg);
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr td:first-child {
+            border-left: 3px solid transparent;
+            transition: background-color .18s ease, border-color .18s ease, padding-left .18s ease;
+        }
+
+        .lap-public .latest-world-ranking-table tbody tr td {
+            transition: background-color .18s ease, color .18s ease;
+        }
+
+        .lap-public .latest-world-ranking-table thead th {
+            background: #f7f7f7;
+        }
+
+        .lap-public .latest-world-ranking-table table th,
+        .lap-public .latest-world-ranking-table table td {
+            padding: 14px 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 18px;
             font-weight: 700;
-            letter-spacing: .12em;
-            line-height: 1;
-            margin-bottom: 12px;
+            color: #030523;
+        }
+
+        .lap-public .latest-world-ranking-table table th {
+            font-size: 16px;
             text-transform: uppercase;
-            z-index: 1;
-            -webkit-text-fill-color: currentColor !important;
-            -webkit-text-stroke-width: 0 !important;
         }
 
-        .lap-sponsor-clubs .section-title-area p {
-            max-width: 760px;
-            margin: 18px auto 0;
-        }
-
-        .lap-sponsor-clubs .sponsor-single {
-            background: transparent;
-            border: 0;
-            box-shadow: none;
-            color: inherit;
-            display: block;
-            padding: 12px 0;
-        }
-
-        .lap-sponsor-clubs .swiper-slide {
-            height: auto;
-        }
-
-        .lap-sponsor-clubs .sponsors-logo {
+        .lap-public .latest-world-ranking-table .club-name-cell {
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-height: 150px;
-            opacity: .86;
-            transition: transform .25s ease, opacity .25s ease, filter .25s ease;
+            gap: 12px;
         }
 
-        .lap-sponsor-clubs .club-logo-shell {
-            align-items: center;
-            background: #ffffff;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            border-radius: 20px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-            display: inline-flex;
-            height: 132px;
-            justify-content: center;
-            padding: 14px;
-            width: 132px;
+        .lap-public .latest-world-ranking-table .club-name-cell img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            flex: 0 0 auto;
         }
 
-        .lap-sponsor-clubs .sponsors-logo img {
-            max-width: 104px;
-            max-height: 104px;
-            width: auto;
-            height: auto;
-            filter: none;
-            opacity: 1;
-            transition: transform .25s ease, filter .25s ease;
-        }
-
-        .lap-sponsor-clubs .sponsor-mark {
-            align-items: center;
-            border: 5px solid rgba(15, 23, 42, 0.38);
-            border-radius: 28px;
-            color: rgba(15, 23, 42, 0.58);
-            display: inline-flex;
-            font-size: 34px;
+        .lap-public .latest-world-ranking-table .club-name-cell strong {
+            display: block;
+            font-size: 18px;
             font-weight: 800;
-            height: 112px;
-            justify-content: center;
-            letter-spacing: .06em;
-            width: 112px;
-            transition: transform .25s ease, color .25s ease, border-color .25s ease;
+            line-height: 1.2;
         }
 
-        .lap-sponsor-clubs .sponsor-single:hover,
-        .lap-sponsor-clubs .sponsor-single:focus,
-        .lap-sponsor-clubs .sponsor-single:active {
-            color: inherit;
-        }
-
-        .lap-sponsor-clubs .lap-club-line {
-            color: #111111;
+        .lap-public .latest-world-ranking-table .club-name-cell span {
             display: block;
             font-size: 14px;
-            font-weight: 700;
-            line-height: 1.5;
-            margin-top: 14px;
-            text-align: center;
-            text-transform: uppercase;
+            font-weight: 600;
+            color: #667085;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-top: 2px;
         }
 
-        .lap-sponsor-clubs .lap-club-tier {
-            color: #777777;
-            display: block;
-            font-size: 12px;
-            letter-spacing: .08em;
-            margin-top: 6px;
-            text-align: center;
-            text-transform: uppercase;
+        .lap-public .latest-world-ranking-table .text-center a {
+            color: #030523;
         }
 
-        .lap-sponsor-clubs .swiper-slide:hover .sponsors-logo img,
-        .lap-sponsor-clubs .sponsor-single:focus .sponsors-logo img,
-        .lap-sponsor-clubs .swiper-slide:hover .sponsor-mark,
-        .lap-sponsor-clubs .sponsor-single:focus .sponsor-mark {
-            transform: translateY(-4px);
+        .lap-public .latest-world-ranking-table .lap-table-detail-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #ffffff 0%, #f2f6ff 100%);
+            border: 1px solid rgba(3, 5, 35, 0.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+            transition: transform .18s ease, box-shadow .18s ease, color .18s ease, background-color .18s ease;
         }
 
-        .lap-sponsor-clubs .swiper-slide:hover .sponsors-logo img,
-        .lap-sponsor-clubs .sponsor-single:focus .sponsors-logo img {
-            filter: none;
+        .lap-public .latest-world-ranking-table .lap-table-detail-link i {
+            font-size: 15px;
+            transition: transform .18s ease;
         }
 
-        .lap-sponsor-clubs .swiper-slide:hover .sponsor-mark,
-        .lap-sponsor-clubs .sponsor-single:focus .sponsor-mark {
-            border-color: rgba(15, 23, 42, 0.68);
-            color: rgba(15, 23, 42, 0.8);
+        .lap-public .latest-world-ranking-table .lap-table-detail-link:hover,
+        .lap-public .latest-world-ranking-table .lap-table-detail-link:focus-visible {
+            color: #e41b23;
+            transform: translateY(-1px) scale(1.06);
+            background: linear-gradient(180deg, #ffffff 0%, #fff1f1 100%);
+            box-shadow: 0 12px 20px rgba(228, 27, 35, .12);
+            outline: none;
         }
 
-        @media (max-width: 991.98px) {
-            .lap-sponsor-clubs .section-title-area::before {
-                top: -18px;
+        @media (max-width: 767px) {
+            .lap-public .latest-world-ranking-table {
+                margin-top: 32px;
             }
 
-            .lap-sponsor-clubs .sponsors-logo {
-                min-height: 120px;
-            }
-
-            .lap-sponsor-clubs .club-logo-shell {
-                height: 110px;
-                width: 110px;
-                padding: 12px;
-            }
-
-            .lap-sponsor-clubs .sponsors-logo img {
-                max-width: 86px;
-                max-height: 86px;
-            }
-
-            .lap-sponsor-clubs .sponsor-mark {
-                font-size: 28px;
-                height: 96px;
-                width: 96px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .lap-sponsor-clubs.section-gap {
-                padding: 60px 0;
-            }
-
-            .lap-sponsor-clubs .section-title-area {
-                margin-bottom: 28px;
-                padding-top: 32px;
-            }
-
-            .lap-sponsor-clubs .section-title-area::before {
-                font-size: clamp(46px, 15vw, 74px);
-                left: 50%;
-                top: -4px;
-                transform: translateX(-50%);
-                width: min(100%, 360px);
-                letter-spacing: .03em;
-                line-height: .88;
-                max-width: 100%;
-                overflow-wrap: anywhere;
-                text-align: center;
-                white-space: normal;
-            }
-
-            .lap-sponsor-clubs .section-title-area .pretitle {
-                font-size: 12px;
-                letter-spacing: .16em;
-            }
-
-            .lap-sponsor-clubs .section-title-area .section-title {
-                font-size: clamp(28px, 8vw, 38px) !important;
-                line-height: 1.1;
-                margin-bottom: 14px !important;
-                margin-left: auto;
-                margin-right: auto;
-                max-width: 10ch;
-                overflow-wrap: anywhere;
-                text-wrap: balance;
-            }
-
-            .lap-sponsor-clubs .section-title-area p {
-                font-size: 14px;
-                line-height: 1.7;
-                margin-top: 14px;
-                max-width: 100%;
-                padding: 0;
-            }
-        }
-
-        @media (max-width: 575.98px) {
-            .lap-sponsor-clubs.section-gap {
-                padding: 44px 0 56px;
-            }
-
-            .lap-sponsor-clubs .section-title-area {
-                margin-bottom: 22px;
-                padding-top: 28px;
-            }
-
-            .lap-sponsor-clubs .section-title-area::before {
-                font-size: clamp(40px, 12vw, 56px);
-                left: 50%;
-                letter-spacing: .02em;
-                top: 0;
-                transform: translateX(-50%);
-                width: min(100%, 300px);
-            }
-
-            .lap-sponsor-clubs .section-title-area .section-title {
-                font-size: 26px !important;
-                line-height: 1.12;
+            .lap-public .latest-world-ranking-wrapper .text-item p {
+                font-size: 16px;
             }
         }
     </style>
 @endpush
 
 @section('content')
-    @php
-        $clubSlides = $featuredClubs->values();
-        $minimumSlides = 8;
-
-        if ($clubSlides->isNotEmpty() && $clubSlides->count() < $minimumSlides) {
-            $clubSlides = collect(range(1, (int) ceil($minimumSlides / $clubSlides->count())))
-                ->flatMap(fn () => $featuredClubs->values())
-                ->take($minimumSlides)
-                ->values();
-        }
-    @endphp
-
-    <div class="rts-sponsors-section section-gap lap-sponsor-clubs">
+    <section class="latest-world-ranking-section wow fadeInUp" data-wow-delay=".15s">
         <div class="container">
-            <div class="section-title-area section-title-area1 text-center mb--50">
-                <span class="pretitle">KLUB</span>
-                <h1 class="section-title">KLUB PESERTA</h1>
-                <p>Daftar klub peserta resmi Liga Anak Piaman Laweh.</p>
-            </div>
-            @if ($clubSlides->isNotEmpty())
-                <div class="sponsors-section-inner">
-                    <div class="swiper lap-club-slider">
-                        <div class="swiper-wrapper">
-                            @foreach ($clubSlides as $club)
-                                @php
-                                    $logoPath = (string) $club->logo_url;
-                                    $usePlaceholderMark = blank($club->logo_file_url) || str_contains($logoPath, 'demo-images/');
-                                    $clubMark = strtoupper(substr($club->short_name ?: $club->name, 0, 2));
-                                @endphp
-                                <div class="swiper-slide">
-                                    <a href="{{ route('public.clubs.show', ['clubSlug' => $club->public_slug]) }}" class="sponsor-single">
-                                        <div class="sponsors-logo">
-                                            @if ($usePlaceholderMark)
-                                                <span class="sponsor-mark" aria-label="{{ $club->name }}">{{ $clubMark }}</span>
-                                            @else
-                                                <span class="club-logo-shell">
-                                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}">
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <div class="lap-club-line">{{ $club->name }}</div>
-                                        <span class="lap-club-tier">{{ $club->zone ?: ($club->name ?: 'KLUB PESERTA') }}</span>
-                                    </a>
-                                </div>
-                            @endforeach
-                        </div>
+            <div class="latest-world-ranking-wrapper">
+                <div class="content wow fadeInUp" data-wow-delay=".2s">
+                    <h3 class="lap-brand-heading"><span class="lap-outline-word">Klub</span> Peserta</h3>
+                    <div class="text-item">
+                        <p>Daftar klub yang sudah dipublikasikan resmi. Buka detail untuk melihat profil, pemain, ofisial, dan riwayat laga klub.</p>
+                    </div>
+                    <div class="club-summary">
+                        <span>{{ $clubCount }} klub tampil</span>
+                        <span>{{ $zoneCount }} zona</span>
+                        <span>{{ $managerCount }} manajer diisi</span>
                     </div>
                 </div>
-            @else
-                <div class="lap-summary-card">
-                    <h3 class="section-title mb--20">Klub belum tersedia</h3>
-                    <p class="lap-copy mb-0">Belum ada klub peserta yang diumumkan saat ini.</p>
+
+                <div class="latest-world-ranking-table wow fadeInUp" data-wow-delay=".25s">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Klub</th>
+                                    <th>Zona</th>
+                                    <th>Tahun</th>
+                                    <th>Manajer</th>
+                                    <th class="text-center">Detail</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($featuredClubs as $club)
+                                    @php
+                                        $clubMark = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($club->short_name ?: $club->name, 0, 2));
+                                    @endphp
+                                    <tr class="wow fadeInUp" data-wow-delay=".{{ 2 + ($loop->index * 1) }}s">
+                                        <td>
+                                            <div class="club-name-cell">
+                                                @if ($club->logo_file_url)
+                                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}">
+                                                @else
+                                                    <span class="lap-logo-mark" style="width:40px;height:40px;font-size:14px;">{{ $clubMark }}</span>
+                                                @endif
+                                                <div>
+                                                    <strong>{{ $club->name }}</strong>
+                                                    <span>{{ $club->short_name ?: 'Klub peserta' }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ $club->zone ?: '-' }}</td>
+                                        <td>{{ $club->founded_year ?: '-' }}</td>
+                                        <td>{{ $club->manager_name ?: '-' }}</td>
+                                        <td class="text-center">
+                                            @include('public.partials.table-detail-link', ['href' => route('public.clubs.show', ['clubSlug' => $club->public_slug])])
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5">Belum ada klub yang dipublikasikan.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            @endif
+            </div>
         </div>
-    </div>
-
+    </section>
 @endsection
-
-@push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const clubSlider = document.querySelector('.lap-club-slider');
-
-            if (!clubSlider || typeof Swiper === 'undefined') {
-                return;
-            }
-
-            new Swiper(clubSlider, {
-                slidesPerView: 4,
-                spaceBetween: 30,
-                slidesPerGroup: 1,
-                speed: 1000,
-                loop: true,
-                centeredSlides: false,
-                watchOverflow: false,
-                allowTouchMove: true,
-                breakpoints: {
-                    1200: {
-                        slidesPerView: 6,
-                    },
-                    900: {
-                        slidesPerView: 4,
-                    },
-                    768: {
-                        slidesPerView: 3,
-                    },
-                    580: {
-                        slidesPerView: 2,
-                    },
-                    0: {
-                        slidesPerView: 1,
-                    }
-                },
-                autoplay: {
-                    delay: 2500,
-                    disableOnInteraction: false,
-                    pauseOnMouseEnter: true
-                },
-                on: {
-                    init(swiper) {
-                        swiper.autoplay.start();
-                    }
-                }
-            });
-        });
-    </script>
-@endpush

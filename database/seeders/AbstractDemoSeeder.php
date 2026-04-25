@@ -22,7 +22,7 @@ abstract class AbstractDemoSeeder extends Seeder
 
     protected function adminUser(): User
     {
-        return User::where('email', 'admin@ligaanakpiamanlaweh.local')->firstOrFail();
+        return User::where('email', 'admin@ligaanakpiamanlaweh.com')->firstOrFail();
     }
 
     protected function upsertUser(string $email, string $name, string $role, string $password): User

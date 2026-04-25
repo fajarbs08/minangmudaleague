@@ -1,22 +1,31 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @php
-    $filterCount = collect(request()->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format']))->filter(fn ($value) => filled($value))->count();
+    $filterKeys = ['club_id', 'age_group_id', 'lineup_status'];
+
+    if (! filled($fixedCompetitionFormat ?? null)) {
+        $filterKeys[] = 'competition_format';
+    }
+
+    $filterCount = collect(request()->only($filterKeys))->filter(fn ($value) => filled($value))->count();
+    $createButtonLabel = filled($fixedCompetitionFormat ?? null)
+        ? 'Tambah Jadwal '.($formatOptions[$fixedCompetitionFormat] ?? ucfirst($fixedCompetitionFormat))
+        : 'Tambah Jadwal';
 @endphp
 
 @section('content')
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div>
+<div class="lap-admin-page-head">
+    <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Jadwal Pertandingan</li>
+                <li class="breadcrumb-item active" aria-current="page">{{ $pageHeading }}</li>
             </ol>
         </nav>
-        <h4 class="mb-1">Jadwal Pertandingan</h4>
-        <p class="text-muted mb-0">Admin menentukan lawan, lokasi, tanggal, jam, dan hari pertandingan untuk dipakai di DSP.</p>
+        <h4 class="lap-admin-page-title">{{ $pageHeading }}</h4>
+        <p class="lap-admin-page-copy">{{ $pageDescription }}</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="lap-admin-page-actions">
         <button
             type="button"
             class="btn btn-outline-secondary position-relative d-inline-flex align-items-center gap-2"
@@ -30,7 +39,7 @@
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
         </button>
-        <a href="{{ route('matches.create') }}" class="btn btn-primary">Tambah Jadwal</a>
+        <a href="{{ $createUrl }}" class="btn btn-primary">{{ $createButtonLabel }}</a>
     </div>
 </div>
 
@@ -39,11 +48,12 @@
 <div class="card">
     <form id="bulk-match-delete-form" method="POST" action="{{ route('matches.bulk-delete', request()->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction'])) }}">
         @csrf
+        <input type="hidden" name="redirect_route" value="{{ $indexRouteName }}">
         <div class="card-body border-bottom bg-light-subtle">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
                     <h4 class="card-title mb-1">Hapus Jadwal Massal</h4>
-                    <p class="text-muted mb-0">Pilih jadwal yang belum dipakai DSP untuk dihapus sekaligus.</p>
+                    <p class="text-muted mb-0">Pilih beberapa jadwal sekaligus. Jadwal yang sudah dipakai DSP akan dilewati otomatis saat proses hapus massal.</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-3">
                     <div class="small text-muted"><span data-bulk-selected-count>0</span> jadwal dipilih di halaman ini.</div>
@@ -59,7 +69,7 @@
                         <th class="text-center" style="width: 64px;">
                             <input type="checkbox" class="form-check-input js-check-all">
                         </th>
-                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Hari Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Label Jadwal', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'matchup', 'label' => 'Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'competition_format', 'label' => 'Format', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
@@ -80,21 +90,16 @@
                             $clubAReady = $lineupClubIds->contains((int) $match->club_a_id);
                             $clubBReady = $lineupClubIds->contains((int) $match->club_b_id);
                             $isComplete = $clubAReady && $clubBReady;
-                            $canBulkDelete = $match->lineupLists->isEmpty();
                         @endphp
                         <tr>
                             <td class="text-center">
-                                @if ($canBulkDelete)
-                                    <input type="checkbox" class="form-check-input js-match-row" name="selected_ids[]" value="{{ $match->id }}">
-                                @else
-                                    <span class="badge bg-light text-dark border">DSP</span>
-                                @endif
+                                <input type="checkbox" class="form-check-input js-match-row" name="selected_ids[]" value="{{ $match->id }}" aria-label="Pilih {{ $match->clubA?->name }} vs {{ $match->clubB?->name }}">
                             </td>
                             <td>{{ $match->match_day }}</td>
                             <td>{{ $match->clubA?->name }} vs {{ $match->clubB?->name }}</td>
                             <td>{{ $match->ageGroup?->name }}</td>
                             <td>
-                                <span class="badge {{ $match->competition_format === 'knockout' ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary' }}">
+                                <span class="badge {{ $match->competition_format === 'knockout' ? 'lap-admin-chip lap-admin-chip-pending' : 'lap-admin-chip lap-admin-chip-primary' }}">
                                     {{ $match->competition_format_label }}
                                 </span>
                             </td>
@@ -103,7 +108,7 @@
                             <td>{{ optional($match->match_date)->format('d M Y') }}</td>
                             <td>{{ optional($match->kickoff_time)->format('H:i') }} WIB</td>
                             <td>
-                                <span class="badge {{ $isComplete ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' }}">
+                                <span class="badge {{ $isComplete ? 'lap-admin-chip lap-admin-chip-approved' : 'lap-admin-chip lap-admin-chip-pending' }}">
                                     {{ $isComplete ? 'Lengkap' : 'Belum lengkap' }}
                                 </span>
                                 <div class="small mt-2 d-flex flex-column gap-1">
@@ -138,7 +143,7 @@
                                             <div class="competition-action-label px-2 pb-2">Jadwal Pertandingan</div>
                                             <div class="small text-muted px-2 pb-2 text-wrap">Kelola detail jadwal atau hapus jadwal yang belum dipakai DSP.</div>
                                             @include('competition.partials.action-item', [
-                                                'href' => route('matches.edit', $match),
+                                                'href' => route('matches.edit', ['match' => $match, 'redirect_route' => $indexRouteName]),
                                                 'icon' => 'square-pen',
                                                 'label' => 'Edit Jadwal',
                                             ])
@@ -149,7 +154,7 @@
                                                 'attributes' => [
                                                     'data-bs-toggle' => 'modal',
                                                     'data-bs-target' => '#deleteMatchModal',
-                                                    'data-action' => route('matches.destroy', $match),
+                                                    'data-action' => route('matches.destroy', ['match' => $match, 'redirect_route' => $indexRouteName]),
                                                     'data-name' => $match->clubA?->name.' vs '.$match->clubB?->name,
                                                 ],
                                             ])
@@ -160,7 +165,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="competition-table-empty">Belum ada jadwal pertandingan.</td>
+                            <td colspan="11" class="competition-table-empty">Belum ada {{ strtolower($pageHeading) }}.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -174,7 +179,7 @@
 <div class="offcanvas offcanvas-end" tabindex="-1" id="matchFilterCanvas" aria-labelledby="matchFilterCanvasLabel">
     <div class="offcanvas-header">
         <div>
-            <h5 class="offcanvas-title" id="matchFilterCanvasLabel">Filter Jadwal Pertandingan</h5>
+            <h5 class="offcanvas-title" id="matchFilterCanvasLabel">Filter {{ $pageHeading }}</h5>
             <p class="text-muted mb-0 small">Pakai filter detail tanpa memenuhi area tabel.</p>
         </div>
         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -199,15 +204,17 @@
                     @endforeach
                 </select>
             </div>
-            <div>
-                <label for="match-competition-format" class="form-label">Format pertandingan</label>
-                <select id="match-competition-format" name="competition_format" class="form-select">
-                    <option value="">Semua format</option>
-                    @foreach ($formatOptions as $value => $label)
-                        <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
+            @if (! filled($fixedCompetitionFormat ?? null))
+                <div>
+                    <label for="match-competition-format" class="form-label">Format pertandingan</label>
+                    <select id="match-competition-format" name="competition_format" class="form-select">
+                        <option value="">Semua format</option>
+                        @foreach ($formatOptions as $value => $label)
+                            <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div>
                 <label for="match-lineup-status" class="form-label">Status DSP</label>
                 <select id="match-lineup-status" name="lineup_status" class="form-select">
@@ -218,7 +225,7 @@
             </div>
             <div class="d-grid gap-2 mt-2">
                 <button type="submit" class="btn btn-primary">Terapkan Filter</button>
-                <a href="{{ route('matches.index') }}" class="btn btn-light">Reset Filter</a>
+                <a href="{{ route($indexRouteName) }}" class="btn btn-light">Reset Filter</a>
             </div>
         </form>
     </div>

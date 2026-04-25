@@ -1,7 +1,6 @@
 /**
-* Theme: Velok- Responsive Bootstrap 5 Admin Dashboard
-* Author: FoxPixel
-* Module/App: Theme Config Js
+* Dashboard Theme Config
+* Liga Anak Piaman Laweh
 */
 
 (function () {
@@ -18,6 +17,17 @@
 
           menu: {
                size: "default",
+               color: "sidebar-dark",
+          },
+     };
+
+     var legacyDefaultConfig = {
+          theme: "light",
+          topbar: {
+               color: "topbar-light",
+          },
+          menu: {
+               size: "default",
                color: "sidebar-light",
           },
      };
@@ -30,6 +40,16 @@
 
      if (savedConfig !== null) {
           config = JSON.parse(savedConfig);
+
+          var isLegacyDefault = config.theme === legacyDefaultConfig.theme
+               && config.topbar?.color === legacyDefaultConfig.topbar.color
+               && config.menu?.size === legacyDefaultConfig.menu.size
+               && config.menu?.color === legacyDefaultConfig.menu.color;
+
+          if (isLegacyDefault) {
+               config.menu.color = defaultConfig.menu.color;
+               sessionStorage.setItem("__THEME_CONFIG__", JSON.stringify(config));
+          }
      }
 
      window.config = config;

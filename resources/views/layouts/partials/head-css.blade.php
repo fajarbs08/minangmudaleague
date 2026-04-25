@@ -1,14 +1,93 @@
 @yield('css')
 <script>
     (function () {
-        if (window.innerWidth > 1140) {
+        const html = document.documentElement;
+        const defaultConfig = {
+            theme: 'light',
+            topbar: { color: 'topbar-light' },
+            menu: { size: 'default', color: 'sidebar-dark' },
+        };
+
+        html.classList.add('layout-preload');
+
+        let config = JSON.parse(JSON.stringify(defaultConfig));
+
+        try {
+            const savedConfig = sessionStorage.getItem('__THEME_CONFIG__');
+            if (savedConfig) {
+                const parsed = JSON.parse(savedConfig);
+
+                config = {
+                    ...config,
+                    ...parsed,
+                    topbar: {
+                        ...config.topbar,
+                        ...(parsed?.topbar || {}),
+                    },
+                    menu: {
+                        ...config.menu,
+                        ...(parsed?.menu || {}),
+                    },
+                };
+            }
+        } catch (error) {
+            config = defaultConfig;
+        }
+
+        html.setAttribute('data-bs-theme', config.theme || defaultConfig.theme);
+        html.setAttribute('data-sidenav-size', config.menu.size === 'sidebar-hover' ? 'hover' : (config.menu.size || defaultConfig.menu.size));
+        html.classList.add(config.topbar.color || defaultConfig.topbar.color);
+        html.classList.add(config.menu.color || defaultConfig.menu.color);
+
+        if (window.innerWidth <= 1140) {
+            html.classList.add('sidebar-hidden');
             return;
         }
 
-        document.documentElement.classList.add('sidebar-hidden');
+        if (config.menu.size === 'sidebar-hover') {
+            html.classList.add('sidebar-hover');
+            return;
+        }
+
+        html.classList.add(config.menu.size || defaultConfig.menu.size);
     })();
 </script>
 <style>
+    html.layout-preload .main-nav,
+    html.layout-preload .page-container,
+    html.layout-preload .topbar,
+    html.layout-preload .main-nav * {
+        transition: none !important;
+    }
+
+    @media (min-width: 1141px) {
+        html.sidebar-hover .page-container,
+        html[data-sidenav-size="condensed"] .page-container {
+            margin-left: var(--bs-main-nav-width-sm, 80px);
+        }
+
+        html.sidebar-hover .topbar,
+        html[data-sidenav-size="condensed"] .topbar {
+            padding-left: var(--bs-main-nav-width-sm, 80px);
+        }
+
+        html[data-sidenav-size="condensed"] .main-nav,
+        html.sidebar-hover .main-nav:not(:hover) {
+            width: var(--bs-main-nav-width-sm, 80px);
+            min-width: var(--bs-main-nav-width-sm, 80px);
+        }
+    }
+
+    :root {
+        --lap-admin-ink: #030523;
+        --lap-admin-navy: #0d2f67;
+        --lap-admin-accent: #fe5900;
+        --lap-admin-accent-deep: #d94c00;
+        --lap-admin-danger: #e41b23;
+        --lap-admin-muted: #667085;
+        --lap-admin-surface: #f7f8fc;
+    }
+
     @media (max-width: 1140px) {
         html:not(.sidebar-enable) .main-nav {
             margin-left: calc(var(--bs-main-nav-width, 250px) * -1);
@@ -37,6 +116,268 @@
         }
     }
 
+    .lap-admin-chip {
+        align-items: center;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 0.72rem;
+        font-weight: 800;
+        gap: 0.35rem;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        padding: 0.45rem 0.78rem;
+        text-transform: uppercase;
+    }
+
+    .lap-admin-chip-primary {
+        background: rgba(254, 89, 0, 0.10);
+        border-color: rgba(254, 89, 0, 0.16);
+        color: var(--lap-admin-accent);
+    }
+
+    .lap-admin-chip-support {
+        background: rgba(13, 47, 103, 0.10);
+        border-color: rgba(13, 47, 103, 0.16);
+        color: var(--lap-admin-navy);
+    }
+
+    .lap-admin-chip-approved {
+        background: rgba(3, 5, 35, 0.12);
+        border-color: rgba(3, 5, 35, 0.16);
+        color: var(--lap-admin-ink);
+    }
+
+    .lap-admin-chip-pending {
+        background: rgba(254, 89, 0, 0.10);
+        border-color: rgba(254, 89, 0, 0.18);
+        color: var(--lap-admin-accent-deep);
+    }
+
+    .lap-admin-chip-revision {
+        background: rgba(13, 47, 103, 0.10);
+        border-color: rgba(13, 47, 103, 0.18);
+        color: var(--lap-admin-navy);
+    }
+
+    .lap-admin-chip-danger {
+        background: rgba(228, 27, 35, 0.10);
+        border-color: rgba(228, 27, 35, 0.18);
+        color: var(--lap-admin-danger);
+    }
+
+    .lap-admin-chip-draft {
+        background: rgba(3, 5, 35, 0.08);
+        border-color: rgba(3, 5, 35, 0.14);
+        color: rgba(3, 5, 35, 0.82);
+    }
+
+    .lap-admin-chip-count {
+        font-size: 1rem;
+        letter-spacing: 0;
+        min-width: 2.5rem;
+        justify-content: center;
+        padding-inline: 0.7rem;
+    }
+
+    .lap-admin-stat-card {
+        --lap-stat-accent: var(--lap-admin-accent);
+        --lap-stat-soft: rgba(254, 89, 0, 0.08);
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        border: 1px solid rgba(3, 5, 35, 0.08);
+        border-radius: 1rem;
+        box-shadow: 0 18px 40px rgba(3, 5, 35, 0.05);
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .lap-admin-stat-card::before {
+        background: linear-gradient(90deg, var(--lap-stat-accent) 0%, transparent 78%);
+        content: "";
+        height: 3px;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+
+    .lap-admin-stat-card:hover {
+        border-color: rgba(3, 5, 35, 0.12);
+        box-shadow: 0 22px 44px rgba(3, 5, 35, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .lap-admin-stat-card .card-body {
+        position: relative;
+    }
+
+    .lap-admin-stat-card .avatar-md {
+        background: var(--lap-stat-soft) !important;
+        box-shadow: inset 0 0 0 1px rgba(3, 5, 35, 0.04);
+    }
+
+    .lap-admin-stat-card .avatar-md i {
+        color: var(--lap-stat-accent) !important;
+    }
+
+    .lap-admin-stat-card .progress {
+        background: rgba(3, 5, 35, 0.06);
+    }
+
+    .lap-admin-stat-card .progress-bar {
+        background: var(--lap-stat-accent) !important;
+    }
+
+    .lap-admin-stat-card-primary {
+        --lap-stat-accent: var(--lap-admin-accent);
+        --lap-stat-soft: rgba(254, 89, 0, 0.10);
+    }
+
+    .lap-admin-stat-card-support {
+        --lap-stat-accent: var(--lap-admin-navy);
+        --lap-stat-soft: rgba(13, 47, 103, 0.10);
+    }
+
+    .lap-admin-stat-card-approved {
+        --lap-stat-accent: var(--lap-admin-ink);
+        --lap-stat-soft: rgba(3, 5, 35, 0.08);
+    }
+
+    .lap-admin-stat-card-pending {
+        --lap-stat-accent: var(--lap-admin-accent-deep);
+        --lap-stat-soft: rgba(254, 89, 0, 0.10);
+    }
+
+    .lap-admin-stat-card-danger {
+        --lap-stat-accent: var(--lap-admin-danger);
+        --lap-stat-soft: rgba(228, 27, 35, 0.10);
+    }
+
+    .lap-admin-stat-value {
+        color: var(--lap-admin-ink);
+        font-size: clamp(1.9rem, 2vw, 2.35rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        margin: 0;
+    }
+
+    .lap-admin-stat-copy {
+        color: var(--lap-admin-muted) !important;
+        margin: 0;
+    }
+
+    .lap-admin-mini-panel {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        border: 1px solid rgba(3, 5, 35, 0.08);
+        border-radius: 0.95rem;
+        box-shadow: 0 14px 32px rgba(3, 5, 35, 0.04);
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .lap-admin-mini-panel:hover {
+        border-color: rgba(254, 89, 0, 0.18);
+        box-shadow: 0 18px 36px rgba(3, 5, 35, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .lap-admin-page-head {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 1.25rem;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+    }
+
+    .lap-admin-page-meta {
+        flex: 1 1 28rem;
+        max-width: 54rem;
+        min-width: 0;
+    }
+
+    .lap-admin-page-meta .breadcrumb {
+        margin-bottom: 0.55rem !important;
+    }
+
+    .lap-admin-page-title {
+        color: var(--lap-admin-ink);
+        font-size: clamp(1.65rem, 1.2rem + 1vw, 2.15rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .lap-admin-page-copy {
+        color: var(--lap-admin-muted) !important;
+        line-height: 1.58;
+        margin-bottom: 0 !important;
+        max-width: 66ch;
+    }
+
+    .lap-admin-page-actions {
+        align-items: flex-start;
+        display: flex;
+        flex: 0 1 auto;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    .lap-admin-page-actions .dropdown {
+        flex: 0 0 auto;
+    }
+
+    .card-header {
+        padding: 1rem 1.25rem;
+    }
+
+    .card-header .card-title {
+        color: var(--lap-admin-ink);
+        font-weight: 750;
+        letter-spacing: -0.02em;
+    }
+
+    .card-header .text-muted,
+    .card-header p.text-muted {
+        line-height: 1.52;
+        max-width: 68ch;
+    }
+
+    @media (max-width: 820px) {
+        .lap-admin-page-head {
+            margin-bottom: 1.25rem;
+        }
+
+        .lap-admin-page-actions {
+            width: 100%;
+        }
+
+        .lap-admin-page-actions > .btn,
+        .lap-admin-page-actions > a.btn,
+        .lap-admin-page-actions > .dropdown,
+        .lap-admin-page-actions > *:not(.dropdown) {
+            flex: 1 1 100%;
+        }
+
+        .lap-admin-page-actions .dropdown > .btn,
+        .lap-admin-page-actions .dropdown > .btn-group,
+        .lap-admin-page-actions .dropdown > .dropdown-toggle {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .lap-admin-page-title {
+            font-size: 1.45rem;
+        }
+
+        .card-header {
+            padding: 0.95rem 1rem;
+        }
+    }
+
     .competition-table-wrap,
     .table-responsive.competition-table-wrap {
         width: 100%;
@@ -57,6 +398,13 @@
         --bs-table-bg: transparent;
         --bs-table-hover-bg: rgba(15, 23, 42, 0.025);
         margin-bottom: 0;
+    }
+
+    .competition-table .lap-admin-chip {
+        font-size: 0.64rem;
+        letter-spacing: 0.06em;
+        padding: 0.34rem 0.56rem;
+        white-space: nowrap;
     }
 
     .competition-table > :not(caption) > * > * {

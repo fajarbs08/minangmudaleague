@@ -118,8 +118,8 @@
                     <span class="menu-title-line" aria-hidden="true"></span>
                </li>
 
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('dashboard.index') }}">
+               <li class="menu-item {{ request()->routeIs('dashboard.home') || request()->routeIs('dashboard.index') ? 'active' : '' }}">
+                    <a class="menu-link {{ request()->routeIs('dashboard.home') || request()->routeIs('dashboard.index') ? 'active' : '' }}" href="{{ route('dashboard.index') }}">
                          <span class="nav-icon">
                               <i data-lucide="house"></i>
                          </span>
@@ -197,16 +197,27 @@
                     <span class="menu-title-line" aria-hidden="true"></span>
                </li>
 
-               @if (auth()->user()->isAdmin())
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('matches.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="calendar-range"></i>
-                         </span>
-                         <span class="nav-text">Jadwal Match</span>
-                    </a>
-               </li>
-               @endif
+                @if (auth()->user()->isAdmin())
+                <li class="menu-item {{ request()->routeIs('matches.*') ? 'active' : '' }}">
+                     <a class="menu-link {{ request()->routeIs('matches.*') ? 'active' : '' }}" href="#sidebarMatchSchedules" data-bs-toggle="collapse" role="button" aria-expanded="{{ request()->routeIs('matches.*') ? 'true' : 'false' }}" aria-controls="sidebarMatchSchedules">
+                          <span class="nav-icon">
+                               <i data-lucide="calendar-range"></i>
+                          </span>
+                          <span class="nav-text">Jadwal Match</span>
+                          <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
+                     </a>
+                     <div class="collapse {{ request()->routeIs('matches.*') ? 'show' : '' }}" id="sidebarMatchSchedules">
+                          <ul class="sub-menu-nav">
+                               <li class="sub-menu-item">
+                                    <a class="sub-menu-link {{ request()->routeIs('matches.league.index') ? 'active' : '' }}" href="{{ route('matches.league.index') }}">Jadwal Liga</a>
+                               </li>
+                               <li class="sub-menu-item">
+                                    <a class="sub-menu-link {{ request()->routeIs('matches.knockout.index') ? 'active' : '' }}" href="{{ route('matches.knockout.index') }}">Jadwal Knockout</a>
+                               </li>
+                          </ul>
+                     </div>
+                </li>
+                @endif
 
                <li class="menu-item">
                     <a class="menu-link" href="{{ route('lineup-lists.index') }}">

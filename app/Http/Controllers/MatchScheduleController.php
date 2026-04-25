@@ -7,84 +7,68 @@ use App\Models\Club;
 use App\Models\LineupList;
 use App\Models\MatchGoal;
 use App\Models\MatchSchedule;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\HtmlPdfRenderer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class MatchScheduleController extends Controller
 {
     public function index(Request $request)
     {
-        [$sort, $direction] = $this->resolveSort(
-            request: $request,
-            defaultSort: 'match_date',
-            defaultDirection: 'asc',
-            allowedSorts: ['match_day', 'matchup', 'age_group', 'competition_format', 'round_order', 'venue', 'match_date', 'kickoff_time'],
-        );
-
-        $matches = MatchSchedule::query()
-            ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id,verification_status'])
-            ->when($request->input('club_id'), function ($query, $clubId) {
-                $query->where(fn ($inner) => $inner
-                    ->where('club_a_id', $clubId)
-                    ->orWhere('club_b_id', $clubId));
-            })
-            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->where('age_group_id', $ageGroupId))
-            ->when($request->input('competition_format'), fn ($query, $format) => $query->where('competition_format', $format))
-            ->when($request->input('lineup_status'), function ($query, $status) {
-                if ($status === 'complete') {
-                    $query->whereHas('lineupLists', fn ($inner) => $inner->whereColumn('lineup_lists.club_id', 'match_schedules.club_a_id'))
-                        ->whereHas('lineupLists', fn ($inner) => $inner->whereColumn('lineup_lists.club_id', 'match_schedules.club_b_id'));
-                }
-
-                if ($status === 'pending') {
-                    $query->where(function ($inner) {
-                        $inner->whereDoesntHave('lineupLists', fn ($lineupQuery) => $lineupQuery->whereColumn('lineup_lists.club_id', 'match_schedules.club_a_id'))
-                            ->orWhereDoesntHave('lineupLists', fn ($lineupQuery) => $lineupQuery->whereColumn('lineup_lists.club_id', 'match_schedules.club_b_id'));
-                    });
-                }
-            });
-
-        $this->applyMatchSort($matches, $sort, $direction);
-
-        $matches = $matches
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('competition.matches.index', [
-            'title' => 'Jadwal Pertandingan',
-            'matches' => $matches,
-            'clubs' => Club::query()->orderBy('name')->get(),
-            'ageGroups' => AgeGroup::competition()->get(),
-            'formatOptions' => $this->formatOptions(),
-        ]);
+        return $this->renderMatchIndex($request, MatchSchedule::FORMAT_LEAGUE);
     }
 
-    public function create()
+    public function leagueIndex(Request $request)
     {
+        return $this->renderMatchIndex($request, MatchSchedule::FORMAT_LEAGUE);
+    }
+
+    public function knockoutIndex(Request $request)
+    {
+        return $this->renderMatchIndex($request, MatchSchedule::FORMAT_KNOCKOUT);
+    }
+
+    public function create(Request $request)
+    {
+        $matchSchedule = new MatchSchedule;
+        $requestedCompetitionFormat = $this->normalizeCompetitionFormat($request->input('competition_format'));
+        $matchSchedule->competition_format = $requestedCompetitionFormat ?? MatchSchedule::FORMAT_LEAGUE;
+        $matchSchedule->age_group_id = $request->integer('age_group_id') ?: null;
+        $matchSchedule->round_label = $request->string('round_label')->value() ?: null;
+        $matchSchedule->round_order = $request->integer('round_order') ?: null;
+        $matchSchedule->bracket_slot = $request->integer('bracket_slot') ?: null;
+        $redirectRouteName = $this->resolveMatchIndexRouteName($request, $requestedCompetitionFormat);
+
         return view('competition.matches.create', [
             'title' => 'Tambah Jadwal Pertandingan',
-            'matchSchedule' => new MatchSchedule,
+            'matchSchedule' => $matchSchedule,
             'clubs' => Club::query()->orderBy('name')->get(),
             'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
             'knockoutEliminatedClubIdsByAgeGroup' => $this->knockoutEliminatedClubIdsByAgeGroup(),
+            'knockoutSourceOptionsByAgeGroup' => $this->buildKnockoutSourceOptionsByAgeGroup(),
             'currentMatchClubIds' => [],
+            'backUrl' => route($redirectRouteName),
+            'redirectRouteName' => $redirectRouteName,
         ]);
     }
 
     public function store(Request $request)
     {
-        MatchSchedule::create($this->validatedData($request));
+        $match = MatchSchedule::create($this->validatedData($request));
+        $redirectRouteName = $this->resolveMatchIndexRouteName($request, $match->competition_format);
 
-        return redirect()->route('matches.index')->with('status', 'Jadwal pertandingan berhasil ditambahkan.');
+        return redirect()->route($redirectRouteName)->with('status', 'Jadwal pertandingan berhasil ditambahkan.');
     }
 
-    public function edit(MatchSchedule $match)
+    public function edit(Request $request, MatchSchedule $match)
     {
+        $redirectRouteName = $this->resolveMatchIndexRouteName($request, $match->competition_format);
+
         return view('competition.matches.edit', [
             'title' => 'Edit Jadwal Pertandingan',
             'matchSchedule' => $match,
@@ -92,7 +76,10 @@ class MatchScheduleController extends Controller
             'ageGroups' => AgeGroup::competition()->get(),
             'formatOptions' => $this->formatOptions(),
             'knockoutEliminatedClubIdsByAgeGroup' => $this->knockoutEliminatedClubIdsByAgeGroup($match->id),
+            'knockoutSourceOptionsByAgeGroup' => $this->buildKnockoutSourceOptionsByAgeGroup($match->id),
             'currentMatchClubIds' => array_values(array_filter([(int) $match->club_a_id, (int) $match->club_b_id])),
+            'backUrl' => route($redirectRouteName),
+            'redirectRouteName' => $redirectRouteName,
         ]);
     }
 
@@ -106,10 +93,12 @@ class MatchScheduleController extends Controller
 
         $match->update($this->validatedData($request));
 
-        return redirect()->route('matches.index')->with('status', 'Jadwal pertandingan berhasil diperbarui.');
+        $redirectRouteName = $this->resolveMatchIndexRouteName($request, $match->competition_format);
+
+        return redirect()->route($redirectRouteName)->with('status', 'Jadwal pertandingan berhasil diperbarui.');
     }
 
-    public function destroy(MatchSchedule $match)
+    public function destroy(Request $request, MatchSchedule $match)
     {
         if ($match->lineupLists()->exists()) {
             throw ValidationException::withMessages([
@@ -117,9 +106,12 @@ class MatchScheduleController extends Controller
             ]);
         }
 
+        $competitionFormat = $match->competition_format;
         $match->delete();
 
-        return redirect()->route('matches.index')->with('status', 'Jadwal pertandingan berhasil dihapus.');
+        $redirectRouteName = $this->resolveMatchIndexRouteName($request, $competitionFormat);
+
+        return redirect()->route($redirectRouteName)->with('status', 'Jadwal pertandingan berhasil dihapus.');
     }
 
     public function bulkDestroy(Request $request)
@@ -141,10 +133,15 @@ class MatchScheduleController extends Controller
             ->pluck('id');
 
         $blockedCount = $matches->count() - $deletableIds->count();
+        $redirectRouteName = $this->resolveMatchIndexRouteName(
+            $request,
+            $this->normalizeCompetitionFormat($request->input('competition_format')),
+        );
+        $redirectParameters = $this->matchIndexQueryParameters($request, $redirectRouteName);
 
         if ($deletableIds->isEmpty()) {
             return redirect()
-                ->route('matches.index', $request->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction']))
+                ->route($redirectRouteName, $redirectParameters)
                 ->withErrors([
                     'match' => 'Tidak ada jadwal yang bisa dihapus. Jadwal yang sudah dipakai DSP tidak bisa dihapus massal.',
                 ]);
@@ -159,8 +156,193 @@ class MatchScheduleController extends Controller
         }
 
         return redirect()
-            ->route('matches.index', $request->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction']))
+            ->route($redirectRouteName, $redirectParameters)
             ->with('status', $message);
+    }
+
+    public function updateKnockoutPosition(Request $request, MatchSchedule $match)
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+        abort_unless($match->competition_format === MatchSchedule::FORMAT_KNOCKOUT, 404);
+
+        $validated = $request->validate([
+            'age_group_id' => ['required', 'integer'],
+            'round_label' => ['required', 'string', 'max:255'],
+            'round_order' => ['required', 'integer', 'min:1', 'max:999'],
+            'bracket_slot' => ['required', 'integer', 'min:1', 'max:999'],
+            'swap_match_id' => ['nullable', 'integer', 'exists:match_schedules,id'],
+            'source_round_label' => ['nullable', 'string', 'max:255', 'required_with:swap_match_id'],
+            'source_round_order' => ['nullable', 'integer', 'min:1', 'max:999', 'required_with:swap_match_id'],
+            'source_bracket_slot' => ['nullable', 'integer', 'min:1', 'max:999', 'required_with:swap_match_id'],
+        ]);
+
+        if ((int) $validated['age_group_id'] !== (int) $match->age_group_id) {
+            throw ValidationException::withMessages([
+                'age_group_id' => 'Perpindahan antar kelompok usia tidak diizinkan dari board knockout.',
+            ]);
+        }
+
+        if (filled($validated['swap_match_id'] ?? null)) {
+            $swapMatch = MatchSchedule::query()->findOrFail((int) $validated['swap_match_id']);
+
+            if ($swapMatch->competition_format !== MatchSchedule::FORMAT_KNOCKOUT || (int) $swapMatch->age_group_id !== (int) $match->age_group_id) {
+                throw ValidationException::withMessages([
+                    'swap_match_id' => 'Pertukaran slot hanya bisa dilakukan dalam bracket knockout kelompok usia yang sama.',
+                ]);
+            }
+
+            $sourcePosition = [
+                'round_label' => $validated['source_round_label'],
+                'round_order' => (int) $validated['source_round_order'],
+                'bracket_slot' => (int) $validated['source_bracket_slot'],
+            ];
+            $targetPosition = [
+                'round_label' => $validated['round_label'],
+                'round_order' => (int) $validated['round_order'],
+                'bracket_slot' => (int) $validated['bracket_slot'],
+            ];
+            $roundOrderOverrides = [
+                (int) $match->id => $targetPosition['round_order'],
+                (int) $swapMatch->id => $sourcePosition['round_order'],
+            ];
+
+            $this->validateKnockoutRoundDependencies(
+                currentMatch: $match,
+                ageGroupId: (int) $match->age_group_id,
+                proposedRoundOrder: $targetPosition['round_order'],
+                sourceMatchAId: $match->source_match_a_id ? (int) $match->source_match_a_id : null,
+                sourceMatchBId: $match->source_match_b_id ? (int) $match->source_match_b_id : null,
+                roundOrderOverrides: $roundOrderOverrides,
+            );
+
+            $this->validateKnockoutRoundDependencies(
+                currentMatch: $swapMatch,
+                ageGroupId: (int) $swapMatch->age_group_id,
+                proposedRoundOrder: $sourcePosition['round_order'],
+                sourceMatchAId: $swapMatch->source_match_a_id ? (int) $swapMatch->source_match_a_id : null,
+                sourceMatchBId: $swapMatch->source_match_b_id ? (int) $swapMatch->source_match_b_id : null,
+                roundOrderOverrides: $roundOrderOverrides,
+            );
+
+            DB::transaction(function () use ($match, $swapMatch, $targetPosition, $sourcePosition) {
+                $match->update($targetPosition);
+                $swapMatch->update($sourcePosition);
+            });
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Posisi bracket berhasil ditukar.',
+            ]);
+        }
+
+        $this->validateKnockoutRoundDependencies(
+            currentMatch: $match,
+            ageGroupId: (int) $match->age_group_id,
+            proposedRoundOrder: (int) $validated['round_order'],
+            sourceMatchAId: $match->source_match_a_id ? (int) $match->source_match_a_id : null,
+            sourceMatchBId: $match->source_match_b_id ? (int) $match->source_match_b_id : null,
+        );
+
+        $this->validateKnockoutBracketPlacement([
+            'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+            'age_group_id' => (int) $match->age_group_id,
+            'source_match_a_id' => $match->source_match_a_id,
+            'source_match_b_id' => $match->source_match_b_id,
+            'round_label' => $validated['round_label'],
+            'round_order' => (int) $validated['round_order'],
+            'bracket_slot' => (int) $validated['bracket_slot'],
+        ], $match->id);
+
+        $match->update([
+            'round_label' => $validated['round_label'],
+            'round_order' => (int) $validated['round_order'],
+            'bracket_slot' => (int) $validated['bracket_slot'],
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Posisi bracket berhasil diperbarui.',
+        ]);
+    }
+
+    private function renderMatchIndex(Request $request, ?string $forcedCompetitionFormat = null): View
+    {
+        $matchIndexMeta = $this->matchIndexMeta($forcedCompetitionFormat);
+        $activeCompetitionFormat = $forcedCompetitionFormat ?: $this->normalizeCompetitionFormat($request->input('competition_format'));
+
+        if ($forcedCompetitionFormat === MatchSchedule::FORMAT_KNOCKOUT) {
+            $ageGroupSummaries = $this->buildKnockoutAgeGroupSummaries();
+            $requestedAgeGroupId = $request->integer('age_group_id') ?: null;
+            $selectedAgeGroupId = $ageGroupSummaries->contains(fn (array $summary) => $summary['id'] === $requestedAgeGroupId)
+                ? $requestedAgeGroupId
+                : (data_get($ageGroupSummaries->firstWhere('has_matches', true), 'id')
+                    ?? data_get($ageGroupSummaries->first(), 'id'));
+            $selectedBoard = $selectedAgeGroupId
+                ? $this->buildKnockoutAdminBoards($selectedAgeGroupId)->first()
+                : null;
+
+            return view('competition.matches.knockout-index', [
+                'title' => $matchIndexMeta['title'],
+                'pageHeading' => $matchIndexMeta['heading'],
+                'pageDescription' => $matchIndexMeta['description'],
+                'ageGroupSummaries' => $ageGroupSummaries,
+                'selectedAgeGroupId' => $selectedAgeGroupId,
+                'selectedBoard' => $selectedBoard,
+                'indexRouteName' => $matchIndexMeta['route'],
+            ]);
+        }
+
+        [$sort, $direction] = $this->resolveSort(
+            request: $request,
+            defaultSort: 'match_date',
+            defaultDirection: 'asc',
+            allowedSorts: ['match_day', 'matchup', 'age_group', 'competition_format', 'round_order', 'venue', 'match_date', 'kickoff_time'],
+        );
+
+        $matches = MatchSchedule::query()
+            ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id,verification_status'])
+            ->when($request->input('club_id'), function ($query, $clubId) {
+                $query->where(fn ($inner) => $inner
+                    ->where('club_a_id', $clubId)
+                    ->orWhere('club_b_id', $clubId));
+            })
+            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->where('age_group_id', $ageGroupId))
+            ->when($activeCompetitionFormat, fn ($query, $format) => $query->where('competition_format', $format))
+            ->when($request->input('lineup_status'), function ($query, $status) {
+                if ($status === 'complete') {
+                    $query->whereHas('lineupLists', fn ($inner) => $inner->whereColumn('lineup_lists.club_id', 'match_schedules.club_a_id'))
+                        ->whereHas('lineupLists', fn ($inner) => $inner->whereColumn('lineup_lists.club_id', 'match_schedules.club_b_id'));
+                }
+
+                if ($status === 'pending') {
+                    $query->where(function ($inner) {
+                        $inner->whereDoesntHave('lineupLists', fn ($lineupQuery) => $lineupQuery->whereColumn('lineup_lists.club_id', 'match_schedules.club_a_id'))
+                            ->orWhereDoesntHave('lineupLists', fn ($lineupQuery) => $lineupQuery->whereColumn('lineup_lists.club_id', 'match_schedules.club_b_id'));
+                    });
+                }
+            });
+
+        $this->applyMatchSort($matches, $sort, $direction);
+
+        $matches = $matches
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('competition.matches.index', [
+            'title' => $matchIndexMeta['title'],
+            'pageHeading' => $matchIndexMeta['heading'],
+            'pageDescription' => $matchIndexMeta['description'],
+            'matches' => $matches,
+            'clubs' => Club::query()->orderBy('name')->get(),
+            'ageGroups' => AgeGroup::competition()->get(),
+            'formatOptions' => $this->formatOptions(),
+            'fixedCompetitionFormat' => $forcedCompetitionFormat,
+            'indexRouteName' => $matchIndexMeta['route'],
+            'createUrl' => route('matches.create', array_filter([
+                'redirect_route' => $matchIndexMeta['route'],
+                'competition_format' => $forcedCompetitionFormat,
+            ])),
+        ]);
     }
 
     public function results(Request $request): View
@@ -349,20 +531,65 @@ class MatchScheduleController extends Controller
 
     public function brackets(Request $request): View
     {
+        return view('competition.matches.brackets', $this->bracketReportViewData($request));
+    }
+
+    public function bracketsPrint(Request $request): View
+    {
+        return view('competition.matches.brackets-print', $this->bracketReportViewData($request));
+    }
+
+    public function bracketsPdf(Request $request)
+    {
+        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+        $reportData = $this->bracketReportViewData($request);
+
+        return $this->streamReportPdf(
+            request: $request,
+            view: 'competition.matches.brackets-pdf',
+            fileName: $this->pdfFileName('laporan-bagan-knockout', $selectedAgeGroup),
+            data: [
+                'selectedAgeGroup' => $selectedAgeGroup,
+                'brackets' => $reportData['brackets'],
+                'bracketryBrackets' => $reportData['bracketryBrackets'],
+            ],
+            paper: 'a4',
+            orientation: 'landscape',
+            options: [
+                'wait_for_function' => 'window.__BRACKET_PDF_READY === true',
+                'wait_for_function_timeout' => 10000,
+                'delay' => 250,
+            ],
+        );
+    }
+
+    private function bracketReportViewData(Request $request): array
+    {
         $user = $request->user();
         $clubIds = $this->visibleClubIds($user);
         $ageGroupId = $request->integer('age_group_id') ?: null;
+        $allBrackets = $this->buildKnockoutBrackets(
+            user: $user,
+            clubIds: $clubIds,
+        );
+        $brackets = $ageGroupId
+            ? $allBrackets->filter(fn (array $bracket) => (int) ($bracket['age_group']?->id ?? 0) === $ageGroupId)->values()
+            : $allBrackets;
 
-        return view('competition.matches.brackets', [
+        return [
             'title' => 'Bagan Knockout',
             'ageGroups' => AgeGroup::competition()->get(),
+            'ageGroupSummaries' => $allBrackets->map(fn (array $bracket) => [
+                'id' => $bracket['age_group']?->id,
+                'name' => $bracket['age_group']?->name ?: '-',
+                'total_matches' => collect($bracket['rounds'] ?? [])->sum(fn (array $round) => count($round['matches'] ?? [])),
+            ])->values(),
+            'selectedAgeGroupId' => $ageGroupId,
             'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
-            'brackets' => $this->buildKnockoutBrackets(
-                user: $user,
-                clubIds: $clubIds,
-                ageGroupId: $ageGroupId,
-            ),
-        ]);
+            'brackets' => $brackets,
+            'bracketryBrackets' => $this->buildReportBracketryBrackets($brackets),
+        ];
     }
 
     public function reports(Request $request): View
@@ -436,9 +663,11 @@ class MatchScheduleController extends Controller
         $validated = $request->validate([
             'age_group_id' => ['required', AgeGroup::competitionExistsRule()],
             'competition_format' => ['required', 'in:league,knockout'],
-            'round_label' => ['nullable', 'string', 'max:255'],
-            'round_order' => ['nullable', 'integer', 'min:1', 'max:999'],
-            'bracket_slot' => ['nullable', 'integer', 'min:1', 'max:999'],
+            'round_label' => ['nullable', 'string', 'max:255', 'required_if:competition_format,knockout'],
+            'round_order' => ['nullable', 'integer', 'min:1', 'max:999', 'required_if:competition_format,knockout'],
+            'bracket_slot' => ['nullable', 'integer', 'min:1', 'max:999', 'required_if:competition_format,knockout'],
+            'source_match_a_id' => ['nullable', 'integer', 'exists:match_schedules,id'],
+            'source_match_b_id' => ['nullable', 'integer', 'exists:match_schedules,id'],
             'club_a_id' => ['required', 'exists:clubs,id', 'different:club_b_id'],
             'club_b_id' => ['required', 'exists:clubs,id', 'different:club_a_id'],
             'match_day' => ['required', 'string', 'max:255'],
@@ -496,15 +725,24 @@ class MatchScheduleController extends Controller
             $validated['round_label'] = null;
             $validated['round_order'] = null;
             $validated['bracket_slot'] = null;
-        } else {
-            $validated['round_label'] = filled($validated['round_label'] ?? null) ? $validated['round_label'] : 'Babak Knockout';
-            $validated['round_order'] = $validated['round_order'] ?? 1;
-            $validated['bracket_slot'] = $validated['bracket_slot'] ?? 1;
+            $validated['source_match_a_id'] = null;
+            $validated['source_match_b_id'] = null;
         }
 
         $this->validateKnockoutClubEligibility(
             validated: $validated,
             currentMatch: $request->route('match'),
+        );
+        $this->validateKnockoutRoundDependencies(
+            currentMatch: $request->route('match'),
+            ageGroupId: (int) $validated['age_group_id'],
+            proposedRoundOrder: (int) ($validated['round_order'] ?? 0),
+            sourceMatchAId: isset($validated['source_match_a_id']) ? (int) $validated['source_match_a_id'] : null,
+            sourceMatchBId: isset($validated['source_match_b_id']) ? (int) $validated['source_match_b_id'] : null,
+        );
+        $this->validateKnockoutBracketPlacement(
+            validated: $validated,
+            currentMatchId: $matchId,
         );
 
         return $validated;
@@ -516,6 +754,367 @@ class MatchScheduleController extends Controller
             MatchSchedule::FORMAT_LEAGUE => 'Liga',
             MatchSchedule::FORMAT_KNOCKOUT => 'Knockout',
         ];
+    }
+
+    private function buildKnockoutSourceOptionsByAgeGroup(?int $ignoreMatchId = null): array
+    {
+        return MatchSchedule::query()
+            ->with([
+                'clubA:id,name,short_name',
+                'clubB:id,name,short_name',
+            ])
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->when($ignoreMatchId, fn ($query) => $query->whereKeyNot($ignoreMatchId))
+            ->orderBy('age_group_id')
+            ->orderBy('round_order')
+            ->orderBy('bracket_slot')
+            ->get(['id', 'age_group_id', 'round_label', 'round_order', 'bracket_slot', 'match_day', 'club_a_id', 'club_b_id'])
+            ->groupBy('age_group_id')
+            ->mapWithKeys(function (Collection $matches, int $ageGroupId) {
+                return [
+                    (string) $ageGroupId => $matches->map(function (MatchSchedule $match) {
+                        $clubALabel = $match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A';
+                        $clubBLabel = $match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B';
+
+                        return [
+                            'id' => $match->id,
+                            'round_order' => (int) ($match->round_order ?: 1),
+                            'label' => collect([
+                                $match->round_display_label,
+                                'Slot '.($match->bracket_slot ?: '-'),
+                                $match->match_day,
+                                $clubALabel.' vs '.$clubBLabel,
+                            ])->filter()->implode(' • '),
+                        ];
+                    })->all(),
+                ];
+            })
+            ->all();
+    }
+
+    private function buildKnockoutAdminBoards(?int $ageGroupId = null): Collection
+    {
+        $ageGroups = AgeGroup::competition()
+            ->when($ageGroupId, fn ($query) => $query->whereKey($ageGroupId))
+            ->orderBy('name')
+            ->get();
+
+        $matchesByAgeGroup = MatchSchedule::query()
+            ->with([
+                'clubA',
+                'clubB',
+                'lineupLists:id,match_id',
+                'ageGroup',
+                'sourceMatchA:id,round_label,round_order,bracket_slot,match_day,club_a_id,club_b_id',
+                'sourceMatchB:id,round_label,round_order,bracket_slot,match_day,club_a_id,club_b_id',
+            ])
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->when($ageGroupId, fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->orderBy('age_group_id')
+            ->orderBy('round_order')
+            ->orderBy('bracket_slot')
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time')
+            ->get()
+            ->groupBy('age_group_id');
+
+        return $ageGroups->map(function (AgeGroup $ageGroup) use ($matchesByAgeGroup) {
+            $ageGroupMatches = $matchesByAgeGroup->get($ageGroup->id, collect());
+            $winningPathIds = $this->collectKnockoutWinningPathMatchIds($ageGroupMatches);
+            $feedingMatchIds = $ageGroupMatches
+                ->flatMap(fn (MatchSchedule $match) => [
+                    $match->source_match_a_id ? (int) $match->source_match_a_id : null,
+                    $match->source_match_b_id ? (int) $match->source_match_b_id : null,
+                ])
+                ->filter()
+                ->values();
+
+            $existingRounds = $ageGroupMatches
+                ->groupBy(fn (MatchSchedule $match) => (string) ($match->round_order ?: 1))
+                ->map(fn (Collection $roundMatches) => [
+                    'round_order' => (int) ($roundMatches->first()?->round_order ?: 1),
+                    'round_label' => $roundMatches->first()?->round_display_label ?: 'Babak '.((int) ($roundMatches->first()?->round_order ?: 1)),
+                    'is_new_round' => false,
+                ])
+                ->sortBy('round_order')
+                ->values();
+
+            if ($existingRounds->isEmpty()) {
+                $roundDefinitions = collect([
+                    [
+                        'round_order' => 1,
+                        'round_label' => 'Babak 1',
+                        'is_new_round' => true,
+                    ],
+                ]);
+            } else {
+                $highestRoundOrder = (int) $existingRounds->max('round_order');
+
+                $roundDefinitions = $existingRounds->values();
+                $roundDefinitions->push([
+                    'round_order' => $highestRoundOrder + 1,
+                    'round_label' => 'Babak '.($highestRoundOrder + 1),
+                    'is_new_round' => true,
+                ]);
+            }
+
+            $lastRoundOrder = (int) collect($roundDefinitions)->max('round_order');
+
+            return [
+                'age_group' => $ageGroup,
+                'total_matches' => $ageGroupMatches->count(),
+                'rounds' => $roundDefinitions->map(function (array $round) use ($ageGroup, $ageGroupMatches, $feedingMatchIds, $winningPathIds, $lastRoundOrder) {
+                    $matchesBySlot = $ageGroupMatches
+                        ->where('round_order', $round['round_order'])
+                        ->sortBy('bracket_slot')
+                        ->keyBy(fn (MatchSchedule $match) => (int) ($match->bracket_slot ?: 1));
+
+                    $highestSlot = (int) ($matchesBySlot->keys()->max() ?: 0);
+                    $slotLimit = max($highestSlot + 1, 1);
+
+                    return [
+                        'round_label' => $round['round_label'],
+                        'round_order' => $round['round_order'],
+                        'is_new_round' => (bool) ($round['is_new_round'] ?? false),
+                        'round_display_label' => (bool) ($round['is_new_round'] ?? false)
+                            ? 'Babak Baru'
+                            : ($round['round_label'] ?: 'Babak '.$round['round_order']),
+                        'slots' => collect(range(1, $slotLimit))->map(function (int $slot) use ($matchesBySlot, $ageGroup, $round, $feedingMatchIds, $winningPathIds, $lastRoundOrder) {
+                            $match = $matchesBySlot->get($slot);
+                            $slotTone = 'empty';
+
+                            if ($match) {
+                                $slotTone = $winningPathIds->contains($match->id)
+                                    ? 'winner'
+                                    : 'occupied';
+                            }
+
+                            return [
+                                'slot' => $slot,
+                                'match' => $match,
+                                'has_connector' => (int) $round['round_order'] < $lastRoundOrder,
+                                'connector_tone' => $match && $feedingMatchIds->contains($match->id)
+                                    ? $slotTone
+                                    : 'empty',
+                                'create_url' => route('matches.create', [
+                                    'redirect_route' => 'matches.knockout.index',
+                                    'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
+                                    'age_group_id' => $ageGroup->id,
+                                    'round_label' => $round['round_label'],
+                                    'round_order' => $round['round_order'],
+                                    'bracket_slot' => $slot,
+                                ]),
+                            ];
+                        })->all(),
+                    ];
+                })->all(),
+            ];
+        });
+    }
+
+    private function buildKnockoutAgeGroupSummaries(): Collection
+    {
+        $matchCountsByAgeGroup = MatchSchedule::query()
+            ->select('age_group_id', DB::raw('COUNT(*) as total_matches'))
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->groupBy('age_group_id')
+            ->pluck('total_matches', 'age_group_id');
+
+        return AgeGroup::competition()
+            ->orderBy('name')
+            ->get()
+            ->map(function (AgeGroup $ageGroup) use ($matchCountsByAgeGroup) {
+                $totalMatches = (int) ($matchCountsByAgeGroup[$ageGroup->id] ?? 0);
+
+                return [
+                    'id' => $ageGroup->id,
+                    'name' => $ageGroup->name,
+                    'total_matches' => $totalMatches,
+                    'has_matches' => $totalMatches > 0,
+                ];
+            });
+    }
+
+    private function collectKnockoutWinningPathMatchIds(Collection $ageGroupMatches): Collection
+    {
+        $matchesById = $ageGroupMatches->keyBy('id');
+        $referencedSourceIds = $ageGroupMatches
+            ->flatMap(fn (MatchSchedule $match) => [
+                $match->source_match_a_id ? (int) $match->source_match_a_id : null,
+                $match->source_match_b_id ? (int) $match->source_match_b_id : null,
+            ])
+            ->filter()
+            ->values();
+
+        $terminalMatches = $ageGroupMatches
+            ->filter(fn (MatchSchedule $match) => ! $referencedSourceIds->contains($match->id))
+            ->sortByDesc('round_order')
+            ->values();
+
+        $winningPathIds = [];
+
+        $walk = function (?MatchSchedule $match) use (&$walk, &$winningPathIds, $matchesById) {
+            if (! $match || in_array($match->id, $winningPathIds, true)) {
+                return;
+            }
+
+            $winningPathIds[] = $match->id;
+
+            if (! $match->winner_club_id) {
+                return;
+            }
+
+            if ((int) $match->winner_club_id === (int) $match->club_a_id) {
+                $walk($matchesById->get((int) $match->source_match_a_id));
+            }
+
+            if ((int) $match->winner_club_id === (int) $match->club_b_id) {
+                $walk($matchesById->get((int) $match->source_match_b_id));
+            }
+        };
+
+        $terminalMatches->each(fn (MatchSchedule $match) => $walk($match));
+
+        return collect($winningPathIds);
+    }
+
+    private function validateKnockoutRoundDependencies(
+        ?MatchSchedule $currentMatch,
+        int $ageGroupId,
+        int $proposedRoundOrder,
+        ?int $sourceMatchAId = null,
+        ?int $sourceMatchBId = null,
+        array $roundOrderOverrides = [],
+    ): void {
+        if ($proposedRoundOrder < 1) {
+            return;
+        }
+
+        $messages = [];
+        $sourceSelections = collect([
+            'source_match_a_id' => $sourceMatchAId,
+            'source_match_b_id' => $sourceMatchBId,
+        ])->filter();
+
+        if ($sourceSelections->isNotEmpty()) {
+            if ($sourceSelections->values()->unique()->count() !== $sourceSelections->count()) {
+                $messages['source_match_b_id'] = 'Sumber Tim A dan Tim B harus berasal dari pertandingan yang berbeda.';
+            }
+
+            $sourceMatches = MatchSchedule::query()
+                ->whereIn('id', $sourceSelections->values())
+                ->get(['id', 'age_group_id', 'competition_format', 'round_order'])
+                ->keyBy('id');
+
+            foreach ($sourceSelections as $field => $sourceMatchId) {
+                $sourceMatch = $sourceMatches->get((int) $sourceMatchId);
+
+                if (! $sourceMatch) {
+                    $messages[$field] = 'Pertandingan sumber tidak ditemukan.';
+                    continue;
+                }
+
+                if ((int) $sourceMatch->age_group_id !== $ageGroupId) {
+                    $messages[$field] = 'Pertandingan sumber harus berasal dari kelompok usia yang sama.';
+                    continue;
+                }
+
+                if ($sourceMatch->competition_format !== MatchSchedule::FORMAT_KNOCKOUT) {
+                    $messages[$field] = 'Pertandingan sumber hanya bisa diambil dari bracket knockout.';
+                    continue;
+                }
+
+                if ($currentMatch && (int) $sourceMatch->id === (int) $currentMatch->id) {
+                    $messages[$field] = 'Pertandingan tidak bisa memakai dirinya sendiri sebagai sumber lawan.';
+                    continue;
+                }
+
+                $sourceRoundOrder = $roundOrderOverrides[(int) $sourceMatch->id] ?? (int) ($sourceMatch->round_order ?: 1);
+                if ($sourceRoundOrder >= $proposedRoundOrder) {
+                    $messages[$field] = 'Pertandingan sumber harus berasal dari babak yang lebih awal.';
+                }
+            }
+        }
+
+        if ($currentMatch) {
+            $downstreamMatches = MatchSchedule::query()
+                ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+                ->where('age_group_id', $ageGroupId)
+                ->where(function ($query) use ($currentMatch) {
+                    $query->where('source_match_a_id', $currentMatch->id)
+                        ->orWhere('source_match_b_id', $currentMatch->id);
+                })
+                ->get(['id', 'round_order', 'round_label']);
+
+            foreach ($downstreamMatches as $downstreamMatch) {
+                $downstreamRoundOrder = $roundOrderOverrides[(int) $downstreamMatch->id] ?? (int) ($downstreamMatch->round_order ?: 1);
+                if ($downstreamRoundOrder <= $proposedRoundOrder) {
+                    $messages['round_order'] = 'Urutan babak tidak valid karena pertandingan ini sudah menjadi sumber untuk '.($downstreamMatch->round_label ?: 'babak '.$downstreamRoundOrder).'.';
+                    break;
+                }
+            }
+        }
+
+        if (! empty($messages)) {
+            throw ValidationException::withMessages($messages);
+        }
+    }
+
+    private function matchIndexMeta(?string $forcedCompetitionFormat): array
+    {
+        return match ($forcedCompetitionFormat) {
+            MatchSchedule::FORMAT_LEAGUE => [
+                'route' => 'matches.league.index',
+                'title' => 'Jadwal Match Liga',
+                'heading' => 'Jadwal Match Liga',
+                'description' => 'Kelola jadwal fase liga secara terpisah agar penyusunan pertandingan lebih rapi.',
+            ],
+            MatchSchedule::FORMAT_KNOCKOUT => [
+                'route' => 'matches.knockout.index',
+                'title' => 'Jadwal Match Knockout',
+                'heading' => 'Jadwal Match Knockout',
+                'description' => 'Kelola jadwal fase knockout secara terpisah untuk memudahkan pengaturan babak gugur.',
+            ],
+            default => [
+                'route' => 'matches.league.index',
+                'title' => 'Jadwal Match Liga',
+                'heading' => 'Jadwal Match Liga',
+                'description' => 'Kelola jadwal fase liga secara terpisah agar penyusunan pertandingan lebih rapi.',
+            ],
+        };
+    }
+
+    private function normalizeCompetitionFormat(mixed $competitionFormat): ?string
+    {
+        return match ($competitionFormat) {
+            MatchSchedule::FORMAT_LEAGUE, MatchSchedule::FORMAT_KNOCKOUT => $competitionFormat,
+            default => null,
+        };
+    }
+
+    private function resolveMatchIndexRouteName(Request $request, ?string $fallbackCompetitionFormat = null): string
+    {
+        $redirectRouteName = $request->string('redirect_route')->value();
+        $allowedRouteNames = ['matches.league.index', 'matches.knockout.index'];
+
+        if (in_array($redirectRouteName, $allowedRouteNames, true)) {
+            return $redirectRouteName;
+        }
+
+        return match ($fallbackCompetitionFormat) {
+            MatchSchedule::FORMAT_LEAGUE => 'matches.league.index',
+            MatchSchedule::FORMAT_KNOCKOUT => 'matches.knockout.index',
+            default => 'matches.league.index',
+        };
+    }
+
+    private function matchIndexQueryParameters(Request $request, string $routeName): array
+    {
+        $parameters = collect($request->only(['club_id', 'age_group_id', 'lineup_status', 'sort', 'direction']))
+            ->filter(fn ($value) => filled($value))
+            ->all();
+
+        return $parameters;
     }
 
     private function resolveSort(Request $request, string $defaultSort, string $defaultDirection, array $allowedSorts): array
@@ -589,18 +1188,30 @@ class MatchScheduleController extends Controller
         return $baseName.$suffix.'.pdf';
     }
 
-    private function streamReportPdf(Request $request, string $view, string $fileName, array $data)
-    {
-        $pdf = Pdf::loadView($view, [
+    private function streamReportPdf(
+        Request $request,
+        string $view,
+        string $fileName,
+        array $data,
+        string $paper = 'a4',
+        string $orientation = 'portrait',
+        array $options = []
+    ) {
+        $pdf = app(HtmlPdfRenderer::class)->renderView($view, [
             'generatedAt' => now(),
             ...$data,
-        ])->setPaper('a4', 'portrait');
+        ], $paper, $orientation, $options);
 
-        if ($request->boolean('download')) {
-            return $pdf->download($fileName);
-        }
+        $response = response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($request->boolean('download') ? 'attachment' : 'inline').'; filename="'.$fileName.'"',
+        ]);
 
-        return $pdf->stream($fileName);
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', 'Fri, 01 Jan 1990 00:00:00 GMT');
+
+        return $response;
     }
 
     private function reportPageData(Request $request): array
@@ -735,7 +1346,7 @@ class MatchScheduleController extends Controller
                             return [
                                 'position' => $index + 1,
                                 'player_name' => $row->player_name,
-                                'club_name' => $row->club_short_name ?: $row->club_name ?: '-',
+                                'club_name' => $row->club_name ?: $row->club_short_name ?: '-',
                                 'total' => (int) $row->total,
                             ];
                         }),
@@ -770,23 +1381,153 @@ class MatchScheduleController extends Controller
             ->get()
             ->groupBy('age_group_id')
             ->map(function (Collection $matches) {
+                $rounds = $matches
+                    ->groupBy(fn (MatchSchedule $match) => $match->round_order ?: 1)
+                    ->map(function (Collection $roundMatches) {
+                        return [
+                            'round_order' => (int) ($roundMatches->first()?->round_order ?: 1),
+                            'label' => $roundMatches->first()?->round_display_label ?: 'Babak Knockout',
+                            'matches' => $roundMatches
+                                ->sortBy(fn (MatchSchedule $match) => $match->bracket_slot ?: PHP_INT_MAX)
+                                ->values(),
+                        ];
+                    })
+                    ->sortKeys()
+                    ->values();
+
                 return [
                     'age_group' => $matches->first()?->ageGroup,
-                    'rounds' => $matches
-                        ->groupBy(fn (MatchSchedule $match) => $match->round_order ?: 1)
-                        ->map(function (Collection $roundMatches) {
-                            return [
-                                'label' => $roundMatches->first()?->round_display_label ?: 'Babak Knockout',
-                                'matches' => $roundMatches
-                                    ->sortBy(fn (MatchSchedule $match) => $match->bracket_slot ?: PHP_INT_MAX)
-                                    ->values(),
-                            ];
-                        })
-                        ->sortKeys()
-                        ->values(),
+                    'rounds' => $this->trimBracketRoundsAfterFinal(
+                        $this->normalizeBracketRoundLabels($rounds)
+                    ),
                 ];
             })
             ->values();
+    }
+
+    private function normalizeBracketRoundLabels(Collection $rounds): Collection
+    {
+        $seenLabels = [];
+
+        return $rounds->values()->map(function (array $round, int $index) use (&$seenLabels) {
+            $label = trim((string) ($round['label'] ?? ''));
+            $roundOrder = (int) ($round['round_order'] ?? ($index + 1));
+
+            if ($label === '') {
+                $round['label'] = 'Babak '.$roundOrder;
+
+                return $round;
+            }
+
+            $seenLabels[$label] = ($seenLabels[$label] ?? 0) + 1;
+
+            if ($seenLabels[$label] > 1) {
+                $round['label'] = 'Babak '.$roundOrder;
+            }
+
+            return $round;
+        })->values();
+    }
+
+    private function trimBracketRoundsAfterFinal(Collection $rounds): Collection
+    {
+        $finalIndex = $rounds->search(fn (array $round) => $this->isTerminalFinalRoundLabel($round['label'] ?? null));
+
+        if ($finalIndex === false) {
+            return $rounds->values();
+        }
+
+        return $rounds->take($finalIndex + 1)->values();
+    }
+
+    private function isTerminalFinalRoundLabel(?string $label): bool
+    {
+        $normalized = Str::of((string) $label)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->trim()
+            ->value();
+
+        return in_array($normalized, ['final', 'babak final', 'grand final', 'finale'], true);
+    }
+
+    private function buildReportBracketryBrackets(Collection $brackets): Collection
+    {
+        return $brackets->map(function (array $bracket): array {
+            $allRounds = collect($bracket['rounds'])->values();
+            $displayRounds = $allRounds;
+
+            $contestants = [];
+            $matches = [];
+
+            foreach ($displayRounds as $roundIndex => $round) {
+                foreach ($round['matches'] as $matchIndex => $match) {
+                    $homeKey = 'club-'.$match->club_a_id;
+                    $awayKey = 'club-'.$match->club_b_id;
+
+                    $contestants[$homeKey] = [
+                        'players' => [[
+                            'title' => $match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A',
+                        ]],
+                    ];
+
+                    $contestants[$awayKey] = [
+                        'players' => [[
+                            'title' => $match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B',
+                        ]],
+                    ];
+
+                    $matches[] = [
+                        'roundIndex' => $roundIndex,
+                        'order' => $matchIndex,
+                        'matchStatus' => filled($match->match_date)
+                            ? trim((optional($match->match_date)->format('d M Y') ?: '').' · '.($match->kickoff_time?->format('H:i') ?: '--').' WIB', ' ·')
+                            : ($match->is_finished ? 'FT' : 'SCHEDULED'),
+                        'detail' => [
+                            'round_label' => $round['label'],
+                        ],
+                        'sides' => [
+                            [
+                                'contestantId' => $homeKey,
+                                'scores' => filled($match->score_club_a) ? [[
+                                    'mainScore' => (int) $match->score_club_a,
+                                ]] : [],
+                                'isWinner' => $match->score_club_b !== null && $match->score_club_a !== null
+                                    ? (int) $match->score_club_a > (int) $match->score_club_b
+                                    : false,
+                            ],
+                            [
+                                'contestantId' => $awayKey,
+                                'scores' => filled($match->score_club_b) ? [[
+                                    'mainScore' => (int) $match->score_club_b,
+                                ]] : [],
+                                'isWinner' => $match->score_club_b !== null && $match->score_club_a !== null
+                                    ? (int) $match->score_club_b > (int) $match->score_club_a
+                                    : false,
+                            ],
+                        ],
+                    ];
+                }
+            }
+
+            $mainBracketMatchCount = count($displayRounds->first()['matches'] ?? []);
+
+            return [
+                'age_group' => $bracket['age_group'],
+                'match_count' => count($matches),
+                'layout' => [
+                    'desktop_height' => max(520, min(920, 260 + ($mainBracketMatchCount * 112))),
+                    'mobile_height' => max(420, min(680, 250 + ($mainBracketMatchCount * 86))),
+                ],
+                'data' => [
+                    'rounds' => $displayRounds->map(fn (array $round) => [
+                        'name' => $round['label'],
+                    ])->values()->all(),
+                    'matches' => $matches,
+                    'contestants' => $contestants,
+                ],
+            ];
+        })->values();
     }
 
     private function knockoutEliminatedClubIdsByAgeGroup(?int $ignoreMatchId = null): array
@@ -855,6 +1596,37 @@ class MatchScheduleController extends Controller
         }
 
         throw ValidationException::withMessages($messages);
+    }
+
+    private function validateKnockoutBracketPlacement(array $validated, ?int $currentMatchId = null): void
+    {
+        if (($validated['competition_format'] ?? null) !== MatchSchedule::FORMAT_KNOCKOUT) {
+            return;
+        }
+
+        $existingMatch = MatchSchedule::query()
+            ->with(['clubA:id,name', 'clubB:id,name'])
+            ->when($currentMatchId, fn ($query) => $query->whereKeyNot($currentMatchId))
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->where('age_group_id', $validated['age_group_id'])
+            ->where('round_order', $validated['round_order'])
+            ->where('bracket_slot', $validated['bracket_slot'])
+            ->first();
+
+        if (! $existingMatch) {
+            return;
+        }
+
+        $existingMatchLabel = trim(collect([
+            $existingMatch->clubA?->name ?: 'Klub A',
+            'vs',
+            $existingMatch->clubB?->name ?: 'Klub B',
+        ])->implode(' '));
+        $existingMatchDate = optional($existingMatch->match_date)->format('d M Y');
+
+        throw ValidationException::withMessages([
+            'bracket_slot' => 'Slot bracket untuk '.$existingMatch->round_display_label.' sudah dipakai oleh '.$existingMatchLabel.($existingMatchDate ? ' pada '.$existingMatchDate : '').'. Gunakan slot lain agar bracket tidak bertumpuk.',
+        ]);
     }
 
     private function buildLeagueStandings($user, Collection $clubIds, ?int $ageGroupId = null, ?string $competitionFormat = null): Collection

@@ -17,18 +17,18 @@
 @endphp
 
 @section('content')
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div>
+<div class="lap-admin-page-head">
+    <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Pemain</li>
             </ol>
         </nav>
-        <h4 class="mb-1">Pemain</h4>
-        <p class="text-muted mb-0">Kelola data pemain, kelompok usia, dan ID card dari satu halaman kerja.</p>
+        <h4 class="lap-admin-page-title">Pemain</h4>
+        <p class="lap-admin-page-copy">Kelola data pemain, kelompok usia, dan ID card dari satu halaman kerja.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="lap-admin-page-actions">
         <button
             type="button"
             class="btn btn-outline-secondary position-relative d-inline-flex align-items-center gap-2"
@@ -68,48 +68,48 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-xl-3">
-        <div class="card h-100">
+        <div class="card h-100 lap-admin-stat-card lap-admin-stat-card-primary">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-primary-subtle text-primary mb-2">Pemain</span>
-                        <h3 class="mb-1">{{ $players->total() }}</h3>
-                        <p class="text-muted mb-0">Total pemain terdaftar</p>
+                        <span class="lap-admin-chip lap-admin-chip-primary mb-2">Pemain</span>
+                        <h3 class="lap-admin-stat-value mb-1">{{ $players->total() }}</h3>
+                        <p class="lap-admin-stat-copy mb-0">Total pemain terdaftar</p>
                     </div>
-                    <div class="avatar-md bg-light rounded-circle d-flex align-items-center justify-content-center">
-                        <i data-lucide="users" class="fs-22 text-primary"></i>
+                    <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center">
+                        <i data-lucide="users" class="fs-22"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card h-100">
+        <div class="card h-100 lap-admin-stat-card lap-admin-stat-card-support">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-info-subtle text-info mb-2">Klub</span>
-                        <h3 class="mb-1">{{ $visiblePlayers->pluck('club_id')->filter()->unique()->count() }}</h3>
-                        <p class="text-muted mb-0">Klub tampil di halaman ini</p>
+                        <span class="lap-admin-chip lap-admin-chip-support mb-2">Klub</span>
+                        <h3 class="lap-admin-stat-value mb-1">{{ $visiblePlayers->pluck('club_id')->filter()->unique()->count() }}</h3>
+                        <p class="lap-admin-stat-copy mb-0">Klub tampil di halaman ini</p>
                     </div>
-                    <div class="avatar-md bg-info-subtle rounded-circle d-flex align-items-center justify-content-center">
-                        <i data-lucide="shield" class="fs-22 text-info"></i>
+                    <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center">
+                        <i data-lucide="shield" class="fs-22"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card h-100">
+        <div class="card h-100 lap-admin-stat-card lap-admin-stat-card-approved">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-success-subtle text-success mb-2">Disetujui</span>
-                        <h3 class="mb-1">{{ $approvedCount }}</h3>
-                        <p class="text-muted mb-2">Sudah disetujui</p>
+                        <span class="lap-admin-chip lap-admin-chip-approved mb-2">Disetujui</span>
+                        <h3 class="lap-admin-stat-value mb-1">{{ $approvedCount }}</h3>
+                        <p class="lap-admin-stat-copy mb-2">Sudah disetujui</p>
                     </div>
-                    <div class="avatar-md bg-success-subtle rounded-circle d-flex align-items-center justify-content-center">
-                        <i data-lucide="badge-check" class="fs-22 text-success"></i>
+                    <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center">
+                        <i data-lucide="badge-check" class="fs-22"></i>
                     </div>
                 </div>
                 <div class="progress progress-sm">
@@ -126,16 +126,16 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card h-100 border-warning border-opacity-25">
+        <div class="card h-100 lap-admin-stat-card lap-admin-stat-card-pending">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="badge bg-warning-subtle text-warning mb-2">Menunggu Review</span>
-                        <h3 class="mb-1">{{ $needsReviewCount }}</h3>
-                        <p class="text-muted mb-0">Perlu tindak lanjut admin</p>
+                        <span class="lap-admin-chip lap-admin-chip-pending mb-2">Menunggu Review</span>
+                        <h3 class="lap-admin-stat-value mb-1">{{ $needsReviewCount }}</h3>
+                        <p class="lap-admin-stat-copy mb-0">Perlu tindak lanjut admin</p>
                     </div>
-                    <div class="avatar-md bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center">
-                        <i data-lucide="clipboard-check" class="fs-22 text-warning"></i>
+                    <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center">
+                        <i data-lucide="clipboard-check" class="fs-22"></i>
                     </div>
                 </div>
             </div>

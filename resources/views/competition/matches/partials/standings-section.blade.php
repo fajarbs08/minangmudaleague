@@ -33,7 +33,7 @@
                                 @foreach ($standing['rows'] as $row)
                                     <tr>
                                         <td>{{ $row['position'] }}</td>
-                                        <td class="fw-semibold">{{ $row['club_short_name'] }}</td>
+                                        <td class="fw-semibold">{{ $row['club_name'] }}</td>
                                         <td>{{ $row['played'] }}</td>
                                         <td>{{ $row['won'] }}</td>
                                         <td>{{ $row['drawn'] }}</td>

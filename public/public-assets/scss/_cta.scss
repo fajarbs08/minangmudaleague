@@ -1,0 +1,54 @@
+.cta-banner-wrapper {
+    position: relative;
+    @include flex;
+    justify-content: space-between;
+    padding-right: 30px;
+
+    @include breakpoint (max-xl){
+        display: grid;
+        gap: 30px;
+        justify-content: center;
+        padding-right: 0;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .cta-left {
+        @include flex;
+        gap: 24px;
+
+          @include breakpoint (max-xl){
+            display: grid;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        h2 {
+            color: $white;
+            font-size: 48px;
+
+            @include breakpoint (max-sm){
+                font-size: 35px;
+            }
+
+            span {
+                font-size: 40px;
+            }
+        }
+    }
+
+    .right-image {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        top: 0;
+
+        @include breakpoint (max-xxl){
+            display: none;
+        }
+
+        img {
+            height: 100%;
+        }
+    }
+}

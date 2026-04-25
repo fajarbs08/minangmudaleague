@@ -24,20 +24,19 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
-        if (!app()->environment('production')) {
+        if (! app()->environment('production')) {
             return;
         }
 
-        $configuredUrl = (string) config('app.url');
+        $configuredUrl = trim((string) config('app.url'));
+
+        if ($configuredUrl === '' || in_array($configuredUrl, ['http://localhost', 'http://127.0.0.1'], true)) {
+            return;
+        }
+
+        URL::forceRootUrl($configuredUrl);
 
         if (Str::startsWith($configuredUrl, 'https://')) {
-            URL::forceRootUrl($configuredUrl);
-            URL::forceScheme('https');
-
-            return;
-        }
-
-        if (!app()->runningInConsole() && request()->headers->get('x-forwarded-proto') === 'https') {
             URL::forceScheme('https');
         }
     }

@@ -3,7 +3,7 @@
 
 <head>
     @include('layouts.partials/title-meta', ['title' => $title])
-    @include('layouts.partials/head-css')
+    @include('layouts.partials/head-css-auth')
 </head>
 
 <body>
@@ -16,9 +16,8 @@
             </div>
         </div>
     </div>
-    </div>
 
-    @include('layouts.partials/vendor-scripts')
+    @yield('scripts')
 
 </body>
 

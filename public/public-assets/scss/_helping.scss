@@ -1,0 +1,241 @@
+.array-button-2 {
+    gap: 16px;
+    position: relative;
+    z-index: 9;
+    margin-top: 37px;
+
+    &.style-3 {
+		.array-prev2 {
+			transform: rotate(0deg);
+
+            i {
+                transform: rotate(0deg);
+            }
+
+            &:hover {
+            i {
+                color: $white;
+            }
+        }
+		}
+
+        .array-next2 {
+			transform: rotate(0deg);
+
+            i {
+                transform: rotate(0deg);
+            }
+
+            &:hover {
+            i {
+                color: $white;
+            }
+        }
+		}
+	}
+
+    @include breakpoint (max-xl) {
+        flex-wrap: wrap;
+    }
+
+    .array-prev2 {
+        width: 55px;
+        height: 55px;
+        line-height: 50px;
+        text-align: center;
+        background-color: transparent;
+        color: $header-color;
+        @include transition;
+        overflow: hidden;
+       border: 1px solid rgba(199, 201, 206, 0.32);
+
+        @include breakpoint (max-sm) {
+        width: 50px;
+        height: 50px;
+        line-height: 50px;
+        }
+
+    
+    
+        i {
+        transform: rotate(45deg);
+        @include transition;
+        }
+    
+        &:hover {
+            background-color: $theme-color;
+            color: $header-color;
+            border: 1px solid $theme-color;
+    
+            svg path {
+                fill: $white
+            }
+        }
+    }
+    
+    .array-next2 {
+        width: 55px;
+        height: 55px;
+        line-height: 55px;
+        text-align: center;
+        background-color: transparent;
+        color: $header-color;
+        @include transition;
+        border: 1px solid rgba(199, 201, 206, 0.32);
+
+        @include breakpoint (max-sm) {
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+        }
+        
+        
+        i {
+            transform: rotate(45deg);
+            @include transition;
+        }
+    
+        &:hover {
+            background-color: $theme-color;
+            color: $header-color;
+            border: 1px solid $theme-color;
+    
+            svg path {
+                fill: $white
+            }
+        }
+    }
+
+}
+
+.bg-cover {
+  background-repeat: no-repeat;
+  background-size: cover;
+  position: relative;
+  background-position: center;
+}
+
+.fix {
+  overflow: hidden;
+}
+
+.ralt{
+ position: relative;
+}
+
+.sticky-style {
+  position: sticky !important;
+  top: 100px;
+}
+
+.gt-slide-transtion {
+	-webkit-transition-timing-function: linear;
+	transition-timing-function: linear;
+}
+.gt-brand-slide-element {
+	width: auto;
+	display: inline-block;
+}
+
+.p-relative {
+  position: relative;
+}
+
+.ripple {
+  position: relative;
+
+  &::before,&::after {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 70px;
+      height: 70px;
+      -webkit-transform: translateX(-50%) translateY(-50%);
+      transform: translateX(-50%) translateY(-50%);
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(254, 89, 0, 0.5);
+      -webkit-animation: rippleOne 3s infinite;
+      animation: rippleOne 3s infinite;
+  }
+
+  &::before {
+      -webkit-animation-delay: 0.9s;
+      animation-delay: 0.9s;
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+  }
+
+  &::after {
+      -webkit-animation-delay: 0.6s;
+      animation-delay: 0.6s;
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+  }
+}
+
+
+.page-nav-wrap {
+        margin-top: 60px;
+
+        ul {
+            li {
+                display: inline-block;
+
+                &.active {
+
+                    .page-numbers {
+                        background-color: $theme-color;
+                        color: $white;
+                    }
+                }
+
+                .page-numbers {
+                    &.current {
+                        background-color: $theme-color;
+                        color: $white;
+                    }
+
+                    display: inline-block;
+                    width: 48px;
+                    height: 48px;
+                    text-align: center;
+                    line-height: 48px;
+                    border-radius: 0;
+                    background: #F4F4F4;
+                    color: $header-color;
+                    font-weight: 900;
+                    transition: all 0.3s ease-in-out;
+                    margin: 0 2px;
+                    border-radius: 0;
+                    font-family: $heading-font;
+
+                    @media (max-width: 767px) {
+                        margin-top: 10px;
+                        width: 40px;
+                        height: 40px;
+                        line-height: 40px;
+                        font-size: 14px;
+                    }
+
+                    i {
+                        margin-top: 2px;
+                        color: $header-color;
+                        @include transition;
+                    }
+
+                    &:hover {
+                        background-color: $theme-color;
+                        color: $white;
+
+                        i {
+                            color: $white;
+                        }
+                    }
+                }
+            }
+        }
+    }

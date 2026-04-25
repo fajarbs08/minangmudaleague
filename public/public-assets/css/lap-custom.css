@@ -1,0 +1,1026 @@
+:root {
+    --lap-red: #fe5900;
+    --lap-red-dark: #d94c00;
+    --lap-ink: #030523;
+    --lap-surface: #030523;
+    --lap-muted: #92a0b3;
+    --lap-border: rgba(255, 255, 255, 0.1);
+}
+
+body.lap-public {
+    background: #030523;
+    color: #d7dbe3;
+    overflow-x: hidden;
+}
+
+.lap-public .offcanvas__info {
+    max-width: 100vw;
+}
+
+.lap-public .lap-preloader-logo {
+    margin: 22px auto 10px;
+    max-width: 240px;
+}
+
+.lap-public .lap-preloader-logo img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.lap-public img {
+    max-width: 100%;
+}
+
+.lap-public .header-top-wrapper,
+.lap-public .footer-bottom-wrapper-3,
+.lap-public .footer-top-wrapper-3,
+.lap-public .footer-widget-wrapper {
+    position: relative;
+    z-index: 2;
+}
+
+.lap-public .header-top-section {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lap-public .offcanvas__info {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.lap-public .offcanvas__info.info-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.lap-public .top-left p,
+.lap-public .top-right p,
+.lap-public .offcanvas__contact .text,
+.lap-public .footer-content p,
+.lap-public .footer-widget-items ul li a,
+.lap-public .footer-widget-items ul li,
+.lap-public .footer-bottom p {
+    color: rgba(255, 255, 255, 0.74);
+}
+
+.lap-public .header-main .logo img,
+.lap-public .offcanvas__logo img,
+.lap-public .footer-top-wrapper-3 .lap-footer-logo img {
+    width: auto;
+}
+
+.lap-public .lap-home-header {
+    position: absolute;
+    inset: 0 0 auto 0;
+    width: 100%;
+    z-index: 20;
+    background: transparent;
+}
+
+.lap-public .lap-home-header .header-main {
+    min-height: 110px;
+    padding-bottom: 32px;
+}
+
+@media (min-width: 992px) {
+    .lap-public .hero-1 .hero-content {
+        padding-top: 0;
+    }
+
+    .lap-public .hero-1 .hero-image {
+        padding-top: 200px;
+    }
+}
+
+.lap-public .playing-result-box2 .match-result-box .content p {
+    color: rgba(3, 5, 35, 0.45);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.lap-public .lap-home-header .mega-menu-wrapper,
+.lap-public .lap-home-header .header-main {
+    background: transparent;
+}
+
+.lap-public .lap-home-header .main-menu ul li a,
+.lap-public .lap-home-header .header-right .theme-btn,
+.lap-public .lap-home-header .header-right .theme-btn.style-border {
+    color: #fff;
+}
+
+.lap-public .lap-home-header .header-bar span {
+    background: #fff;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar {
+    height: 16px;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar span {
+    width: 40px;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar span:nth-child(2) {
+    top: 7px;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar span:nth-child(3) {
+    bottom: 0;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar.active span:first-child {
+    transform: rotate(45deg) translate(4px, 8px);
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.lap-public .header-1 .sidebar__toggle .header-bar.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(2px, -7px);
+}
+
+.lap-public .lap-home-header .main-menu ul li.active > a,
+.lap-public .lap-home-header .main-menu ul li > a:hover {
+    color: var(--lap-red);
+}
+
+.lap-public .lap-home-header.sticky,
+.lap-public #header-sticky.sticky {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    overflow: visible;
+    isolation: isolate;
+    background: #ffffff;
+    box-shadow: rgba(149, 157, 165, 0.2) 0 8px 24px;
+}
+
+.lap-public .lap-home-header.sticky .header-main,
+.lap-public #header-sticky.sticky .header-main {
+    min-height: 88px;
+}
+
+.lap-public #header-sticky.sticky .main-menu ul li a {
+    color: var(--lap-ink);
+}
+
+.lap-public #header-sticky.sticky .main-menu ul li.active > a,
+.lap-public #header-sticky.sticky .main-menu ul li > a:hover {
+    color: var(--lap-red);
+}
+
+.lap-public #header-sticky.sticky .header-bar span {
+    background: var(--lap-ink);
+}
+
+.lap-public .header-main .logo .lap-logo-default,
+.lap-public .offcanvas__logo .lap-logo-default,
+.lap-public .lap-footer-logo .lap-logo-default {
+    display: block;
+    max-height: 62px;
+}
+
+.lap-public .header-main .logo .lap-logo-sticky {
+    display: none;
+    max-height: 52px;
+}
+
+.lap-public #header-sticky.sticky .lap-logo-default {
+    display: none;
+}
+
+.lap-public #header-sticky.sticky .lap-logo-sticky {
+    display: block;
+}
+
+.lap-public .main-menu ul li.active > a,
+.lap-public .main-menu ul li > a:hover,
+.lap-public .offcanvas__contact ul.lap-offcanvas-nav li a:hover,
+.lap-public .footer-widget-items ul li a:hover {
+    color: var(--lap-red);
+}
+
+.lap-public .lap-top-badge,
+.lap-public .lap-badge,
+.lap-public .lap-pill,
+.lap-public .lap-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-top-badge,
+.lap-public .lap-meta-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lap-public .lap-badge,
+.lap-public .lap-pill {
+    background: rgba(228, 27, 35, 0.1);
+    color: var(--lap-red);
+    border: 1px solid rgba(228, 27, 35, 0.18);
+}
+
+.lap-public .lap-page-shell {
+    padding: 110px 0;
+    background: linear-gradient(180deg, #030523 0%, #081235 20%, #f4f7fb 20%, #f4f7fb 100%);
+}
+
+.lap-public.is-home .lap-home-template .section-padding {
+    padding: 100px 0;
+}
+
+.lap-public.is-home .lap-home-template .news-section.pb-0,
+.lap-public.is-home .lap-home-template .counter-section.section-padding {
+    padding-bottom: 0;
+}
+
+.lap-public .lap-page-shell.is-dark {
+    background: linear-gradient(180deg, #030523 0%, #081235 22%, #eef2f7 22%, #eef2f7 100%);
+}
+
+.lap-public .lap-home-hero {
+    position: relative;
+    padding: 130px 0 90px;
+    overflow: hidden;
+}
+
+.lap-public .lap-home-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, rgba(6, 10, 17, 0.92) 0%, rgba(6, 10, 17, 0.84) 48%, rgba(228, 27, 35, 0.2) 100%);
+}
+
+.lap-public .lap-home-hero-grid,
+.lap-public .lap-two-column,
+.lap-public .lap-result-layout,
+.lap-public .lap-club-hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 30px;
+}
+
+.lap-public .lap-home-hero-grid,
+.lap-public .lap-club-hero-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    align-items: end;
+}
+
+.lap-public .lap-result-layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    align-items: start;
+}
+
+.lap-public .lap-two-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lap-public .lap-section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    color: var(--lap-red);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-section-kicker::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--lap-red);
+}
+
+.lap-public .lap-hero-title,
+.lap-public .lap-page-title,
+.lap-public .lap-card-title,
+.lap-public .lap-card-title-sm {
+    color: #fff;
+    margin: 0;
+}
+
+.lap-public .lap-hero-title {
+    font-size: clamp(3rem, 7vw, 5.4rem);
+    line-height: 0.96;
+    max-width: 11ch;
+}
+
+.lap-public .lap-hero-copy,
+.lap-public .lap-section-copy {
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.8;
+}
+
+.lap-public .lap-section-copy.is-dark,
+.lap-public .lap-light-card .lap-section-copy,
+.lap-public .lap-card-copy,
+.lap-public .lap-table-shell p,
+.lap-public .lap-empty-card p,
+.lap-public .lap-detail-list,
+.lap-public .lap-list-copy {
+    color: #667085;
+}
+
+.lap-public .lap-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 26px;
+}
+
+.lap-public .lap-action-row .theme-btn,
+.lap-public .lap-action-row .theme-btn.style-border {
+    min-width: 190px;
+    justify-content: center;
+}
+
+.lap-public .lap-action-row .theme-btn.style-border {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lap-public .lap-action-row .theme-btn.style-border:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.lap-public .lap-dark-card,
+.lap-public .lap-light-card,
+.lap-public .lap-empty-card,
+.lap-public .lap-filter-shell,
+.lap-public .lap-table-shell,
+.lap-public .lap-side-card,
+.lap-public .lap-timeline-item,
+.lap-public .lap-club-card,
+.lap-public .lap-player-card,
+.lap-public .lap-sponsor-card,
+.lap-public .lap-official-card,
+.lap-public .lap-result-card,
+.lap-public .lap-match-card,
+.lap-public .lap-stat-card,
+.lap-public .lap-cta-band {
+    border-radius: 28px;
+    overflow: hidden;
+}
+
+.lap-public .lap-dark-card,
+.lap-public .lap-cta-band {
+    background: linear-gradient(180deg, #030523 0%, #0c1430 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 60px rgba(3, 8, 18, 0.28);
+}
+
+.lap-public .lap-light-card,
+.lap-public .lap-empty-card,
+.lap-public .lap-filter-shell,
+.lap-public .lap-table-shell,
+.lap-public .lap-side-card,
+.lap-public .lap-timeline-item,
+.lap-public .lap-club-card,
+.lap-public .lap-player-card,
+.lap-public .lap-sponsor-card,
+.lap-public .lap-official-card,
+.lap-public .lap-result-card,
+.lap-public .lap-match-card,
+.lap-public .lap-stat-card {
+    background: #ffffff;
+    border: 1px solid rgba(16, 19, 31, 0.08);
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.lap-public .lap-dark-card,
+.lap-public .lap-light-card,
+.lap-public .lap-filter-shell,
+.lap-public .lap-side-card,
+.lap-public .lap-table-shell,
+.lap-public .lap-cta-band {
+    padding: 30px;
+}
+
+.lap-public .lap-empty-card,
+.lap-public .lap-timeline-item,
+.lap-public .lap-result-card,
+.lap-public .lap-match-card,
+.lap-public .lap-club-card,
+.lap-public .lap-player-card,
+.lap-public .lap-sponsor-card,
+.lap-public .lap-official-card,
+.lap-public .lap-stat-card {
+    padding: 24px;
+}
+
+.lap-public .lap-stat-grid,
+.lap-public .lap-grid-2,
+.lap-public .lap-grid-3,
+.lap-public .lap-grid-4,
+.lap-public .lap-quick-grid,
+.lap-public .lap-card-grid {
+    display: grid;
+    gap: 22px;
+}
+
+.lap-public .lap-stat-grid,
+.lap-public .lap-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lap-public .lap-grid-3,
+.lap-public .lap-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lap-public .lap-grid-2,
+.lap-public .lap-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lap-public .lap-stat-card .lap-value,
+.lap-public .lap-score-pill,
+.lap-public .lap-result-score {
+    font-family: var(--heading-font);
+    font-weight: 800;
+    line-height: 1;
+}
+
+.lap-public .lap-stat-card .lap-value {
+    font-size: 48px;
+    color: #10131f;
+}
+
+.lap-public .lap-stat-card .lap-label,
+.lap-public .lap-stat-card .lap-caption {
+    display: block;
+}
+
+.lap-public .lap-stat-card .lap-label {
+    margin-top: 12px;
+    color: #10131f;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-stat-card .lap-caption {
+    margin-top: 10px;
+    color: #667085;
+    line-height: 1.7;
+}
+
+.lap-public .lap-scoreboard,
+.lap-public .lap-match-teams {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+}
+
+.lap-public .lap-team-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.lap-public .lap-team-stack.is-away {
+    text-align: center;
+}
+
+.lap-public .lap-logo-frame,
+.lap-public .lap-avatar-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.lap-public .lap-logo-frame {
+    width: 88px;
+    height: 88px;
+    padding: 16px;
+}
+
+.lap-public .lap-avatar-frame {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    background: linear-gradient(180deg, #eef2f7 0%, #dce5ef 100%);
+}
+
+.lap-public .lap-logo-frame img,
+.lap-public .lap-avatar-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.lap-public .lap-avatar-frame img {
+    object-fit: cover;
+}
+
+.lap-public .lap-logo-mark,
+.lap-public .lap-avatar-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #667085;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.lap-public .lap-logo-mark {
+    font-size: 28px;
+}
+
+.lap-public .lap-avatar-mark {
+    font-size: 42px;
+}
+
+.lap-public .lap-score-pill,
+.lap-public .lap-result-score {
+    font-size: clamp(2.3rem, 4vw, 4.2rem);
+    color: #fff;
+}
+
+.lap-public .lap-result-score {
+    color: #10131f;
+}
+
+.lap-public .lap-team-name,
+.lap-public .lap-card-title,
+.lap-public .lap-card-title-sm,
+.lap-public .lap-side-card h3,
+.lap-public .lap-table-shell h3 {
+    color: #10131f;
+}
+
+.lap-public .lap-team-name {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.lap-public .lap-dark-card .lap-team-name,
+.lap-public .lap-dark-card .lap-card-title,
+.lap-public .lap-dark-card .lap-card-title-sm,
+.lap-public .lap-cta-band .lap-card-title,
+.lap-public .lap-cta-band .lap-card-copy {
+    color: #fff;
+}
+
+.lap-public .lap-card-title {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 10px;
+}
+
+.lap-public .lap-card-title-sm {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.lap-public .lap-card-copy {
+    margin: 0;
+    line-height: 1.8;
+}
+
+.lap-public .lap-match-meta,
+.lap-public .lap-result-meta,
+.lap-public .lap-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.lap-public .lap-card-meta span,
+.lap-public .lap-result-meta span,
+.lap-public .lap-match-meta span {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #f4f6fa;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 8px 12px;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lap-red);
+}
+
+.lap-public .lap-card-link:hover {
+    color: var(--lap-red-dark);
+}
+
+.lap-public .lap-table-shell .table-responsive {
+    margin-top: 18px;
+}
+
+.lap-public .lap-table-shell table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.lap-public .lap-table-shell th,
+.lap-public .lap-table-shell td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(16, 19, 31, 0.08);
+    color: #10131f;
+}
+
+.lap-public .lap-table-shell th {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #667085;
+}
+
+.lap-public .lap-table-shell tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.lap-public .lap-list-stack {
+    display: grid;
+    gap: 18px;
+}
+
+.lap-public .lap-list-row,
+.lap-public .lap-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.lap-public .lap-detail-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.lap-public .lap-detail-list strong,
+.lap-public .lap-list-row strong {
+    color: #10131f;
+}
+
+.lap-public .lap-result-group + .lap-result-group,
+.lap-public .lap-section-stack > * + * {
+    margin-top: 28px;
+}
+
+.lap-public .lap-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+}
+
+.lap-public .lap-pagination a,
+.lap-public .lap-pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    height: 46px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(16, 19, 31, 0.08);
+    color: #10131f;
+    font-weight: 700;
+}
+
+.lap-public .lap-pagination span.is-active,
+.lap-public .lap-pagination a:hover {
+    background: var(--lap-red);
+    border-color: var(--lap-red);
+    color: #fff;
+}
+
+.lap-public .lap-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.lap-public .lap-form-grid .lap-form-group.is-span-2 {
+    grid-column: span 2;
+}
+
+.lap-public .lap-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #10131f;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-form-group input,
+.lap-public .lap-form-group select,
+.lap-public .lap-form-group textarea {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 16px;
+    border: 1px solid rgba(16, 19, 31, 0.12);
+    background: #f8fafc;
+    color: #10131f;
+    padding: 14px 16px;
+}
+
+.lap-public .lap-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.lap-public .lap-club-card .lap-logo-frame,
+.lap-public .lap-sponsor-card .lap-logo-frame {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 18px;
+}
+
+.lap-public .lap-player-card .lap-avatar-frame {
+    margin-bottom: 20px;
+}
+
+.lap-public .lap-player-stat,
+.lap-public .lap-official-stat {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #f4f6fa;
+    color: #667085;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.lap-public .lap-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.lap-public .lap-chip-list .lap-pill {
+    padding: 8px 12px;
+}
+
+.lap-public .lap-footer-card {
+    padding-right: 20px;
+}
+
+.lap-public .lap-footer-logo {
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.lap-public .lap-footer-note,
+.lap-public .lap-footer-contact {
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.8;
+}
+
+.lap-public .lap-footer-contact a {
+    color: #fff;
+}
+
+.lap-public .lap-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.lap-public .lap-home-footer {
+    scroll-margin-top: 120px;
+}
+
+.lap-public .lap-home-footer .lap-footer-brand-logo {
+    display: block;
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+}
+
+.lap-public .lap-home-footer .lap-footer-copy-column .footer-content p {
+    margin-bottom: 0;
+}
+
+.lap-public .lap-home-footer .lap-footer-copy-column .footer-content p + p {
+    margin-top: 16px;
+}
+
+.lap-public .lap-home-footer .footer-bottom p,
+.lap-public .lap-home-footer .footer-bottom p a {
+    color: #fff;
+}
+
+.lap-public .lap-home-footer .footer-bottom p a {
+    font-weight: 700;
+    color: var(--theme-color);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.lap-public .lap-home-footer .footer-bottom p a:hover {
+    color: #fff;
+}
+
+.lap-public.is-home .lap-home-template .ticket-section .counter-section {
+    padding-top: 42px;
+}
+
+.lap-public.is-home .lap-home-template .ticket-section .counter-wrapper {
+    margin-top: 0;
+}
+
+.lap-public .lap-footer-actions .theme-btn {
+    min-width: 180px;
+    justify-content: center;
+}
+
+.lap-public .lap-footer-actions .theme-btn.style-border {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lap-public .lap-footer-actions .theme-btn.style-border:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.lap-public .lap-inline-links {
+    display: grid;
+    gap: 12px;
+}
+
+.lap-public .lap-inline-links a {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.lap-public .lap-inline-links a:hover {
+    color: var(--lap-red);
+}
+
+.lap-public .lap-result-summary {
+    margin-top: 18px;
+    color: #10131f;
+    font-weight: 700;
+}
+
+.lap-public .lap-muted {
+    color: var(--lap-muted);
+}
+
+.lap-public .lap-spacer-top {
+    margin-top: 28px;
+}
+
+.lap-public .lap-spacer-bottom {
+    margin-bottom: 28px;
+}
+
+.lap-public .lap-hidden-desktop {
+    display: none;
+}
+
+@media (max-width: 1199.98px) {
+    .lap-public .lap-home-hero-grid,
+    .lap-public .lap-club-hero-grid,
+    .lap-public .lap-result-layout,
+    .lap-public .lap-grid-4,
+    .lap-public .lap-grid-3,
+    .lap-public .lap-grid-2,
+    .lap-public .lap-card-grid,
+    .lap-public .lap-stat-grid,
+    .lap-public .lap-quick-grid,
+    .lap-public .lap-two-column,
+    .lap-public .lap-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lap-public .lap-result-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .lap-public .lap-home-footer {
+        scroll-margin-top: 88px;
+    }
+
+    .lap-public.is-home .lap-home-template .section-padding {
+        padding: 72px 0;
+    }
+
+    .lap-public .lap-page-shell,
+    .lap-public .lap-home-hero {
+        padding: 90px 0 70px;
+    }
+
+    .lap-public .lap-home-hero-grid,
+    .lap-public .lap-club-hero-grid,
+    .lap-public .lap-grid-4,
+    .lap-public .lap-grid-3,
+    .lap-public .lap-grid-2,
+    .lap-public .lap-card-grid,
+    .lap-public .lap-stat-grid,
+    .lap-public .lap-quick-grid,
+    .lap-public .lap-two-column,
+    .lap-public .lap-form-grid,
+    .lap-public .lap-scoreboard,
+    .lap-public .lap-match-teams {
+        grid-template-columns: 1fr;
+    }
+
+    .lap-public .lap-dark-card,
+    .lap-public .lap-light-card,
+    .lap-public .lap-filter-shell,
+    .lap-public .lap-side-card,
+    .lap-public .lap-table-shell,
+    .lap-public .lap-empty-card,
+    .lap-public .lap-timeline-item,
+    .lap-public .lap-result-card,
+    .lap-public .lap-match-card,
+    .lap-public .lap-club-card,
+    .lap-public .lap-player-card,
+    .lap-public .lap-sponsor-card,
+    .lap-public .lap-official-card,
+    .lap-public .lap-stat-card,
+    .lap-public .lap-cta-band {
+        padding: 22px;
+        border-radius: 22px;
+    }
+
+    .lap-public .lap-stat-card .lap-value {
+        font-size: 38px;
+    }
+
+    .lap-public .lap-team-name,
+    .lap-public .lap-card-title {
+        font-size: 22px;
+    }
+
+    .lap-public .lap-hidden-desktop {
+        display: block;
+    }
+
+    .lap-public .lap-action-row,
+    .lap-public .lap-form-actions,
+    .lap-public .lap-footer-actions {
+        flex-direction: column;
+    }
+
+    .lap-public .lap-action-row .theme-btn,
+    .lap-public .lap-footer-actions .theme-btn {
+        width: 100%;
+    }
+}

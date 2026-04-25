@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -12,9 +12,13 @@ use Illuminate\Validation\ValidationException;
 class Club extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVISION = 'revision';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -84,9 +88,7 @@ class Club extends Model
     {
         return in_array($this->verification_status, [
             self::STATUS_DRAFT,
-            self::STATUS_SUBMITTED,
             self::STATUS_REVISION,
-            self::STATUS_APPROVED,
         ], true);
     }
 
@@ -110,7 +112,7 @@ class Club extends Model
 
     public function getStatementFileUrlAttribute(): ?string
     {
-        return $this->fileUrl($this->statement_file_path);
+        return $this->documentUrl($this->statement_file_path);
     }
 
     public function getPublicSlugAttribute(): string
@@ -124,25 +126,45 @@ class Club extends Model
     {
         $errors = [];
 
-        if (blank($this->name)) $errors['name'] = 'Nama klub wajib diisi sebelum submit verifikasi.';
-        if (blank($this->short_name)) $errors['short_name'] = 'Singkatan klub wajib diisi sebelum submit verifikasi.';
-        if (blank($this->manager_name)) $errors['manager_name'] = 'Nama manager wajib diisi sebelum submit verifikasi.';
-        if (blank($this->manager_title)) $errors['manager_title'] = 'Jabatan penanggung jawab wajib diisi sebelum submit verifikasi.';
-        if (blank($this->zone)) $errors['zone'] = 'Zona kota/kabupaten klub wajib diisi sebelum submit verifikasi.';
-        if (blank($this->founded_year)) $errors['founded_year'] = 'Tahun berdiri klub wajib diisi sebelum submit verifikasi.';
-        if (blank($this->logo_url)) $errors['logo_url'] = 'Logo klub wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->statement_file_path)) $errors['statement_file_path'] = 'Surat pernyataan wajib diunggah sebelum submit verifikasi.';
-        if (blank($this->address)) $errors['address'] = 'Alamat klub wajib diisi sebelum submit verifikasi.';
-        if (blank($this->training_address)) $errors['training_address'] = 'Alamat latihan wajib diisi sebelum submit verifikasi.';
+        if (blank($this->name)) {
+            $errors['name'] = 'Nama klub wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->short_name)) {
+            $errors['short_name'] = 'Singkatan klub wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->manager_name)) {
+            $errors['manager_name'] = 'Nama manager wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->manager_title)) {
+            $errors['manager_title'] = 'Jabatan penanggung jawab wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->zone)) {
+            $errors['zone'] = 'Zona kota/kabupaten klub wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->founded_year)) {
+            $errors['founded_year'] = 'Tahun berdiri klub wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->logo_url)) {
+            $errors['logo_url'] = 'Logo klub wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->statement_file_path)) {
+            $errors['statement_file_path'] = 'Surat pernyataan wajib diunggah sebelum submit verifikasi.';
+        }
+        if (blank($this->address)) {
+            $errors['address'] = 'Alamat klub wajib diisi sebelum submit verifikasi.';
+        }
+        if (blank($this->training_address)) {
+            $errors['training_address'] = 'Alamat latihan wajib diisi sebelum submit verifikasi.';
+        }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
     }
 
     private function fileUrl(?string $path, bool $requireExisting = false): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
@@ -153,7 +175,7 @@ class Club extends Model
         $path = ltrim($path, '/');
         $disk = Storage::disk('public');
 
-        if ($requireExisting && !$disk->exists($path)) {
+        if ($requireExisting && ! $disk->exists($path)) {
             return null;
         }
 
@@ -162,5 +184,24 @@ class Club extends Model
         }
 
         return url('/storage/'.$path);
+    }
+
+    private function documentUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (! Storage::disk('local')->exists($path) && ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return route('clubs.statement.download', ['club' => $this]);
     }
 }

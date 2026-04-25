@@ -1,0 +1,550 @@
+.our-club-payer-item {
+    margin-top: 30px;
+
+    .player-image {
+       position: relative;
+      
+       img {
+         @include imgw;
+       }
+
+       .number {
+          -webkit-text-stroke-width: 2px;
+          -webkit-text-stroke-color: rgba(255, 255, 255, 0.24);
+          top: 20px;
+          right: 20px;
+          position: absolute;
+          background: transparent;
+          color: transparent;
+          @include transition;
+
+          &.style-2 {
+            -webkit-text-stroke-color: $white;
+          }
+       }
+
+       .player-content {
+           position: absolute;
+           bottom: 45px;
+           text-align: center;
+           left: 40px;
+           right: 40px;
+           @include transition;
+
+            @include breakpoint (max-xxxl) {
+             left: 30px;
+             right: 30px;
+          }
+
+           h4 {
+             text-transform: uppercase;
+               font-size: 24px;
+               font-weight: 900;
+             margin-bottom: 10px;
+
+             @include breakpoint (max-xxxl) {
+             font-size: 20px;
+          }
+
+             a {
+                  color: $white;
+                  background-position: 0 95%;
+                  background-repeat: no-repeat;
+                  background-size: 0% 2px;
+                  display: inline;
+
+                  &:hover {
+                      color: $theme-color;
+                      background-size: 100% 2px;
+                      background-image: linear-gradient(180deg, $theme-color 0%, $theme-color 100%);
+                  }
+              }
+           }
+
+           p {
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+           }
+       }
+
+       .content-item {
+          @include flex;
+          justify-content: space-between;
+          position: absolute;
+          bottom: -23px;
+          left: 30px;
+          right: 30px;
+          opacity: 0;
+          visibility: hidden;
+          @include transition;
+          border-top: 1px solid rgba(199, 201, 206, 0.16);
+          padding-top: 16px;
+
+           @include breakpoint (max-xxxl) {
+             left: 20px;
+             right: 20px;
+          }
+
+          .content {
+            text-align: center;
+
+             h6 {
+               text-transform: uppercase;
+               font-family: $body-font;
+               font-size: 14px;
+               font-weight: 700;
+               color: $white;
+
+                @include breakpoint (max-xxxl) {
+                  font-size: 12px;
+                }
+
+                @include breakpoint (max-xxl) {
+                  font-size: 14px;
+                }
+             }
+
+             h5 {
+               font-size: 24px;
+               font-weight: 900;
+               color: $white;
+
+                @include breakpoint (max-xxxl) {
+                  font-size: 20px;
+                }
+             }
+
+             span {
+                font-size: 12px;
+                font-weight: 400;
+                color: $white;
+                display: inline-block;
+             }
+
+             .title {
+                color: $theme-color;
+                font-size: 16px;
+                font-weight: 700;
+             }
+          }
+       }
+    }
+
+    &:hover {
+       .player-image {
+        .player-content {
+          margin-bottom: 100px;
+        }
+
+        .number {
+          background: transparent;
+          color: $white;
+          -webkit-text-stroke-width: $white;
+         -webkit-text-stroke-color: $white;
+         opacity: 1;
+
+         &.style-2 {
+           -webkit-text-stroke-width: $white;
+            -webkit-text-stroke-color: $white;
+            color: $white;
+            opacity: 1;
+         }
+        }
+          .content-item {
+             opacity: 1;
+             visibility: visible;
+             bottom: 23px;
+          }
+       }
+    }
+}
+
+.team-images-items {
+   .themb {
+      position: relative;
+      overflow: hidden;
+      z-index: 9;
+
+      &::before {
+         @include before;
+         background: linear-gradient(180deg, rgba(3, 5, 35, 0.00) 32.76%, var(--Text-Primary, #030523) 100%);
+         opacity: 0;
+         visibility: hidden;
+          @include transition;
+      }
+
+      img {
+         @include imgw;
+      }
+
+      .social-icon {
+         display: grid;
+         align-items: center;
+         gap: 8px;
+         position: absolute;
+         top: 20px;
+         left: -20px;
+         opacity: 0;
+         visibility: hidden;
+         @include transition;
+         z-index: 9;
+
+         a {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: $white;
+            color: $header-color;
+            font-size: 14px;
+
+            &:hover {
+               background-color: $theme-color;
+               color: $white;
+            }
+         }
+      }
+   }
+
+   .content {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: -24px;
+      @include transition;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 9;
+
+      img {
+         width: initial;
+         height: initial;
+      }
+
+      h3 {
+         a {
+            color: $white;
+
+            &:hover {
+               color: $theme-color;
+            }
+         }
+      }
+
+      span {
+         color: $white;
+      }
+
+      .last-name {
+         @include flex;
+         justify-content: space-between;
+
+         p {
+            color: rgba(255, 255, 255, 0.7);
+         }
+
+         .flag-name {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(44px);
+            padding: 8px;
+            color: $white;
+
+            img {
+               margin-right: 8px;
+            }
+         }
+      }
+   }
+
+   &:hover {
+      .themb {
+
+         &::before {
+            opacity: 1;
+            visibility: visible;
+         }
+
+         .social-icon {
+            opacity: 1;
+            visibility: visible;
+            left: 20px;
+         }
+
+         .content {
+            bottom: 24px;
+            opacity: 1;
+            visibility: visible;
+         }
+      }
+   }
+}
+
+.team-content-box {
+   margin-left: 25px;
+
+   @include breakpoint (max-xxl){
+      margin-left: 0;
+   }
+
+   .team-text {
+      margin-top: 25px;
+      margin-bottom: 50px;
+      opacity: .8;
+   }
+
+   .theme-btn {
+      &::before {
+         background-color: $white
+      }
+
+      &:hover {
+         color: $header-color
+      }
+   }
+
+}
+
+.team-details-wrapper {
+   margin-bottom: 100px;
+
+   .team-details-image {
+      position: relative;
+
+      .number {
+         -webkit-text-stroke-width: 2px;
+         -webkit-text-stroke-color: rgba(255, 255, 255, 0.24);
+         top: 20px;
+         right: 20px;
+         position: absolute;
+         background: transparent;
+         color: transparent;
+         transition: all 0.4s ease-in-out;
+      }
+
+      img {
+         @include imgw;
+      }
+   }
+
+   .team-details-content {
+      margin-left: 40px;
+
+      @include breakpoint (max-xl){
+         margin-left: 0;
+      }
+
+      .top-details {
+         @include flex;
+         justify-content: space-between;
+         border-top: 1px solid rgba(199, 201, 206, 0.32);
+         padding-top: 24px;
+         margin-top: 24px;
+
+          @include breakpoint (max-xl){
+            flex-wrap: wrap;
+            gap: 20px;
+         }
+
+         .left-details {
+            @include flex;
+            gap: 12px;
+
+             @include breakpoint (max-xl){
+               flex-wrap: wrap;
+            }
+
+            p {
+               font-weight: 700;
+            }
+
+            span {
+               color: $header-color;
+               font-size: 18px;
+               font-weight: 700;
+
+               img {
+                  margin-left: 6px;
+               }
+            }
+         }
+
+         .right-details {
+            @include flex;
+
+             p {
+               font-weight: 700;
+               margin-right: 12px;
+            }
+
+
+             span {
+               color: $header-color;
+               font-size: 18px;
+               font-weight: 700;
+            }
+         }
+      }
+
+      ul {
+         @include flex;
+         gap: 48px;
+         margin-top: 20px;
+         margin-bottom: 30px;
+         
+          @include breakpoint (max-xl){
+            flex-wrap: wrap;
+            gap: 20px;
+         }
+
+         li {
+            font-size: 16px;
+            font-weight: 700;
+
+            b {
+               color: $header-color;
+            }
+         }
+      }
+
+      .social-icon {
+         margin-top: 48px;
+         gap: 16px;
+
+         span {
+            font-weight: 700;
+            color: $header-color;
+            display: inline-block;
+            margin-right: 12px;
+         }
+
+         a {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            line-height: 48px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: $bg-color;
+
+            &:hover {
+               background-color: $theme-color;
+               color: $white;
+            }
+         }
+      }
+   }
+}
+
+.trophy-box-item {
+   text-align: center;
+
+   .content {
+      margin-top: 20px;
+
+      span {
+         color: $theme-color;
+         font-weight: 700;
+         display: inline-block;
+         margin-top: 5px;
+      }
+   }
+}
+
+.gallery-thumb-inner {
+   margin-top: 30px;
+   position: relative;
+
+    &::before {
+         content: "";
+         position: absolute;
+         top: 0;
+         left: 0;
+         top: 0;
+         bottom: 0px;
+         right: 0;
+         background: rgba(29, 29, 29, 0.6);
+         transition: -webkit-transform 0.4s ease;
+         transition: transform 0.4s ease;
+         transition: transform 0.4s ease, -webkit-transform 0.4s ease;
+         transform-origin: top right;
+         -webkit-transform: scale(1, 0);
+         transform: scale(1, 0);
+         width: 100%;
+         height: 100%;
+         z-index: 9;
+      }
+
+        .gt-icon {
+            display: inline-block;
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 28px;
+            color: $white;
+            @include transition;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+
+        img {
+            @include imgw;
+        }
+
+        &:hover {
+            .gt-icon {
+                top: 50%;
+                opacity: 1;
+                visibility: visible;
+            }
+
+            &::before {
+                  -webkit-transform: scale(1, 1);
+                transform: scale(1, 1);
+                transform-origin: bottom center;
+            }
+        }
+}
+
+.gallery-section {
+   .nav {
+      @include flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+
+      .nav-item {
+         .nav-link {
+            font-size: 16px;
+            font-weight: 700;
+            background-color: $bg-color;
+            color: $header-color;
+            text-align: center;
+            padding: 16px 28px;
+            line-height: 1;
+
+            i {
+               margin-left: 5px;
+               opacity: 0;
+               visibility: hidden;
+               transition: all 0.4s ease-in-out;
+            }
+
+            &.active {
+               background-color: $theme-color;
+               color: $white;
+
+               i {
+                  opacity: 1;
+                  visibility: visible;
+               }
+            }
+         }
+      }
+   }
+}

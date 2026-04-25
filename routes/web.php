@@ -25,22 +25,25 @@ use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
 
+Route::get('robots.txt', [DashboardController::class, 'robots'])->name('public.robots');
+Route::get('sitemap.xml', [DashboardController::class, 'sitemap'])->name('public.sitemap');
 Route::get('pemain/{playerSlug}', [PlayerController::class, 'publicShow'])->name('public.players.show');
+Route::get('verifikasi/pemain/{playerSlug}', [PlayerController::class, 'publicScanShow'])->name('public.players.scan');
 Route::get('ofisial/{officialSlug}', [OfficialController::class, 'publicShow'])->name('public.officials.show');
-Route::get('hasil-scan/pemain/{player}', [PlayerController::class, 'scanResult'])->name('players.scan-result');
-Route::get('hasil-scan/official/{official}', [OfficialController::class, 'scanResult'])->name('officials.scan-result');
+Route::get('verifikasi/ofisial/{officialSlug}', [OfficialController::class, 'publicScanShow'])->name('public.officials.scan');
 Route::get('', [DashboardController::class, 'publicHome'])->name('public.home');
 Route::get('jadwal-pertandingan', [DashboardController::class, 'publicSchedule'])->name('public.schedule');
+Route::get('jadwal-pertandingan/{matchSlug}', [DashboardController::class, 'publicScheduleShow'])->name('public.schedule.show');
 Route::get('hasil-pertandingan', [DashboardController::class, 'publicResults'])->name('public.results');
+Route::get('bagan-knockout', [DashboardController::class, 'publicBracketsPage'])->name('public.brackets');
 Route::get('hasil-pertandingan/{matchSlug}', [DashboardController::class, 'publicResultShow'])->name('public.results.show');
 Route::get('klasemen', [DashboardController::class, 'publicStandingsPage'])->name('public.standings');
 Route::get('klub', [DashboardController::class, 'publicClubs'])->name('public.clubs');
-Route::get('sponsor', [DashboardController::class, 'publicSponsors'])->name('public.sponsors');
 Route::get('klub/{clubSlug}', [DashboardController::class, 'publicClubShow'])->name('public.clubs.show');
-Route::get('informasi', fn () => redirect()->to(route('public.home').'#footer-kontak'))->name('public.information');
-Route::get('informasi/file/{informationResource}', fn (string $informationResource) => redirect()->to(route('public.home').'#footer-kontak'));
-Route::get('informasi/file/{informationResource}/unduh', fn (string $informationResource) => redirect()->to(route('public.home').'#footer-kontak'));
-Route::get('informasi/{resourceSlug}', fn (string $resourceSlug) => redirect()->to(route('public.home').'#footer-kontak'))->name('public.information.show');
+Route::get('informasi', [DashboardController::class, 'publicInformationRedirect'])->name('public.information');
+Route::get('informasi/file/{informationResource}', [DashboardController::class, 'publicInformationFileRedirect']);
+Route::get('informasi/file/{informationResource}/unduh', [DashboardController::class, 'publicInformationFileRedirect']);
+Route::get('informasi/{resourceSlug}', [DashboardController::class, 'publicInformationShowRedirect'])->name('public.information.show');
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('home', [DashboardController::class, 'index'])->name('root');
@@ -67,12 +70,15 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('dashboard/laporan/top-assist', [MatchScheduleController::class, 'topAssists'])->name('reports.top-assists');
         Route::get('dashboard/laporan/top-assist/pdf', [MatchScheduleController::class, 'topAssistsPdf'])->name('reports.top-assists.pdf');
         Route::get('dashboard/laporan/bagan-knockout', [MatchScheduleController::class, 'brackets'])->name('reports.brackets');
+        Route::get('dashboard/laporan/bagan-knockout/print', [MatchScheduleController::class, 'bracketsPrint'])->name('reports.brackets.print');
+        Route::get('dashboard/laporan/bagan-knockout/pdf', [MatchScheduleController::class, 'bracketsPdf'])->name('reports.brackets.pdf');
         Route::get('dashboard/laporan/rekap', [MatchScheduleController::class, 'reports'])->name('reports.overview');
         Route::get('dashboard/laporan/rekap/pdf', [MatchScheduleController::class, 'reportsPdf'])->name('reports.overview.pdf');
         Route::get('dashboard/klub', [ClubController::class, 'index'])->name('clubs.index');
         Route::get('dashboard/klub/create', [ClubController::class, 'create'])->name('clubs.create');
         Route::get('dashboard/klub/template-surat-pernyataan', [ClubController::class, 'statementTemplate'])->name('clubs.statement-template');
         Route::post('dashboard/klub', [ClubController::class, 'store'])->name('clubs.store');
+        Route::get('dashboard/klub/{club}/dokumen/pernyataan', [ClubController::class, 'downloadStatement'])->name('clubs.statement.download');
         Route::get('dashboard/klub/{club}', [ClubController::class, 'show'])->name('clubs.show');
         Route::get('dashboard/klub/{club}/edit', [ClubController::class, 'edit'])->name('clubs.edit');
         Route::put('dashboard/klub/{club}', [ClubController::class, 'update'])->name('clubs.update');
@@ -96,10 +102,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('dashboard/ofisial/kartu-identitas/{ageGroup}', [OfficialController::class, 'idCards'])->name('officials.id-cards');
         Route::get('dashboard/ofisial/kartu-identitas/{ageGroup}/pdf', [OfficialController::class, 'exportIdCards'])->name('officials.id-cards.export');
         Route::get('dashboard/ofisial/{official}', [OfficialController::class, 'show'])->name('officials.show');
+        Route::get('dashboard/ofisial/{official}/dokumen/{document}', [OfficialController::class, 'downloadDocument'])->name('officials.documents.download');
         Route::get('dashboard/ofisial/{official}/kartu-identitas/{ageGroup}', [OfficialController::class, 'idCard'])->name('officials.id-card');
         Route::get('dashboard/ofisial/{official}/kartu-identitas/{ageGroup}/pdf', [OfficialController::class, 'exportIdCard'])->name('officials.id-card.export');
         Route::delete('dashboard/ofisial/{official}/kelompok-usia/{ageGroup}', [OfficialController::class, 'destroyAgeRegistration'])->name('officials.age-registrations.destroy');
         Route::get('dashboard/pemain/{player}', [PlayerController::class, 'show'])->name('players.show');
+        Route::get('dashboard/pemain/{player}/dokumen/{document}', [PlayerController::class, 'downloadDocument'])->name('players.documents.download');
         Route::get('dashboard/pemain/{player}/kartu-identitas/{ageGroup}', [PlayerController::class, 'idCard'])->name('players.id-card');
         Route::get('dashboard/pemain/{player}/kartu-identitas/{ageGroup}/pdf', [PlayerController::class, 'exportIdCard'])->name('players.id-card.export');
         Route::patch('dashboard/pemain/{player}/kelompok-usia/{ageGroup}', [PlayerController::class, 'updateAgeRegistration'])->name('players.age-registrations.update');
@@ -117,8 +125,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::middleware('role:admin')->group(function () {
         Route::post('dashboard/pertandingan/bulk-delete', [MatchScheduleController::class, 'bulkDestroy'])->name('matches.bulk-delete');
+        Route::get('dashboard/pertandingan', [DashboardController::class, 'legacyMatchesIndexRedirect'])->name('matches.legacy-index');
+        Route::get('dashboard/pertandingan/liga', [MatchScheduleController::class, 'leagueIndex'])->name('matches.league.index');
+        Route::get('dashboard/pertandingan/knockout', [MatchScheduleController::class, 'knockoutIndex'])->name('matches.knockout.index');
+        Route::patch('dashboard/pertandingan/knockout/{match}/position', [MatchScheduleController::class, 'updateKnockoutPosition'])->name('matches.knockout.position');
         Route::resource('dashboard/pertandingan', MatchScheduleController::class)
-            ->except('show')
+            ->except(['index', 'show'])
             ->parameters(['pertandingan' => 'match'])
             ->names('matches');
         Route::patch('dashboard/hasil-pertandingan/{match}/result', [MatchScheduleController::class, 'updateResult'])->name('match-results.update');

@@ -39,7 +39,6 @@
     </div>
 </div>
 
-@include('competition.matches.partials.report-nav')
 @include('competition.partials.flash')
 
 <div class="row g-3 mb-4">

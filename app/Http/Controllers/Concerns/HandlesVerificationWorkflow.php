@@ -40,6 +40,10 @@ trait HandlesVerificationWorkflow
             'reviewed_at' => null,
         ]);
 
+        if (method_exists($model, 'syncVerificationChildrenStatus')) {
+            $model->syncVerificationChildrenStatus();
+        }
+
         return redirect()->back()->with('status', $successMessage);
     }
 
@@ -60,6 +64,10 @@ trait HandlesVerificationWorkflow
             'reviewed_by' => auth()->id(),
             'reviewed_at' => now(),
         ]);
+
+        if (method_exists($model, 'syncVerificationChildrenStatus')) {
+            $model->syncVerificationChildrenStatus();
+        }
 
         return redirect()->back()->with('status', $successMessage);
     }
@@ -105,6 +113,10 @@ trait HandlesVerificationWorkflow
                 'reviewed_by' => auth()->id(),
                 'reviewed_at' => now(),
             ]);
+
+            if (method_exists($model, 'syncVerificationChildrenStatus')) {
+                $model->syncVerificationChildrenStatus();
+            }
         });
 
         return redirect()->back()->with('status', str_replace(':count', (string) $models->count(), $successMessage));

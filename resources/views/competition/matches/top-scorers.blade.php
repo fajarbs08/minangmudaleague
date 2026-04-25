@@ -39,7 +39,6 @@
     </div>
 </div>
 
-@include('competition.matches.partials.report-nav')
 @include('competition.partials.flash')
 @include('competition.matches.partials.leaderboard-section', [
     'title' => 'Top Skor',
