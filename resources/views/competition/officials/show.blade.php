@@ -2,25 +2,25 @@
 
 @section('content')
 @php($canManageAgeRegistrations = auth()->user()->isAdmin() || $official->canBeEditedByClub())
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 lap-detail-head">
     <div>
         <h4 class="mb-1">Detail Ofisial</h4>
         <p class="text-muted mb-0">{{ $official->name }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap lap-detail-actions">
         @if (auth()->user()->isAdmin() || $official->canBeEditedByClub())
-            <a href="{{ route('officials.edit', $official) }}" class="btn btn-light d-inline-flex align-items-center gap-2">
+            <a href="{{ route('officials.edit', $official) }}" class="btn btn-light d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="square-pen" class="fs-14"></i>
                 <span>Edit</span>
             </a>
         @endif
         @if ($official->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $official->canClubAccessIdCard()))
-            <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+            <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </a>
         @endif
-        <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+        <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn lap-detail-action-btn-back">
             <i data-lucide="arrow-left" class="fs-14"></i>
             <span>Kembali</span>
         </a>

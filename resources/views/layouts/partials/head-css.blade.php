@@ -493,6 +493,15 @@
         padding: 0.6rem 0.75rem;
     }
 
+    .lap-detail-actions {
+        justify-content: flex-end;
+    }
+
+    .lap-detail-action-btn {
+        justify-content: center;
+        white-space: nowrap;
+    }
+
     .competition-action-menu .dropdown-item.text-danger:hover,
     .competition-action-menu .dropdown-item.text-danger:focus {
         background-color: rgba(var(--bs-danger-rgb), 0.08);
@@ -604,6 +613,29 @@
     }
 
     @media (max-width: 820px) {
+        .lap-detail-head {
+            align-items: stretch !important;
+        }
+
+        .lap-detail-actions {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+            gap: 0.75rem !important;
+        }
+
+        .lap-detail-action-btn {
+            width: 100%;
+            min-height: 46px;
+            padding-inline: 0.85rem;
+            text-align: center;
+            white-space: normal;
+        }
+
+        .lap-detail-action-btn-back {
+            grid-column: 1 / -1;
+        }
+
         .competition-table-wrap,
         .table-responsive.competition-table-wrap,
         .competition-table-wrap.dropdown-open {

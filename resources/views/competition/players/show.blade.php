@@ -2,20 +2,20 @@
 
 @section('content')
 @php($canManageAgeRegistrations = auth()->user()->isAdmin() || $player->canBeEditedByClub())
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 lap-detail-head">
     <div>
         <h4 class="mb-1">Detail Pemain</h4>
         <p class="text-muted mb-0">{{ $player->name }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap lap-detail-actions">
         @if (auth()->user()->isAdmin() || $player->canBeEditedByClub())
-            <a href="{{ route('players.edit', $player) }}" class="btn btn-light d-inline-flex align-items-center gap-2">
+            <a href="{{ route('players.edit', $player) }}" class="btn btn-light d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="square-pen" class="fs-14"></i>
                 <span>Edit</span>
             </a>
         @endif
         @if ($player->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $player->canClubAccessIdCard()))
-            <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+            <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </a>
@@ -23,7 +23,7 @@
         @if (auth()->user()->isAdmin() || $player->canBeSubmittedByClub())
             <button
                 type="button"
-                class="btn btn-danger js-delete-player-detail d-inline-flex align-items-center gap-2"
+                class="btn btn-danger js-delete-player-detail d-inline-flex align-items-center gap-2 lap-detail-action-btn"
                 data-bs-toggle="modal"
                 data-bs-target="#deletePlayerDetailModal"
                 data-action="{{ route('players.destroy', $player) }}"
@@ -33,7 +33,7 @@
                 <span>Hapus</span>
             </button>
         @endif
-        <a href="{{ route('players.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+        <a href="{{ route('players.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn lap-detail-action-btn-back">
             <i data-lucide="arrow-left" class="fs-14"></i>
             <span>Kembali</span>
         </a>
