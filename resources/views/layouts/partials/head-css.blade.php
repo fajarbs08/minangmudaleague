@@ -611,6 +611,18 @@
             overflow-y: visible !important;
         }
 
+        .competition-table-actions .competition-action-menu {
+            position: fixed !important;
+            inset: auto 0.75rem 0.75rem 0.75rem !important;
+            width: auto !important;
+            max-width: none !important;
+            max-height: min(60vh, calc(100vh - 1.5rem)) !important;
+            overflow-y: auto !important;
+            border-radius: 1rem;
+            box-shadow: 0 1.25rem 3rem rgba(15, 23, 42, 0.22);
+            z-index: 1095;
+        }
+
         .accordion .accordion-button {
             padding: 0.9rem 1rem;
         }
@@ -673,10 +685,6 @@
 
         .competition-table-actions .competition-action-menu {
             min-width: 0;
-            width: min(220px, calc(100vw - 1rem));
-            max-width: calc(100vw - 1rem);
-            right: 0 !important;
-            left: auto !important;
         }
 
         .competition-action-menu .dropdown-item {
