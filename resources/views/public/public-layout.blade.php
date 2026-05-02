@@ -10,7 +10,12 @@
         $resolvedSeoDescription = $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.';
         $resolvedSeoRobots = $seoRobots ?? 'index,follow';
         $resolvedSeoUrl = $seoUrl ?? url()->current();
-        $resolvedSeoImage = $seoImage ?? asset('og-share-card.jpg');
+        $resolvedSeoImage = $seoImage ?? (function () {
+            $path = public_path('og-share-card.jpg');
+            $version = is_file($path) ? filemtime($path) : app()->version();
+
+            return asset('og-share-card.jpg').'?v='.$version;
+        })();
         $resolvedSeoImageType = str_ends_with(strtolower(parse_url($resolvedSeoImage, PHP_URL_PATH) ?: ''), '.png') ? 'image/png' : 'image/jpeg';
         $publicAsset = fn (string $path) => asset('public-assets/'.$path);
         $publicMenu = [

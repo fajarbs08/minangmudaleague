@@ -69,9 +69,62 @@
                display: flex;
           }
 
-          .main-nav .logo-box .logo-sm {
-               display: none;
-          }
+           .main-nav .logo-box .logo-sm {
+                display: none;
+           }
+
+           .main-nav .sidebar-logout {
+                padding: 16px 18px 18px;
+                margin-top: auto;
+           }
+
+           .main-nav .sidebar-logout .logout-button {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 10px;
+                border: 0;
+                border-radius: 12px;
+                padding: 12px 14px;
+                background: rgba(220, 53, 69, 0.08);
+                color: #dc3545;
+                font-weight: 600;
+           }
+
+           .main-nav .sidebar-logout .logout-button:hover {
+                background: rgba(220, 53, 69, 0.14);
+                color: #bb2d3b;
+           }
+
+           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout,
+           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout {
+                display: flex;
+                justify-content: center;
+                padding-left: 12px;
+                padding-right: 12px;
+           }
+
+           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button,
+           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button {
+                width: 44px;
+                min-width: 44px;
+                height: 44px;
+                padding: 0;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto;
+                border-radius: 14px;
+           }
+
+           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button i,
+           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button i {
+                font-size: 18px;
+                line-height: 1;
+           }
+
+           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-label,
+           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-label {
+                display: none;
+           }
 
           html[data-sidenav-size="default"] .main-nav .logo-box .logo-lg,
           html.sidebar-enable .main-nav .logo-box .logo-lg {
@@ -111,7 +164,7 @@
      </div>
 
      <div class="h-100" data-simplebar>
-          <ul class="navbar-nav" id="navbar-nav">
+           <ul class="navbar-nav" id="navbar-nav">
                <li class="menu-title">
                     <span class="menu-title-line" aria-hidden="true"></span>
                     <span class="menu-title-text">Ringkasan</span>
@@ -285,6 +338,16 @@
                 </li>
                 @endif
 
-          </ul>
-     </div>
+           </ul>
+
+           <div class="sidebar-logout">
+                <form method="POST" action="{{ route('logout') }}">
+                     @csrf
+                     <button type="submit" class="btn logout-button" aria-label="Logout" title="Logout">
+                          <i data-lucide="log-out"></i>
+                          <span class="logout-label">Logout</span>
+                     </button>
+                </form>
+           </div>
+      </div>
 </div>

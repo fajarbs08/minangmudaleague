@@ -382,7 +382,12 @@ class PlayerController extends Controller
         $clubs = $this->availableClubs();
         $clubId = (int) ($request->input('club_id') ?: $clubs->value('id'));
 
-        abort_unless($clubId, 404);
+        if (! $clubId) {
+            return redirect()
+                ->route('players.index')
+                ->with('status', 'Belum ada data klub atau pemain untuk membuat kartu identitas.');
+        }
+
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);
@@ -406,7 +411,12 @@ class PlayerController extends Controller
         $clubs = $this->availableClubs();
         $clubId = (int) ($request->input('club_id') ?: $clubs->value('id'));
 
-        abort_unless($clubId, 404);
+        if (! $clubId) {
+            return redirect()
+                ->route('players.index')
+                ->with('status', 'Belum ada data klub atau pemain untuk mencetak kartu identitas.');
+        }
+
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);

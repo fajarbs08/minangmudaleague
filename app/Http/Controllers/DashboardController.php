@@ -127,8 +127,31 @@ class DashboardController extends Controller
             )
             ->values();
 
-        return response()
-            ->view('public.sitemap', ['urls' => $urls], 200)
+        $escape = fn (string $value) => htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $body = $urls->map(function (array $url) use ($escape) {
+            $xml = [
+                '    <url>',
+                '        <loc>'.$escape($url['loc']).'</loc>',
+            ];
+
+            if (! empty($url['lastmod'])) {
+                $xml[] = '        <lastmod>'.$escape($url['lastmod']).'</lastmod>';
+            }
+
+            if (! empty($url['changefreq'])) {
+                $xml[] = '        <changefreq>'.$escape($url['changefreq']).'</changefreq>';
+            }
+
+            if (! empty($url['priority'])) {
+                $xml[] = '        <priority>'.$escape($url['priority']).'</priority>';
+            }
+
+            $xml[] = '    </url>';
+
+            return implode(PHP_EOL, $xml);
+        })->implode(PHP_EOL);
+
+        return response('<?xml version="1.0" encoding="UTF-8"?>'.PHP_EOL.'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'.PHP_EOL.$body.PHP_EOL.'</urlset>', 200)
             ->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 
@@ -1342,7 +1365,10 @@ class DashboardController extends Controller
 
     private function defaultSeoImageUrl(): string
     {
-        return $this->normalizeAbsoluteUrl(asset('og-share-card.jpg'));
+        $path = public_path('og-share-card.jpg');
+        $version = is_file($path) ? filemtime($path) : app()->version();
+
+        return $this->normalizeAbsoluteUrl(asset('og-share-card.jpg').'?v='.$version);
     }
 
     private function publicClubLogoUrl(?Club $club, string $fallback): string
