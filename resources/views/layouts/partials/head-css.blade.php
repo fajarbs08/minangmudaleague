@@ -381,7 +381,7 @@
     .competition-table-wrap,
     .table-responsive.competition-table-wrap {
         width: 100%;
-        overflow-x: auto !important;
+        overflow: visible !important;
         overflow-y: visible !important;
     }
 
@@ -390,7 +390,7 @@
     }
 
     .competition-table-wrap.dropdown-open {
-        overflow-x: auto !important;
+        overflow: visible !important;
         overflow-y: visible !important;
     }
 
@@ -604,6 +604,13 @@
     }
 
     @media (max-width: 820px) {
+        .competition-table-wrap,
+        .table-responsive.competition-table-wrap,
+        .competition-table-wrap.dropdown-open {
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+        }
+
         .accordion .accordion-button {
             padding: 0.9rem 1rem;
         }
