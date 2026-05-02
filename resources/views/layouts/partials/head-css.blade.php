@@ -611,7 +611,8 @@
             overflow-y: visible !important;
         }
 
-        .competition-table-actions .competition-action-menu {
+        .competition-table-actions .dropdown .competition-action-menu,
+        .competition-table-actions .dropup .competition-action-menu {
             position: fixed !important;
             inset: auto 0.75rem 0.75rem 0.75rem !important;
             width: auto !important;
