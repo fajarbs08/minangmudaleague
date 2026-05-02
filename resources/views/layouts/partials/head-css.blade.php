@@ -520,6 +520,13 @@
         display: inline-block;
     }
 
+    .competition-table-actions .dropdown .competition-action-menu,
+    .competition-table-actions .dropup .competition-action-menu {
+        inset: auto 0 calc(100% + 0.35rem) auto !important;
+        transform: none !important;
+        margin: 0 !important;
+    }
+
     .competition-action-toggle:hover,
     .competition-action-toggle:focus,
     .competition-action-toggle.show {
