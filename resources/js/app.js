@@ -200,10 +200,57 @@ const initTableDropdownOverflow = () => {
 }
 
 const initActionDropdowns = () => {
+  const measureMenuHeight = (menu) => {
+    const previousDisplay = menu.style.display
+    const previousVisibility = menu.style.visibility
+    const previousPosition = menu.style.position
+
+    menu.style.display = 'block'
+    menu.style.visibility = 'hidden'
+    menu.style.position = 'absolute'
+
+    const height = menu.offsetHeight
+
+    menu.style.display = previousDisplay
+    menu.style.visibility = previousVisibility
+    menu.style.position = previousPosition
+
+    return height
+  }
+
+  const syncDropdownDirection = (button) => {
+    const dropdown = button.closest('.dropdown, .dropup')
+    const menu = dropdown?.querySelector('.competition-action-menu, .dropdown-menu')
+    if (!dropdown || !menu) return
+
+    dropdown.classList.remove('dropup')
+    dropdown.classList.add('dropdown')
+
+    const buttonRect = button.getBoundingClientRect()
+    const menuHeight = Math.min(measureMenuHeight(menu), window.innerHeight * 0.7)
+    const spaceBelow = window.innerHeight - buttonRect.bottom
+    const spaceAbove = buttonRect.top
+
+    if (spaceBelow < menuHeight + 16 && spaceAbove > spaceBelow) {
+      dropdown.classList.remove('dropdown')
+      dropdown.classList.add('dropup')
+    }
+  }
+
   document.querySelectorAll('.competition-action-toggle').forEach((button) => {
     button.setAttribute('data-bs-display', 'static')
     button.setAttribute('data-bs-offset', '0,4')
     button.setAttribute('data-bs-boundary', 'viewport')
+
+    button.addEventListener('click', () => {
+      syncDropdownDirection(button)
+    })
+  })
+
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.competition-action-toggle[aria-expanded="true"]').forEach((button) => {
+      syncDropdownDirection(button)
+    })
   })
 }
 
