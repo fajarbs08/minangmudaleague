@@ -106,6 +106,11 @@ class Official extends Model
         return true;
     }
 
+    public function canClubAccessIdCard(): bool
+    {
+        return $this->verification_status === self::STATUS_APPROVED;
+    }
+
     public function getPhotoFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->photo_path);
@@ -155,7 +160,7 @@ class Official extends Model
             $errors['photo_path'] = 'Foto official wajib diunggah sebelum submit verifikasi.';
         }
         if ($this->requiresLicenseDetails($registrations) && blank($this->license_file_path) && blank($this->license_number)) {
-            $errors['license_number'] = 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, atau C.';
+            $errors['license_number'] = 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, C, atau D.';
         }
         if (blank($this->identity_file_path)) {
             $errors['identity_file_path'] = 'Dokumen identitas official wajib diunggah sebelum submit verifikasi.';

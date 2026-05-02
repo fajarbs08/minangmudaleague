@@ -118,6 +118,11 @@ class Player extends Model
         return true;
     }
 
+    public function canClubAccessIdCard(): bool
+    {
+        return $this->verification_status === self::STATUS_APPROVED;
+    }
+
     public function getPhotoFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->photo_path);

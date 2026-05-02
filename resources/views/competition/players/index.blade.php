@@ -49,7 +49,7 @@
             'class' => 'btn-primary',
         ])
         <div class="dropdown">
-            <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" @disabled(! $canDownloadIdCards)>
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </button>
@@ -61,6 +61,9 @@
                 @endforeach
             </ul>
         </div>
+        @unless ($canDownloadIdCards)
+            <div class="text-muted small">ID Card tersedia setelah pemain disetujui admin.</div>
+        @endunless
     </div>
 </div>
 
