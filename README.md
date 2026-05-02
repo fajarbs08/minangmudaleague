@@ -66,7 +66,7 @@ Contoh environment runtime:
 - `ID_CARDS_NODE_MODULES_PATH=/app/storage/app/id-card-node/node_modules`
 - `ID_CARDS_NO_SANDBOX=true`
 
-Kalau render `Browsershot` gagal, service akan fallback ke `dompdf`, jadi aplikasi tetap bisa menghasilkan PDF walau kualitas layout browser-rendered tidak terpakai.
+`Browsershot` adalah jalur utama untuk PDF. Pastikan Chrome/Chromium dan Node tersedia, karena jika runtime browser tidak ada maka render PDF akan gagal.
 
 ## Credit
 

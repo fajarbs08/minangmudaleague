@@ -115,11 +115,16 @@
                 border-radius: 14px;
            }
 
-           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button i,
-           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button i {
-                font-size: 18px;
-                line-height: 1;
-           }
+            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button .nav-icon,
+            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button .nav-icon {
+                 margin-left: 0;
+            }
+
+            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button .nav-icon svg,
+            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button .nav-icon svg {
+                 width: 18px;
+                 height: 18px;
+            }
 
            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-label,
            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-label {
@@ -343,10 +348,12 @@
            <div class="sidebar-logout">
                 <form method="POST" action="{{ route('logout') }}">
                      @csrf
-                     <button type="submit" class="btn logout-button" aria-label="Logout" title="Logout">
-                          <i data-lucide="log-out"></i>
-                          <span class="logout-label">Logout</span>
-                     </button>
+                      <button type="submit" class="btn logout-button" aria-label="Logout" title="Logout">
+                           <span class="nav-icon" aria-hidden="true">
+                                <i data-lucide="log-out"></i>
+                           </span>
+                           <span class="logout-label">Logout</span>
+                      </button>
                 </form>
            </div>
       </div>

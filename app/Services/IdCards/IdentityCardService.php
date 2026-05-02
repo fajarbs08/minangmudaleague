@@ -6,18 +6,17 @@ use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
+use RuntimeException;
 
 class IdentityCardService
 {
-    private const PDF_TEMPLATE_VERSION = 'idc-template-v2';
+    private const PDF_TEMPLATE_VERSION = 'idc-template-v4';
 
     public function buildOfficialDocument(Club $club, AgeGroup $ageGroup, iterable $officials): array
     {
@@ -82,29 +81,11 @@ class IdentityCardService
             'document' => $document,
         ])->render();
 
-        $chromePath = $this->detectExecutable([
-            (string) config('id-cards.chrome_path'),
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/local/bin/google-chrome',
-            '/usr/local/bin/chromium-browser',
-            '/usr/local/bin/chromium',
-            'google-chrome',
-            'chromium-browser',
-            'chromium',
-        ]);
-
-        $nodeBinary = $this->detectExecutable([
-            (string) config('id-cards.node_binary'),
-            '/usr/bin/node',
-            '/usr/local/bin/node',
-            '/opt/homebrew/bin/node',
-            'node',
-        ]);
+        $chromePath = $this->detectExecutable((string) config('id-cards.chrome_path'));
+        $nodeBinary = $this->detectExecutable((string) config('id-cards.node_binary'));
 
         if ($chromePath === null || $nodeBinary === null) {
-            return $this->renderPdfWithDomPdf($html);
+            throw new RuntimeException('Browsershot membutuhkan Chrome/Chromium dan Node yang valid. Set ID_CARDS_CHROME_PATH dan ID_CARDS_NODE_BINARY ke path executable yang benar.');
         }
 
         $browsershot = Browsershot::html($html)
@@ -138,41 +119,19 @@ class IdentityCardService
             $browsershot->noSandbox();
         }
 
-        try {
-            return $browsershot->pdf();
-        } catch (Throwable) {
-            return $this->renderPdfWithDomPdf($html);
+        return $browsershot->pdf();
+    }
+
+    private function detectExecutable(string $candidate): ?string
+    {
+        $candidate = trim($candidate);
+
+        if ($candidate === '') {
+            return null;
         }
-    }
 
-    private function renderPdfWithDomPdf(string $html): string
-    {
-        return Pdf::loadHTML($html)
-            ->setPaper('a4', 'portrait')
-            ->output();
-    }
-
-    private function detectExecutable(array $candidates): ?string
-    {
-        foreach ($candidates as $candidate) {
-            $candidate = trim((string) $candidate);
-
-            if ($candidate === '') {
-                continue;
-            }
-
-            if (str_contains($candidate, DIRECTORY_SEPARATOR)) {
-                if (is_executable($candidate)) {
-                    return $candidate;
-                }
-
-                continue;
-            }
-
-            $resolved = trim((string) shell_exec('command -v '.escapeshellarg($candidate).' 2>/dev/null'));
-            if ($resolved !== '' && is_executable($resolved)) {
-                return $resolved;
-            }
+        if (is_executable($candidate)) {
+            return $candidate;
         }
 
         return null;

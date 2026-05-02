@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use RuntimeException;
 use Spatie\Browsershot\Browsershot;
-use Throwable;
 
 class HtmlPdfRenderer
 {
@@ -17,29 +16,11 @@ class HtmlPdfRenderer
 
     public function renderHtml(string $html, string $paper = 'a4', string $orientation = 'portrait', array $options = []): string
     {
-        $chromePath = $this->detectExecutable([
-            (string) config('id-cards.chrome_path'),
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/local/bin/google-chrome',
-            '/usr/local/bin/chromium-browser',
-            '/usr/local/bin/chromium',
-            'google-chrome',
-            'chromium-browser',
-            'chromium',
-        ]);
-
-        $nodeBinary = $this->detectExecutable([
-            (string) config('id-cards.node_binary'),
-            '/usr/bin/node',
-            '/usr/local/bin/node',
-            '/opt/homebrew/bin/node',
-            'node',
-        ]);
+        $chromePath = $this->detectExecutable((string) config('id-cards.chrome_path'));
+        $nodeBinary = $this->detectExecutable((string) config('id-cards.node_binary'));
 
         if ($chromePath === null || $nodeBinary === null) {
-            return $this->renderWithDomPdf($html, $paper, $orientation);
+            throw new RuntimeException('Browsershot membutuhkan Chrome/Chromium dan Node yang valid. Set ID_CARDS_CHROME_PATH dan ID_CARDS_NODE_BINARY ke path executable yang benar.');
         }
 
         $browsershot = Browsershot::html($html)
@@ -84,38 +65,16 @@ class HtmlPdfRenderer
             $browsershot->delay((int) $options['delay']);
         }
 
-        try {
-            return $browsershot->pdf();
-        } catch (Throwable) {
-            return $this->renderWithDomPdf($html, $paper, $orientation);
-        }
+        return $browsershot->pdf();
     }
 
     public function renderUrl(string $url, string $paper = 'a4', string $orientation = 'portrait', array $options = []): string
     {
-        $chromePath = $this->detectExecutable([
-            (string) config('id-cards.chrome_path'),
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/local/bin/google-chrome',
-            '/usr/local/bin/chromium-browser',
-            '/usr/local/bin/chromium',
-            'google-chrome',
-            'chromium-browser',
-            'chromium',
-        ]);
-
-        $nodeBinary = $this->detectExecutable([
-            (string) config('id-cards.node_binary'),
-            '/usr/bin/node',
-            '/usr/local/bin/node',
-            '/opt/homebrew/bin/node',
-            'node',
-        ]);
+        $chromePath = $this->detectExecutable((string) config('id-cards.chrome_path'));
+        $nodeBinary = $this->detectExecutable((string) config('id-cards.node_binary'));
 
         if ($chromePath === null || $nodeBinary === null) {
-            throw new \RuntimeException('Chrome or Node binary is not available for URL PDF rendering.');
+            throw new RuntimeException('Browsershot membutuhkan Chrome/Chromium dan Node yang valid. Set ID_CARDS_CHROME_PATH dan ID_CARDS_NODE_BINARY ke path executable yang benar.');
         }
 
         $browsershot = Browsershot::url($url)
@@ -168,34 +127,16 @@ class HtmlPdfRenderer
         return $browsershot->pdf();
     }
 
-    private function renderWithDomPdf(string $html, string $paper, string $orientation): string
+    private function detectExecutable(string $candidate): ?string
     {
-        return Pdf::loadHTML($html)
-            ->setPaper($paper, $orientation)
-            ->output();
-    }
+        $candidate = trim($candidate);
 
-    private function detectExecutable(array $candidates): ?string
-    {
-        foreach ($candidates as $candidate) {
-            $candidate = trim((string) $candidate);
+        if ($candidate === '') {
+            return null;
+        }
 
-            if ($candidate === '') {
-                continue;
-            }
-
-            if (str_contains($candidate, DIRECTORY_SEPARATOR)) {
-                if (is_executable($candidate)) {
-                    return $candidate;
-                }
-
-                continue;
-            }
-
-            $resolved = trim((string) shell_exec('command -v '.escapeshellarg($candidate).' 2>/dev/null'));
-            if ($resolved !== '' && is_executable($resolved)) {
-                return $resolved;
-            }
+        if (is_executable($candidate)) {
+            return $candidate;
         }
 
         return null;
