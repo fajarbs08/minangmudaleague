@@ -43,9 +43,9 @@
             @endif
         </button>
         <div class="dropdown">
-            <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" @disabled(! $canDownloadIdCards)>
                 <i data-lucide="id-card" class="fs-14"></i>
-                <span>Lihat ID Card</span>
+                <span>Unduh ID Card</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 @foreach ($ageGroups as $ageGroup)
@@ -57,6 +57,9 @@
                 @endforeach
             </ul>
         </div>
+        @unless ($canDownloadIdCards)
+            <div class="text-muted small">ID Card tersedia setelah ofisial disetujui admin.</div>
+        @endunless
         @include('competition.partials.icon-button', [
             'href' => route('officials.create'),
             'icon' => 'user-plus',

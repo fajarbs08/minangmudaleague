@@ -14,10 +14,10 @@
                 <span>Edit</span>
             </a>
         @endif
-        @if ($official->ageRegistrations->isNotEmpty())
+        @if ($official->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $official->canClubAccessIdCard()))
             <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                 <i data-lucide="id-card" class="fs-14"></i>
-                <span>Lihat ID Card</span>
+                <span>Unduh ID Card</span>
             </a>
         @endif
         <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">

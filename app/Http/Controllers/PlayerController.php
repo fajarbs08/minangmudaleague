@@ -94,6 +94,9 @@ class PlayerController extends Controller
             'players' => $players,
             'clubs' => $clubs,
             'ageGroups' => AgeGroup::competition()->get(),
+            'canDownloadIdCards' => $user->isAdmin() || $this->approvedPlayersQueryForClub(
+                (int) ($request->input('club_id') ?: $clubs->value('id'))
+            )->exists(),
         ]);
     }
 
@@ -267,6 +270,8 @@ class PlayerController extends Controller
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
 
+        abort_unless(auth()->user()->isAdmin() || $player->canClubAccessIdCard(), 403);
+
         if (! $player->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
@@ -283,6 +288,8 @@ class PlayerController extends Controller
     {
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
+
+        abort_unless(auth()->user()->isAdmin() || $player->canClubAccessIdCard(), 403);
 
         if (! $player->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
@@ -391,12 +398,13 @@ class PlayerController extends Controller
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);
-        $players = Player::query()
-            ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
-            ->where('club_id', $clubId)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroup->id))
-            ->orderBy('name')
-            ->get();
+        $players = $this->playerIdCardQuery($clubId, $ageGroup->id)->get();
+
+        if ($players->isEmpty()) {
+            return redirect()
+                ->route('players.index', ['club_id' => $clubId])
+                ->with('status', 'ID Card pemain baru tersedia setelah data disetujui admin.');
+        }
 
         return view('competition.id-cards.preview', [
             'document' => $identityCardService->buildPlayerDocument($club, $ageGroup, $players),
@@ -420,12 +428,13 @@ class PlayerController extends Controller
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);
-        $players = Player::query()
-            ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
-            ->where('club_id', $clubId)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroup->id))
-            ->orderBy('name')
-            ->get();
+        $players = $this->playerIdCardQuery($clubId, $ageGroup->id)->get();
+
+        if ($players->isEmpty()) {
+            return redirect()
+                ->route('players.index', ['club_id' => $clubId])
+                ->with('status', 'ID Card pemain baru tersedia setelah data disetujui admin.');
+        }
 
         $document = $identityCardService->buildPlayerDocument($club, $ageGroup, $players);
 
@@ -652,6 +661,26 @@ class PlayerController extends Controller
             ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
+    }
+
+    private function approvedPlayersQueryForClub(int $clubId)
+    {
+        return Player::query()
+            ->where('club_id', $clubId)
+            ->where('verification_status', Player::STATUS_APPROVED);
+    }
+
+    private function playerIdCardQuery(int $clubId, int $ageGroupId)
+    {
+        return Player::query()
+            ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
+            ->where('club_id', $clubId)
+            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->when(
+                ! auth()->user()->isAdmin(),
+                fn ($query) => $query->where('verification_status', Player::STATUS_APPROVED)
+            )
+            ->orderBy('name');
     }
 
     private function ensureClubAccess(?int $clubId): void

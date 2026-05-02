@@ -73,6 +73,9 @@ class OfficialController extends Controller
             'officials' => $officials,
             'clubs' => $clubs,
             'ageGroups' => AgeGroup::competition()->get(),
+            'canDownloadIdCards' => $user->isAdmin() || $this->approvedOfficialsQueryForClub(
+                (int) ($request->input('club_id') ?: $clubs->value('id'))
+            )->exists(),
         ]);
     }
 
@@ -260,12 +263,13 @@ class OfficialController extends Controller
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);
-        $officials = Official::query()
-            ->with(['club', 'ageRegistrations.ageGroup'])
-            ->where('club_id', $clubId)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroup->id))
-            ->orderBy('name')
-            ->get();
+        $officials = $this->officialIdCardQuery($clubId, $ageGroup->id)->get();
+
+        if ($officials->isEmpty()) {
+            return redirect()
+                ->route('officials.index', ['club_id' => $clubId])
+                ->with('status', 'ID Card ofisial baru tersedia setelah data disetujui admin.');
+        }
 
         return view('competition.id-cards.preview', [
             'document' => $identityCardService->buildOfficialDocument($club, $ageGroup, $officials),
@@ -289,12 +293,13 @@ class OfficialController extends Controller
         $this->ensureClubAccess($clubId);
 
         $club = Club::query()->findOrFail($clubId);
-        $officials = Official::query()
-            ->with(['club', 'ageRegistrations.ageGroup'])
-            ->where('club_id', $clubId)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroup->id))
-            ->orderBy('name')
-            ->get();
+        $officials = $this->officialIdCardQuery($clubId, $ageGroup->id)->get();
+
+        if ($officials->isEmpty()) {
+            return redirect()
+                ->route('officials.index', ['club_id' => $clubId])
+                ->with('status', 'ID Card ofisial baru tersedia setelah data disetujui admin.');
+        }
 
         $document = $identityCardService->buildOfficialDocument($club, $ageGroup, $officials);
 
@@ -320,6 +325,8 @@ class OfficialController extends Controller
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
 
+        abort_unless(auth()->user()->isAdmin() || $official->canClubAccessIdCard(), 403);
+
         if (! $official->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
         }
@@ -336,6 +343,8 @@ class OfficialController extends Controller
     {
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
+
+        abort_unless(auth()->user()->isAdmin() || $official->canClubAccessIdCard(), 403);
 
         if (! $official->registrationForAgeGroup($ageGroup->id)) {
             abort(404);
@@ -441,7 +450,7 @@ class OfficialController extends Controller
             'identity_number' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'license_number' => ['nullable', 'string', 'max:255'],
-            'license_levels' => ['nullable', 'in:A,B,C,Non-Lisensi'],
+            'license_levels' => ['nullable', 'in:A,B,C,D,Non-Lisensi'],
             'photo_file' => [blank($official?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'identity_file' => [blank($official?->identity_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
@@ -451,7 +460,7 @@ class OfficialController extends Controller
             'age_registrations.*.age_group_id' => ['required_with:age_registrations', AgeGroup::competitionExistsRule()],
             'age_registrations.*.season' => ['nullable', 'string', 'max:255'],
             'age_registrations.*.role' => ['nullable', 'string', 'max:255'],
-            'age_registrations.*.license_levels' => ['nullable', 'in:A,B,C,Non-Lisensi'],
+            'age_registrations.*.license_levels' => ['nullable', 'in:A,B,C,D,Non-Lisensi'],
             'age_registrations.*.notes' => ['nullable', 'string', 'max:500'],
         ], [
             'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
@@ -513,7 +522,7 @@ class OfficialController extends Controller
             && blank($official?->license_file_path)
         ) {
             throw ValidationException::withMessages([
-                'license_number' => 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, atau C.',
+                'license_number' => 'Isi nomor lisensi atau unggah bukti lisensi saat memilih level lisensi A, B, C, atau D.',
             ]);
         }
 
@@ -636,6 +645,26 @@ class OfficialController extends Controller
             ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
+    }
+
+    private function approvedOfficialsQueryForClub(int $clubId)
+    {
+        return Official::query()
+            ->where('club_id', $clubId)
+            ->where('verification_status', Official::STATUS_APPROVED);
+    }
+
+    private function officialIdCardQuery(int $clubId, int $ageGroupId)
+    {
+        return Official::query()
+            ->with(['club', 'ageRegistrations.ageGroup'])
+            ->where('club_id', $clubId)
+            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->when(
+                ! auth()->user()->isAdmin(),
+                fn ($query) => $query->where('verification_status', Official::STATUS_APPROVED)
+            )
+            ->orderBy('name');
     }
 
     private function ensureClubAccess(?int $clubId): void

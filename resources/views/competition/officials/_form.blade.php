@@ -61,7 +61,7 @@
     <div class="col-lg-6 mb-3">
         <label class="form-label">No. Lisensi</label>
         <input type="text" name="license_number" class="form-control" value="{{ old('license_number', $official->license_number) }}">
-        <small class="text-muted d-block mt-2">Isi jika memilih level lisensi A, B, atau C.</small>
+        <small class="text-muted d-block mt-2">Isi jika memilih level lisensi A, B, C, atau D.</small>
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Pas Foto 3x4 <span class="text-danger">*</span></label>
@@ -76,7 +76,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Bukti Lisensi</label>
         <input type="file" name="license_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <small class="text-muted d-block mt-1">Unggah salah satu dengan No. Lisensi jika memilih level A, B, atau C. Untuk Non-Lisensi, keduanya boleh kosong.</small>
+        <small class="text-muted d-block mt-1">Unggah salah satu dengan No. Lisensi jika memilih level A, B, C, atau D. Untuk Non-Lisensi, keduanya boleh kosong.</small>
         @if ($official->license_file_url)
             <a href="{{ $official->license_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="file-text" class="fs-14"></i>
@@ -138,6 +138,7 @@
             <option value="A" @selected($licenseValue === 'A')>A</option>
             <option value="B" @selected($licenseValue === 'B')>B</option>
             <option value="C" @selected($licenseValue === 'C')>C</option>
+            <option value="D" @selected($licenseValue === 'D')>D</option>
             <option value="Non-Lisensi" @selected($licenseValue === 'Non-Lisensi')>Non-Lisensi</option>
         </select>
         <small class="text-muted d-block mt-2">Pilih Non-Lisensi bila ofisial tidak memiliki lisensi resmi.</small>
@@ -222,6 +223,7 @@
                                 <option value="A" @selected($ageLicenseValue === 'A')>A</option>
                                 <option value="B" @selected($ageLicenseValue === 'B')>B</option>
                                 <option value="C" @selected($ageLicenseValue === 'C')>C</option>
+                                <option value="D" @selected($ageLicenseValue === 'D')>D</option>
                                 <option value="Non-Lisensi" @selected($ageLicenseValue === 'Non-Lisensi')>Non-Lisensi</option>
                             </select>
                         </div>
@@ -275,6 +277,7 @@
                     <option value="A">A</option>
                     <option value="B">B</option>
                     <option value="C">C</option>
+                    <option value="D">D</option>
                     <option value="Non-Lisensi">Non-Lisensi</option>
                 </select>
             </div>
