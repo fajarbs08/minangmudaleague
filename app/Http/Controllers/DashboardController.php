@@ -162,9 +162,12 @@ class DashboardController extends Controller
             ->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 
-    public function publicSchedule()
+    public function publicSchedule(Request $request)
     {
-        return view('public.schedule', $this->buildPublicSchedulePageData(request(), [
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+
+        return view('public.schedule', $this->buildPublicSchedulePageData($request, [
             'title' => 'Jadwal Pertandingan',
             'seoTitle' => 'Jadwal Pertandingan Liga Anak Piaman Laweh',
             'activePublicPage' => 'schedule',
@@ -173,29 +176,33 @@ class DashboardController extends Controller
             'seoDescription' => 'Pantau jadwal pertandingan Liga Anak Piaman Laweh, termasuk laga terdekat, waktu kickoff, kelompok usia, dan venue pertandingan.',
             'scheduleFilterActionUrl' => route('public.schedule'),
             'scheduleCtaLabel' => 'LIHAT HASIL PERTANDINGAN',
-            'scheduleCtaUrl' => route('public.results'),
+            'scheduleCtaUrl' => route('public.results', $publicSeasonQuery),
         ]));
     }
 
-    public function publicScheduleShow(string $matchSlug)
+    public function publicScheduleShow(Request $request, string $matchSlug)
     {
-        $match = $this->resolvePublicSchedule($matchSlug);
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $match = $this->resolvePublicSchedule($matchSlug, $season);
         $match->loadMissing([
             'ageGroup',
             'clubA',
             'clubB',
+            'clubASeason',
+            'clubBSeason',
             'lineupLists.club',
             'lineupLists.players.ageRegistrations',
         ]);
 
         if ($matchSlug !== $match->public_slug) {
-            return redirect()->route('public.schedule.show', ['matchSlug' => $match->public_slug], 301);
+            return redirect()->route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery, 301);
         }
 
-        $homeClubLabel = $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A';
-        $awayClubLabel = $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B';
+        $homeClubLabel = $match->club_a_display_name ?: 'Klub A';
+        $awayClubLabel = $match->club_b_display_name ?: 'Klub B';
         $matchBreadcrumbLabel = $homeClubLabel.' vs '.$awayClubLabel;
-        $seoImage = $this->normalizeAbsoluteUrl($match->clubA?->logo_file_url ?: $match->clubB?->logo_file_url ?: $this->defaultSeoImageUrl());
+        $seoImage = $this->normalizeAbsoluteUrl($match->club_a_logo_file_url ?: $match->club_b_logo_file_url ?: $this->defaultSeoImageUrl());
         $statusLabel = $match->is_finished ? 'Pertandingan selesai' : 'Pertandingan terjadwal';
         $matchSummary = $statusLabel.'. '.$homeClubLabel.' vs '.$awayClubLabel.' pada '.optional($match->match_date)->translatedFormat('d F Y').' di '.($match->venue ?: 'venue belum tersedia').'.';
 
@@ -208,11 +215,11 @@ class DashboardController extends Controller
             'pageHeadingAccentWord' => 'Jadwal',
             'breadcrumbItems' => [
                 ['label' => 'Beranda', 'url' => route('public.home')],
-                ['label' => 'Jadwal Pertandingan', 'url' => route('public.schedule')],
+                ['label' => 'Jadwal Pertandingan', 'url' => route('public.schedule', $publicSeasonQuery)],
                 ['label' => $matchBreadcrumbLabel],
             ],
             'seoDescription' => $matchSummary,
-            'seoUrl' => route('public.schedule.show', ['matchSlug' => $match->public_slug]),
+            'seoUrl' => route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery),
             'seoType' => 'article',
             'seoImage' => $seoImage,
             'seoStructuredData' => [[
@@ -220,7 +227,7 @@ class DashboardController extends Controller
                 '@type' => 'SportsEvent',
                 'name' => $homeClubLabel.' vs '.$awayClubLabel,
                 'description' => $matchSummary,
-                'url' => route('public.schedule.show', ['matchSlug' => $match->public_slug]),
+                'url' => route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery),
                 'startDate' => optional($match->match_date)->toDateString(),
                 'eventStatus' => 'https://schema.org/EventScheduled',
                 'location' => [
@@ -231,21 +238,27 @@ class DashboardController extends Controller
                     $match->clubA ? [
                         '@type' => 'SportsTeam',
                         'name' => $homeClubLabel,
-                        'url' => route('public.clubs.show', ['clubSlug' => $match->clubA->public_slug]),
+                        'url' => route('public.clubs.show', ['clubSlug' => $match->club_a_public_slug] + $publicSeasonQuery),
                     ] : null,
                     $match->clubB ? [
                         '@type' => 'SportsTeam',
                         'name' => $awayClubLabel,
-                        'url' => route('public.clubs.show', ['clubSlug' => $match->clubB->public_slug]),
+                        'url' => route('public.clubs.show', ['clubSlug' => $match->club_b_public_slug] + $publicSeasonQuery),
                     ] : null,
                 ])),
             ]],
             'matchSchedule' => $match,
+            'selectedPublicSeason' => $season,
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => ! $this->seasonContext->isActiveSeason($season),
         ]));
     }
 
     public function publicResults(Request $request)
     {
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+
         return view('public.schedule', $this->buildPublicResultsPageData($request, [
             'title' => 'Hasil Pertandingan',
             'seoTitle' => 'Hasil Liga Anak Piaman Laweh | Skor Pertandingan',
@@ -255,12 +268,15 @@ class DashboardController extends Controller
             'seoDescription' => 'Pantau hasil pertandingan Liga Anak Piaman Laweh beserta skor akhir, lawan, venue, dan status laga.',
             'scheduleFilterActionUrl' => route('public.results'),
             'scheduleCtaLabel' => 'LIHAT JADWAL PERTANDINGAN',
-            'scheduleCtaUrl' => route('public.schedule'),
+            'scheduleCtaUrl' => route('public.schedule', $publicSeasonQuery),
         ]));
     }
 
-    public function publicBracketsPage()
+    public function publicBracketsPage(Request $request)
     {
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+
         return view('public.brackets', $this->publicPageData([
             'title' => 'Bagan Knockout',
             'seoTitle' => 'Bagan Knockout Liga Anak Piaman Laweh',
@@ -268,6 +284,13 @@ class DashboardController extends Controller
             'bannerTitle' => 'Bagan Knockout',
             'bannerCurrent' => 'Bagan Knockout',
             'seoDescription' => 'Lihat bagan knockout resmi Liga Anak Piaman Laweh per kelompok usia, lengkap dengan jalur pertandingan dan hasil tiap babak.',
+            'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
+            'publicKnockoutBrackets' => $this->publicKnockoutBrackets($season, $publicSeasonQuery),
+            'publicBracketryBrackets' => $this->publicBracketryBrackets($season, $publicSeasonQuery),
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => ! $this->seasonContext->isActiveSeason($season),
         ]));
     }
 
@@ -293,13 +316,16 @@ class DashboardController extends Controller
 
     private function buildPublicSchedulePageData(Request $request, array $overrides = []): array
     {
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
         $selectedAgeGroupId = AgeGroup::competition()->whereKey($request->integer('age_group_id'))->value('id');
         $selectedYear = $request->integer('year') ?: null;
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $scheduledMatchesQuery = MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB'])
+        $scheduledMatchesQuery = MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
             ->whereDate('match_date', '>=', now()->toDateString())
             ->where('is_finished', false)
             ->orderBy('match_date')
@@ -358,12 +384,10 @@ class DashboardController extends Controller
                 ->values(),
             'clubs' => $allScheduledMatches
                 ->flatMap(function (MatchSchedule $match) {
-                    return collect([$match->clubA, $match->clubB])
-                        ->filter()
-                        ->map(fn ($club) => [
-                            'value' => (string) $club->id,
-                            'label' => $club->short_name ?: $club->name,
-                        ]);
+                    return collect([
+                        ['value' => (string) $match->club_a_id, 'label' => $match->club_a_short_name ?: $match->club_a_display_name],
+                        ['value' => (string) $match->club_b_id, 'label' => $match->club_b_short_name ?: $match->club_b_display_name],
+                    ]);
                 })
                 ->filter(fn (array $club) => filled($club['value']) && filled($club['label']))
                 ->unique('value')
@@ -386,18 +410,25 @@ class DashboardController extends Controller
                 'date' => $selectedDate,
                 'club_id' => $selectedClubId,
             ],
-            ], $overrides));
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
+        ], $overrides));
     }
 
     private function buildPublicResultsPageData(Request $request, array $overrides = []): array
     {
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
         $selectedAgeGroupId = AgeGroup::competition()->whereKey($request->integer('age_group_id'))->value('id');
         $selectedYear = $request->integer('year') ?: null;
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $resultsQuery = MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB'])
+        $resultsQuery = MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
             ->whereNotNull('score_club_b')
@@ -457,12 +488,10 @@ class DashboardController extends Controller
                 ->values(),
             'clubs' => $allResults
                 ->flatMap(function (MatchSchedule $match) {
-                    return collect([$match->clubA, $match->clubB])
-                        ->filter()
-                        ->map(fn ($club) => [
-                            'value' => (string) $club->id,
-                            'label' => $club->name ?: $club->short_name,
-                        ]);
+                    return collect([
+                        ['value' => (string) $match->club_a_id, 'label' => $match->club_a_display_name ?: $match->club_a_short_name],
+                        ['value' => (string) $match->club_b_id, 'label' => $match->club_b_display_name ?: $match->club_b_short_name],
+                    ]);
                 })
                 ->filter(fn (array $club) => filled($club['value']) && filled($club['label']))
                 ->unique('value')
@@ -485,16 +514,24 @@ class DashboardController extends Controller
                 'date' => $selectedDate,
                 'club_id' => $selectedClubId,
             ],
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
         ], $overrides));
     }
 
-    public function publicResultShow(string $matchSlug)
+    public function publicResultShow(Request $request, string $matchSlug)
     {
-        $match = $this->resolvePublicResult($matchSlug);
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $match = $this->resolvePublicResult($matchSlug, $season);
         $match->loadMissing([
             'ageGroup',
             'clubA',
             'clubB',
+            'clubASeason',
+            'clubBSeason',
             'goalEvents.club',
             'goalEvents.scorer',
             'goalEvents.assistPlayer',
@@ -503,17 +540,17 @@ class DashboardController extends Controller
         ]);
 
         if ($matchSlug !== $match->public_slug) {
-            return redirect()->route('public.results.show', ['matchSlug' => $match->public_slug], 301);
+            return redirect()->route('public.results.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery, 301);
         }
 
-        $clubALabel = $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A';
-        $clubBLabel = $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B';
-        $matchShareUrl = route('public.results.show', ['matchSlug' => $match->public_slug]);
+        $clubALabel = $match->club_a_display_name ?: 'Klub A';
+        $clubBLabel = $match->club_b_display_name ?: 'Klub B';
+        $matchShareUrl = route('public.results.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery);
         $cleanSheetLabel = match (true) {
             ! $match->has_clean_sheet => 'Tidak ada clean sheet',
             (int) $match->score_club_a === 0 && (int) $match->score_club_b === 0 => 'Kedua tim clean sheet',
-            (int) $match->score_club_a === 0 => ($match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B').' clean sheet',
-            default => ($match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A').' clean sheet',
+            (int) $match->score_club_a === 0 => ($match->club_b_short_name ?: $match->club_b_display_name ?: 'Klub B').' clean sheet',
+            default => ($match->club_a_short_name ?: $match->club_a_display_name ?: 'Klub A').' clean sheet',
         };
         $winnerLabel = $match->score_club_a === $match->score_club_b
             ? 'Laga berakhir imbang'
@@ -521,7 +558,7 @@ class DashboardController extends Controller
                 ? $clubALabel.' menang'
                 : $clubBLabel.' menang');
         $matchBreadcrumbLabel = $clubALabel.' vs '.$clubBLabel;
-        $seoImage = $this->normalizeAbsoluteUrl($match->clubA?->logo_file_url ?: $match->clubB?->logo_file_url ?: $this->defaultSeoImageUrl());
+        $seoImage = $this->normalizeAbsoluteUrl($match->club_a_logo_file_url ?: $match->club_b_logo_file_url ?: $this->defaultSeoImageUrl());
         $matchSummary = $winnerLabel.'. Skor akhir '.$match->score_label.' pada '.optional($match->match_date)->translatedFormat('d F Y').' di '.($match->venue ?: 'lokasi pertandingan').'.';
 
         return view('public.result-show', $this->publicPageData([
@@ -533,7 +570,7 @@ class DashboardController extends Controller
             'pageHeadingAccentWord' => 'Hasil',
             'breadcrumbItems' => [
                 ['label' => 'Beranda', 'url' => route('public.home')],
-                ['label' => 'Hasil Pertandingan', 'url' => route('public.results')],
+                ['label' => 'Hasil Pertandingan', 'url' => route('public.results', $publicSeasonQuery)],
                 ['label' => $matchBreadcrumbLabel],
             ],
             'seoDescription' => $matchSummary.' Lihat rincian gol, statistik tim, dan detail laga lengkap.',
@@ -556,12 +593,12 @@ class DashboardController extends Controller
                     $match->clubA ? [
                         '@type' => 'SportsTeam',
                         'name' => $clubALabel,
-                        'url' => route('public.clubs.show', ['clubSlug' => $match->clubA->public_slug]),
+                        'url' => route('public.clubs.show', ['clubSlug' => $match->club_a_public_slug] + $publicSeasonQuery),
                     ] : null,
                     $match->clubB ? [
                         '@type' => 'SportsTeam',
                         'name' => $clubBLabel,
-                        'url' => route('public.clubs.show', ['clubSlug' => $match->clubB->public_slug]),
+                        'url' => route('public.clubs.show', ['clubSlug' => $match->club_b_public_slug] + $publicSeasonQuery),
                     ] : null,
                 ])),
             ]],
@@ -577,17 +614,22 @@ class DashboardController extends Controller
                 'club_b' => $this->buildPublicResultClubStats($match, (int) $match->club_b_id),
             ],
             'matchResultTimeline' => $this->buildPublicGoalTimeline($match),
-            'relatedResults' => $this->publicResultsQuery()
+            'relatedResults' => $this->publicResultsQuery($season)
                 ->whereKeyNot($match->id)
                 ->where('age_group_id', $match->age_group_id)
                 ->limit(4)
                 ->get(),
+            'selectedPublicSeason' => $season,
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => ! $this->seasonContext->isActiveSeason($season),
         ]));
     }
 
     public function publicStandingsPage(Request $request)
     {
-        $allLeagueMatches = $this->publicStandingsMatchesQuery()->get();
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $allLeagueMatches = $this->publicStandingsMatchesQuery($season)->get();
         $selectedAgeGroupId = $request->integer('age_group_id') ?: null;
         $selectedYear = $request->integer('year') ?: null;
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
@@ -649,12 +691,10 @@ class DashboardController extends Controller
 
         $clubOptions = $allLeagueMatches
             ->flatMap(function (MatchSchedule $match) {
-                return collect([$match->clubA, $match->clubB])
-                    ->filter()
-                    ->map(fn ($club) => [
-                        'value' => (string) $club->id,
-                        'label' => $club->short_name ?: $club->name,
-                    ]);
+                return collect([
+                    ['value' => (string) $match->club_a_id, 'label' => $match->club_a_short_name ?: $match->club_a_display_name],
+                    ['value' => (string) $match->club_b_id, 'label' => $match->club_b_short_name ?: $match->club_b_display_name],
+                ]);
             })
             ->filter(fn (array $club) => filled($club['value']) && filled($club['label']))
             ->unique('value')
@@ -681,6 +721,10 @@ class DashboardController extends Controller
                 'date' => $selectedDate,
                 'club_id' => $selectedClubId,
             ],
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => ! $this->seasonContext->isActiveSeason($season),
         ]);
 
         if ($request->boolean('partial') && $request->ajax()) {
@@ -912,10 +956,12 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function publicStandingsMatchesQuery(): Builder
+    private function publicStandingsMatchesQuery(?Season $season = null): Builder
     {
-        return MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB'])
+        $season ??= $this->seasonContext->active();
+
+        return MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
             ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -938,11 +984,19 @@ class DashboardController extends Controller
                             'club' => $match->clubA,
                             'goals_for' => (int) $match->score_club_a,
                             'goals_against' => (int) $match->score_club_b,
+                            'display_name' => $match->club_a_display_name,
+                            'display_short_name' => $match->club_a_short_name,
+                            'display_public_slug' => $match->club_a_public_slug,
+                            'display_logo_url' => $match->club_a_logo_file_url,
                         ],
                         [
                             'club' => $match->clubB,
                             'goals_for' => (int) $match->score_club_b,
                             'goals_against' => (int) $match->score_club_a,
+                            'display_name' => $match->club_b_display_name,
+                            'display_short_name' => $match->club_b_short_name,
+                            'display_public_slug' => $match->club_b_public_slug,
+                            'display_logo_url' => $match->club_b_logo_file_url,
                         ],
                     ] as $entry) {
                         if (! $entry['club']) {
@@ -952,10 +1006,10 @@ class DashboardController extends Controller
                         $clubId = $entry['club']->id;
                         $row = $table->get($clubId, [
                             'club_id' => $clubId,
-                            'club_name' => $entry['club']->name,
-                            'club_short_name' => $entry['club']->short_name ?: $entry['club']->name,
-                            'club_public_slug' => $entry['club']->public_slug,
-                            'club_logo_url' => $this->publicClubLogoUrl($entry['club'], 'public-assets/img/inner/flag/b1.png'),
+                            'club_name' => $entry['display_name'] ?: $entry['club']->name,
+                            'club_short_name' => $entry['display_short_name'] ?: $entry['display_name'] ?: $entry['club']->short_name ?: $entry['club']->name,
+                            'club_public_slug' => $entry['display_public_slug'] ?: $entry['club']->public_slug,
+                            'club_logo_url' => $entry['display_logo_url'] ?: $this->publicClubLogoUrl($entry['club'], 'public-assets/img/inner/flag/b1.png'),
                             'played' => 0,
                             'won' => 0,
                             'drawn' => 0,
@@ -1019,15 +1073,17 @@ class DashboardController extends Controller
             ->values();
     }
 
-    private function publicStandings(): Collection
+    private function publicStandings(?Season $season = null): Collection
     {
-        return $this->buildPublicStandings($this->publicStandingsMatchesQuery()->get());
+        return $this->buildPublicStandings($this->publicStandingsMatchesQuery($season)->get());
     }
 
-    private function publicKnockoutBrackets(): Collection
+    private function publicKnockoutBrackets(?Season $season = null, array $publicSeasonQuery = []): Collection
     {
-        return MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+        $season ??= $this->seasonContext->active();
+
+        return MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->whereHas('ageGroup', fn (Builder $query) => $query->competition())
             ->orderBy('age_group_id')
@@ -1107,9 +1163,9 @@ class DashboardController extends Controller
         return in_array($normalized, ['final', 'babak final', 'grand final', 'finale'], true);
     }
 
-    private function publicBracketryBrackets(): Collection
+    private function publicBracketryBrackets(?Season $season = null, array $publicSeasonQuery = []): Collection
     {
-        return $this->publicKnockoutBrackets()->map(function (array $bracket): array {
+        return $this->publicKnockoutBrackets($season, $publicSeasonQuery)->map(function (array $bracket) use ($publicSeasonQuery): array {
             $allRounds = collect($bracket['rounds'])->values();
             $displayRounds = $allRounds;
 
@@ -1124,13 +1180,13 @@ class DashboardController extends Controller
 
                     $contestants[$homeKey] = [
                         'players' => [[
-                            'title' => $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A',
+                            'title' => $match->club_a_display_name ?: 'Klub A',
                         ]],
                     ];
 
                     $contestants[$awayKey] = [
                         'players' => [[
-                            'title' => $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B',
+                            'title' => $match->club_b_display_name ?: 'Klub B',
                         ]],
                     ];
 
@@ -1140,7 +1196,7 @@ class DashboardController extends Controller
                         'matchStatus' => filled($match->match_date)
                             ? trim((optional($match->match_date)->format('d M Y') ?: '') . ' · ' . ($match->kickoff_time?->format('H:i') ?: '--') . ' WIB', ' ·')
                             : ($match->is_finished ? 'FT' : 'SCHEDULED'),
-                        'detail' => $this->publicBracketMatchDetail($match, $round['label']),
+                        'detail' => $this->publicBracketMatchDetail($match, $round['label'], $publicSeasonQuery),
                         'sides' => [
                             [
                                 'contestantId' => $homeKey,
@@ -1175,15 +1231,12 @@ class DashboardController extends Controller
 
             $winner = null;
             if ($finalMatch && $finalMatch->score_club_a !== null && $finalMatch->score_club_b !== null && $finalMatch->score_club_a !== $finalMatch->score_club_b) {
-                $winnerClub = $finalMatch->score_club_a > $finalMatch->score_club_b ? $finalMatch->clubA : $finalMatch->clubB;
-                $loserClub = $finalMatch->score_club_a > $finalMatch->score_club_b ? $finalMatch->clubB : $finalMatch->clubA;
-
                 $winner = [
-                    'name' => $winnerClub?->name ?: 'Juara belum tersedia',
-                    'short_name' => $winnerClub?->name ?: $winnerClub?->short_name ?: 'JUARA',
-                    'logo_url' => $winnerClub?->logo_file_url,
+                    'name' => $finalMatch->score_club_a > $finalMatch->score_club_b ? ($finalMatch->club_a_display_name ?: 'Juara belum tersedia') : ($finalMatch->club_b_display_name ?: 'Juara belum tersedia'),
+                    'short_name' => $finalMatch->score_club_a > $finalMatch->score_club_b ? ($finalMatch->club_a_short_name ?: $finalMatch->club_a_display_name ?: 'JUARA') : ($finalMatch->club_b_short_name ?: $finalMatch->club_b_display_name ?: 'JUARA'),
+                    'logo_url' => $finalMatch->score_club_a > $finalMatch->score_club_b ? $finalMatch->club_a_logo_file_url : $finalMatch->club_b_logo_file_url,
                     'score_label' => $finalMatch->score_label,
-                    'opponent_name' => $loserClub?->name ?: 'Lawan',
+                    'opponent_name' => $finalMatch->score_club_a > $finalMatch->score_club_b ? ($finalMatch->club_b_display_name ?: 'Lawan') : ($finalMatch->club_a_display_name ?: 'Lawan'),
                     'match_label' => $finalMatch->match_day,
                     'match_date' => optional($finalMatch->match_date)->translatedFormat('d F Y'),
                 ];
@@ -1210,11 +1263,11 @@ class DashboardController extends Controller
         });
     }
 
-    private function publicBracketMatchDetail(MatchSchedule $match, string $roundLabel): array
+    private function publicBracketMatchDetail(MatchSchedule $match, string $roundLabel, array $publicSeasonQuery = []): array
     {
         $goalReports = [];
 
-        foreach ([$match->clubA, $match->clubB] as $club) {
+        foreach ([(object) ['id' => $match->club_a_id, 'label' => $match->club_a_short_name ?: $match->club_a_display_name], (object) ['id' => $match->club_b_id, 'label' => $match->club_b_short_name ?: $match->club_b_display_name]] as $club) {
             $goalReport = $match->goalReportForClub($club?->id);
 
             if (! $club || empty($goalReport)) {
@@ -1222,7 +1275,7 @@ class DashboardController extends Controller
             }
 
             $goalReports[] = [
-                'club' => $club->short_name ?: $club->name,
+                'club' => $club->label,
                 'summary' => implode(', ', $goalReport),
             ];
         }
@@ -1230,8 +1283,8 @@ class DashboardController extends Controller
         $detailUrl = null;
         if (filled($match->public_slug)) {
             $detailUrl = $match->is_finished
-                ? route('public.results.show', ['matchSlug' => $match->public_slug])
-                : route('public.schedule.show', ['matchSlug' => $match->public_slug]);
+                ? route('public.results.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery)
+                : route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery);
         }
 
         return [
@@ -1244,8 +1297,8 @@ class DashboardController extends Controller
             'date_label' => optional($match->match_date)->translatedFormat('d F Y') ?: 'Tanggal belum tersedia',
             'kickoff_label' => $match->kickoff_time?->format('H:i').' WIB' ?: 'Jam belum tersedia',
             'venue' => $match->venue ?: 'Venue belum tersedia',
-            'home_name' => $match->clubA?->name ?: $match->clubA?->short_name ?: 'Menunggu',
-            'away_name' => $match->clubB?->name ?: $match->clubB?->short_name ?: 'Menunggu',
+            'home_name' => $match->club_a_display_name ?: 'Menunggu',
+            'away_name' => $match->club_b_display_name ?: 'Menunggu',
             'home_score' => $match->score_club_a,
             'away_score' => $match->score_club_b,
             'result_summary' => $match->is_finished
@@ -1305,6 +1358,10 @@ class DashboardController extends Controller
             'publicKnockoutBrackets' => $this->publicKnockoutBrackets(),
             'publicBracketryBrackets' => $this->publicBracketryBrackets(),
             'featuredSponsors' => $this->publicSponsorsData(),
+            'selectedPublicSeason' => null,
+            'publicSeasonOptions' => collect(),
+            'publicSeasonQuery' => [],
+            'isHistoricalPublicSeason' => false,
         ];
 
         $data = array_merge($defaults, $overrides);
@@ -1332,10 +1389,12 @@ class DashboardController extends Controller
         ], fn ($value) => filled($value));
     }
 
-    private function publicResultsQuery(): Builder
+    private function publicResultsQuery(?Season $season = null): Builder
     {
-        return MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+        $season ??= $this->seasonContext->active();
+
+        return MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
             ->whereNotNull('score_club_b')
@@ -1366,25 +1425,29 @@ class DashboardController extends Controller
         return ['season' => $season->slug];
     }
 
-    private function resolvePublicResult(string $matchSlug): MatchSchedule
+    private function resolvePublicResult(string $matchSlug, ?Season $season = null): MatchSchedule
     {
+        $season ??= $this->seasonContext->active();
+
         preg_match('/(\d+)$/', $matchSlug, $matches);
         $matchId = isset($matches[1]) ? (int) $matches[1] : 0;
 
         abort_unless($matchId > 0, 404);
 
-        return $this->publicResultsQuery()->whereKey($matchId)->firstOrFail();
+        return $this->publicResultsQuery($season)->whereKey($matchId)->firstOrFail();
     }
 
-    private function resolvePublicSchedule(string $matchSlug): MatchSchedule
+    private function resolvePublicSchedule(string $matchSlug, ?Season $season = null): MatchSchedule
     {
+        $season ??= $this->seasonContext->active();
+
         preg_match('/(\d+)$/', $matchSlug, $matches);
         $matchId = isset($matches[1]) ? (int) $matches[1] : 0;
 
         abort_unless($matchId > 0, 404);
 
-        return MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB'])
+        return MatchSchedule::query()->forSeason($season?->id)
+            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
             ->whereKey($matchId)
             ->firstOrFail();
     }

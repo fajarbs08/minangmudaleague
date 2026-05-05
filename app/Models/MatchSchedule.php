@@ -225,9 +225,29 @@ class MatchSchedule extends Model
         return $this->clubASeason?->logo_file_url ?: $this->clubA?->logo_file_url;
     }
 
+    public function getClubAShortNameAttribute(): ?string
+    {
+        return $this->clubASeason?->short_name ?: $this->clubA?->short_name ?: $this->club_a_display_name;
+    }
+
     public function getClubBLogoFileUrlAttribute(): ?string
     {
         return $this->clubBSeason?->logo_file_url ?: $this->clubB?->logo_file_url;
+    }
+
+    public function getClubBShortNameAttribute(): ?string
+    {
+        return $this->clubBSeason?->short_name ?: $this->clubB?->short_name ?: $this->club_b_display_name;
+    }
+
+    public function getClubAPublicSlugAttribute(): ?string
+    {
+        return $this->clubASeason?->public_slug ?: $this->clubA?->public_slug;
+    }
+
+    public function getClubBPublicSlugAttribute(): ?string
+    {
+        return $this->clubBSeason?->public_slug ?: $this->clubB?->public_slug;
     }
 
     public function getPublicSlugAttribute(): string

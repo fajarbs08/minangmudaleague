@@ -308,6 +308,10 @@
 
 @php
     $pageMode = ($activePublicPage ?? 'schedule') === 'results' ? 'results' : 'schedule';
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonOptions = $publicSeasonOptions ?? collect();
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
     $pageTitle = $pageMode === 'results' ? 'Hasil Pertandingan' : 'Jadwal Pertandingan';
     $pageSummaryLabel = $pageMode === 'results' ? 'hasil pertandingan tersedia' : 'pertandingan terjadwal';
     $pageStatusLabel = $pageMode === 'results' ? 'Menunggu hasil' : 'Terjadwal';
@@ -368,6 +372,9 @@
                     @endif
                     <div class="text-item">
                         <p>{{ number_format($scheduleMatches->count()) }} {{ $pageSummaryLabel }}</p>
+                        @if ($selectedPublicSeason)
+                            <p>{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : ' · aktif' }}</p>
+                        @endif
                     </div>
                 </div>
 
@@ -381,6 +388,17 @@
                             <div class="row g-4">
                                 <div class="col-12">
                                     <div class="row g-4">
+                                        <div class="col-xl-3 col-lg-4 col-md-6">
+                                            <div class="form-clt">
+                                                <div class="form">
+                                                    <select class="single-select w-100" name="season" onchange="this.form.submit()">
+                                                        @foreach ($publicSeasonOptions as $season)
+                                                            <option value="{{ $season->slug }}" @selected(($selectedPublicSeason?->id ?? 0) === $season->id)>{{ $season->name }}{{ $season->is_active ? ' • aktif' : '' }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div class="col-xl-3 col-lg-4 col-md-6">
                                             <div class="form-clt">
                                                 <div class="form">
@@ -405,7 +423,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-xl-3 col-lg-4 col-md-6">
+                                        <div class="col-xl-2 col-lg-4 col-md-6">
                                             <div class="form-clt">
                                                 <div class="form">
                                                     <select class="single-select w-100" name="date" onchange="this.form.submit()">
@@ -417,7 +435,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-xl-4 col-lg-4 col-md-6">
+                                        <div class="col-xl-2 col-lg-4 col-md-6">
                                             <div class="form-clt">
                                                 <div class="form">
                                                     <select class="single-select w-100" name="club_id" onchange="this.form.submit()">
@@ -454,10 +472,10 @@
                                         <td>{{ optional($match->match_date)->translatedFormat('d M Y') ?: 'Tanggal menyusul' }}</td>
                                         <td>
                                             <div class="team">
-                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubA), 'label' => $match->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-schedule-club-mark'])
-                                                <span>{{ $match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A' }} vs {{ $match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B' }}</span>
-                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubB), 'label' => $match->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-schedule-club-mark'])
-                                                <span class="visually-hidden">{{ $match->clubA?->name ?: 'Klub A' }} {{ $match->clubB?->name ?: 'Klub B' }}</span>
+                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_a_logo_file_url ?: $clubLogoUrl($match->clubA), 'label' => $match->club_a_display_name ?: 'Klub A', 'badgeClass' => 'lap-schedule-club-mark'])
+                                                <span>{{ $match->club_a_short_name ?: $match->club_a_display_name ?: 'Klub A' }} vs {{ $match->club_b_short_name ?: $match->club_b_display_name ?: 'Klub B' }}</span>
+                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_b_logo_file_url ?: $clubLogoUrl($match->clubB), 'label' => $match->club_b_display_name ?: 'Klub B', 'badgeClass' => 'lap-schedule-club-mark'])
+                                                <span class="visually-hidden">{{ $match->club_a_display_name ?: 'Klub A' }} {{ $match->club_b_display_name ?: 'Klub B' }}</span>
                                             </div>
                                         </td>
                                         <td>{{ $match->ageGroup?->name ?: '-' }}</td>
@@ -472,7 +490,7 @@
                                         </td>
                                         <td class="text-center">
                                             @include('public.partials.table-detail-link', [
-                                                'href' => $pageMode === 'results' ? route('public.results.show', ['matchSlug' => $match->public_slug]) : route('public.schedule.show', ['matchSlug' => $match->public_slug]),
+                                                'href' => $pageMode === 'results' ? route('public.results.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery) : route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery),
                                             ])
                                         </td>
                                     </tr>

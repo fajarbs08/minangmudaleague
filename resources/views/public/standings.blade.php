@@ -300,6 +300,10 @@
 
 @section('content')
     @php
+        $selectedPublicSeason = $selectedPublicSeason ?? null;
+        $publicSeasonOptions = $publicSeasonOptions ?? collect();
+        $publicSeasonQuery = $publicSeasonQuery ?? [];
+        $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
         $standingsGroup = $publicStandings->first();
         $standingsRows = collect($standingsGroup['rows'] ?? []);
         $leaderRow = $standingsRows->first();
@@ -376,6 +380,9 @@
                         <p>
                             {{ $standingsRows->isNotEmpty() ? 'Data klasemen diperbarui dari pertandingan liga yang sudah selesai' : 'Belum ada pertandingan liga yang selesai' }}
                         </p>
+                        @if ($selectedPublicSeason)
+                            <p>{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : ' · aktif' }}</p>
+                        @endif
                     </div>
                 </div>
                 <div class="row g-4">

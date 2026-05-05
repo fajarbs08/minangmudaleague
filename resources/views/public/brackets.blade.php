@@ -5,6 +5,9 @@
     $bracketGroupCount = $bracketGroups->count();
     $bracketMatchCount = $bracketGroups->sum('match_count');
     $bracketWinnerCount = $bracketGroups->filter(fn ($bracket) => ! empty($bracket['winner']))->count();
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonOptions = $publicSeasonOptions ?? collect();
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
     $bracketTabKey = static fn (array $bracket, int $index) => 'age-'.($bracket['age_group']?->id ?? $index);
     $defaultBracketTab = $bracketGroupCount > 0 ? $bracketTabKey($bracketGroups->values()->first(), 0) : null;
 @endphp
@@ -794,6 +797,22 @@
 @section('content')
     <section class="lap-bracket-section">
         <div class="container">
+            @if ($publicSeasonOptions->isNotEmpty())
+                <div class="mb-4 d-flex flex-wrap align-items-center gap-3">
+                    <div class="fw-bold text-uppercase small text-muted">Season</div>
+                    <form method="GET">
+                        <select name="season" class="form-select" style="min-width: 220px;" onchange="this.form.submit()">
+                            @foreach ($publicSeasonOptions as $season)
+                                <option value="{{ $season->slug }}" @selected(($selectedPublicSeason?->id ?? 0) === $season->id)>{{ $season->name }}{{ $season->is_active ? ' • aktif' : '' }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                    @if ($selectedPublicSeason)
+                        <span class="lap-bracket-group-badge">{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : '' }}</span>
+                    @endif
+                </div>
+            @endif
+
             @if ($bracketGroupCount > 0)
                 <div class="lap-age-tabs" data-bracket-age-tabs role="tablist" aria-label="Pilih kelompok usia bracket">
                     @foreach ($bracketGroups->values() as $index => $bracket)

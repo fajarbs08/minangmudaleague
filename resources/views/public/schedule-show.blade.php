@@ -2,6 +2,7 @@
 
 @php
     $templateAsset = fn (string $path) => asset('public-assets/'.$path);
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
 @endphp
 
 @push('styles')
@@ -440,10 +441,10 @@
 
             $homeClub = $matchSchedule?->clubA;
             $awayClub = $matchSchedule?->clubB;
-            $homeClubName = $homeClub?->name ?: $homeClub?->short_name ?: 'Klub A';
-            $awayClubName = $awayClub?->name ?: $awayClub?->short_name ?: 'Klub B';
-            $homeClubLogo = $clubLogoUrl($homeClub);
-            $awayClubLogo = $clubLogoUrl($awayClub);
+            $homeClubName = $matchSchedule?->club_a_display_name ?: $homeClub?->name ?: $homeClub?->short_name ?: 'Klub A';
+            $awayClubName = $matchSchedule?->club_b_display_name ?: $awayClub?->name ?: $awayClub?->short_name ?: 'Klub B';
+            $homeClubLogo = $matchSchedule?->club_a_logo_file_url ?: $clubLogoUrl($homeClub);
+            $awayClubLogo = $matchSchedule?->club_b_logo_file_url ?: $clubLogoUrl($awayClub);
             $detailStatusLabel = $matchSchedule?->is_finished ? 'Selesai' : 'Terjadwal';
             $statusBadgeClass = $matchSchedule?->is_finished ? 'color-text-1' : 'color-text-2';
             $lineupLists = $matchSchedule?->lineupLists ?? collect();
@@ -565,7 +566,7 @@
                                     @endforeach
                                 </div>
                                 <div class="mt-4">
-                                    <a href="{{ route('public.schedule') }}" class="theme-btn">Kembali ke Jadwal <i class="fa-solid fa-arrow-up-right"></i></a>
+                                    <a href="{{ route('public.schedule', $publicSeasonQuery) }}" class="theme-btn">Kembali ke Jadwal <i class="fa-solid fa-arrow-up-right"></i></a>
                                 </div>
                             </div>
                         </div>

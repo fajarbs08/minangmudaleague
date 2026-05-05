@@ -2,6 +2,7 @@
 
 @php
     $templateAsset = fn (string $path) => asset('public-assets/'.$path);
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
 @endphp
 
 @push('styles')
@@ -429,10 +430,10 @@
 
             $homeClub = $matchResult?->clubA;
             $awayClub = $matchResult?->clubB;
-            $homeClubName = $homeClub?->name ?: $homeClub?->short_name ?: 'Klub A';
-            $awayClubName = $awayClub?->name ?: $awayClub?->short_name ?: 'Klub B';
-            $homeClubLogo = $clubLogoUrl($homeClub);
-            $awayClubLogo = $clubLogoUrl($awayClub);
+            $homeClubName = $matchResult?->club_a_display_name ?: $homeClub?->name ?: $homeClub?->short_name ?: 'Klub A';
+            $awayClubName = $matchResult?->club_b_display_name ?: $awayClub?->name ?: $awayClub?->short_name ?: 'Klub B';
+            $homeClubLogo = $matchResult?->club_a_logo_file_url ?: $clubLogoUrl($homeClub);
+            $awayClubLogo = $matchResult?->club_b_logo_file_url ?: $clubLogoUrl($awayClub);
             $homeClubStats = $matchResultClubStats['club_a'] ?? [];
             $awayClubStats = $matchResultClubStats['club_b'] ?? [];
             $lineupLists = $matchResult?->lineupLists ?? collect();

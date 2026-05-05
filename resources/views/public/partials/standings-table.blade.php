@@ -62,6 +62,9 @@
         'dates' => collect(),
         'clubs' => collect(),
     ];
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonOptions = $publicSeasonOptions ?? collect();
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
 
     $standingsFilters = $standingsFilters ?? [
         'age_group_id' => null,
@@ -79,6 +82,17 @@
                 <div class="row g-4 align-items-center">
                     <div class="col-12">
                         <div class="row g-4">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="form-clt">
+                                    <div class="form">
+                                        <select class="single-select w-100" name="season" onchange="window.loadStandingsFilter(this)">
+                                            @foreach ($publicSeasonOptions as $season)
+                                                <option value="{{ $season->slug }}" @selected(($selectedPublicSeason?->id ?? 0) === $season->id)>{{ $season->name }}{{ $season->is_active ? ' • aktif' : '' }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="col-xl-3 col-lg-4 col-md-6">
                                 <div class="form-clt">
                                     <div class="form">
@@ -165,7 +179,7 @@
                                     <span class="badge d">D</span><span class="badge d">D</span>
                                 @endforelse
                             </td>
-                            <td class="text-center">@include('public.partials.table-detail-link', ['href' => filled($row['club_public_slug'] ?? null) ? route('public.clubs.show', ['clubSlug' => $row['club_public_slug']]) : route('public.clubs')])</td>
+                            <td class="text-center">@include('public.partials.table-detail-link', ['href' => filled($row['club_public_slug'] ?? null) ? route('public.clubs.show', ['clubSlug' => $row['club_public_slug']] + $publicSeasonQuery) : route('public.clubs', $publicSeasonQuery)])</td>
                         </tr>
                     @empty
                         <tr>
