@@ -17,9 +17,9 @@ class MatchSeeder extends AbstractDemoSeeder
     {
         $admin = $this->adminUser();
 
-        MatchGoal::query()->delete();
-        LineupList::query()->whereNotNull('match_id')->delete();
-        MatchSchedule::query()->delete();
+        MatchGoal::query()->forActiveSeason()->delete();
+        LineupList::query()->forActiveSeason()->whereNotNull('match_id')->delete();
+        MatchSchedule::query()->forActiveSeason()->delete();
 
         foreach ($this->matchPlans() as $plan) {
             $this->seedMatchPlan($plan, $admin);
@@ -95,10 +95,14 @@ class MatchSeeder extends AbstractDemoSeeder
             }
 
             MatchGoal::create([
+                'season_id' => $this->activeSeasonId(),
                 'match_id' => $match->id,
                 'club_id' => $club->id,
+                'season_club_id' => $this->seasonSnapshots()->seasonClubIdForClub($club->id, $this->activeSeasonId()),
                 'player_id' => $scorer->id,
+                'season_player_id' => $this->seasonSnapshots()->seasonPlayerIdForPlayer($scorer->id, $this->activeSeasonId()),
                 'assist_player_id' => $assist?->id,
+                'assist_season_player_id' => $assist ? $this->seasonSnapshots()->seasonPlayerIdForPlayer($assist->id, $this->activeSeasonId()) : null,
                 'display_order' => $order + 1,
             ]);
         }

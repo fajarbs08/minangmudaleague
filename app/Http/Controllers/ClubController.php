@@ -6,8 +6,11 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
+use App\Models\SeasonClub;
 use App\Services\ClubLogoService;
 use App\Services\ImageAssetService;
+use App\Services\SeasonContext;
+use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +21,9 @@ class ClubController extends Controller
 
     public function __construct(
         private ClubLogoService $clubLogoService,
-        private ImageAssetService $imageAssetService
+        private ImageAssetService $imageAssetService,
+        private SeasonContext $seasonContext,
+        private SeasonSnapshotService $seasonSnapshotService
     ) {}
 
     public function index(Request $request)
@@ -33,20 +38,40 @@ class ClubController extends Controller
             $direction = 'desc';
         }
 
-        $clubs = Club::query()
-            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
-            ->withCount(['officials', 'players', 'lineupLists'])
-            ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('short_name', 'like', "%{$search}%")
-                        ->orWhere('zone', 'like', "%{$search}%");
-                });
-            })
-            ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
-            ->orderBy($sort, $direction)
-            ->paginate(10)
-            ->withQueryString();
+        $clubs = $this->isHistoryView()
+            ? SeasonClub::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+                ->withCount([
+                    'seasonOfficials as officials_count',
+                    'seasonPlayers as players_count',
+                    'lineupLists as lineup_lists_count',
+                ])
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('short_name', 'like', "%{$search}%")
+                            ->orWhere('zone', 'like', "%{$search}%");
+                    });
+                })
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->orderBy($sort, $direction)
+                ->paginate(10)
+                ->withQueryString()
+            : Club::query()
+                ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+                ->withCount(['officials', 'players', 'lineupLists'])
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('short_name', 'like', "%{$search}%")
+                            ->orWhere('zone', 'like', "%{$search}%");
+                    });
+                })
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->orderBy($sort, $direction)
+                ->paginate(10)
+                ->withQueryString();
 
         return view('competition.clubs.index', [
             'title' => 'Klub',
@@ -56,6 +81,7 @@ class ClubController extends Controller
 
     public function bulkReview(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk meninjau data klub.');
         $status = $request->input('status');
 
         if ($status === 'deleted') {
@@ -92,6 +118,7 @@ class ClubController extends Controller
 
     public function create()
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah klub.');
         $user = auth()->user();
 
         abort_unless($user->isAdmin() || $user->isClubUser(), 403);
@@ -117,6 +144,7 @@ class ClubController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah klub.');
         $user = auth()->user();
 
         abort_unless($user->isAdmin() || $user->isClubUser(), 403);
@@ -131,13 +159,15 @@ class ClubController extends Controller
             $data['user_id'] = $user->id;
         }
 
-        Club::create($data);
+        $club = Club::create($data);
+        $this->seasonSnapshotService->syncClubSnapshot($club);
 
         return redirect()->route('clubs.index')->with('status', 'Data klub berhasil ditambahkan.');
     }
 
     public function edit(Club $club)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah profil klub.');
         $this->authorizeClub($club);
         abort_unless(auth()->user()->isAdmin() || $club->canBeEditedByClub(), 422);
 
@@ -151,6 +181,23 @@ class ClubController extends Controller
     {
         $this->authorizeClub($club);
 
+        if ($this->isHistoryView()) {
+            $seasonClub = SeasonClub::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('club_id', $club->id)
+                ->withCount([
+                    'seasonOfficials as officials_count',
+                    'seasonPlayers as players_count',
+                    'lineupLists as lineup_lists_count',
+                ])
+                ->firstOrFail();
+
+            return view('competition.clubs.show', [
+                'title' => 'Detail Klub',
+                'club' => $seasonClub,
+            ]);
+        }
+
         return view('competition.clubs.show', [
             'title' => 'Detail Klub',
             'club' => $club->loadCount(['officials', 'players', 'lineupLists']),
@@ -161,6 +208,19 @@ class ClubController extends Controller
     {
         $this->authorizeClub($club);
 
+        if ($this->isHistoryView()) {
+            $seasonClub = SeasonClub::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('club_id', $club->id)
+                ->firstOrFail();
+
+            $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonClub->statement_file_path);
+
+            abort_unless($absolutePath, 404);
+
+            return response()->file($absolutePath);
+        }
+
         $absolutePath = $this->imageAssetService->documentAbsolutePath($club->statement_file_path);
 
         abort_unless($absolutePath, 404);
@@ -170,6 +230,7 @@ class ClubController extends Controller
 
     public function update(Request $request, Club $club)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah profil klub.');
         $this->authorizeClub($club);
         abort_unless(auth()->user()->isAdmin() || $club->canBeEditedByClub(), 422);
 
@@ -178,6 +239,7 @@ class ClubController extends Controller
         $data = $this->validatedData($request, $club);
 
         $club->update($data);
+        $this->seasonSnapshotService->syncClubSnapshot($club->fresh());
 
         if (array_key_exists('logo_url', $data) && $oldLogoPath && ! str_starts_with($oldLogoPath, 'http')) {
             Storage::disk('public')->delete($oldLogoPath);
@@ -192,6 +254,7 @@ class ClubController extends Controller
 
     public function submit(Club $club)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengajukan verifikasi klub.');
         $this->authorizeClub($club);
 
         return $this->submitForVerification($club, 'Data klub berhasil dikirim untuk verifikasi.');
@@ -199,6 +262,7 @@ class ClubController extends Controller
 
     public function review(Request $request, Club $club)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk me-review klub.');
         $validated = $this->validateReviewPayload($request);
 
         return $this->reviewSubmission(
@@ -211,6 +275,7 @@ class ClubController extends Controller
 
     public function destroy(Club $club)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menghapus klub.');
         $this->authorizeClub($club);
         abort_unless(auth()->user()->isAdmin() || $club->canBeSubmittedByClub(), 403);
 
@@ -232,7 +297,7 @@ class ClubController extends Controller
             'zone' => ['required', 'string', 'max:255'],
             'founded_year' => ['required', 'integer', 'min:1900', 'max:'.date('Y')],
             'logo_file' => [blank($club?->logo_url) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512', 'dimensions:min_width=120,min_height=120'],
-            'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
+            'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:1024'],
             'address' => ['required', 'string'],
             'training_address' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
@@ -290,5 +355,17 @@ class ClubController extends Controller
                 $this->imageAssetService->deleteDocumentUpload($official->{$field});
             }
         });
+    }
+
+    private function isHistoryView(): bool
+    {
+        return $this->seasonContext->isViewingHistory();
+    }
+
+    private function ensureWritableSeasonContext(string $message): void
+    {
+        if ($this->isHistoryView()) {
+            abort(403, $message);
+        }
     }
 }

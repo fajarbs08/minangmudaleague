@@ -19,7 +19,7 @@ class KnockoutPlayin16Seeder extends AbstractDemoSeeder
 
         $clubs = $this->resolveSixteenClubs();
 
-        MatchSchedule::query()
+        MatchSchedule::query()->forActiveSeason()
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->where('age_group_id', $ageGroup->id)
             ->delete();
@@ -90,7 +90,10 @@ class KnockoutPlayin16Seeder extends AbstractDemoSeeder
         ?int $sourceAId = null,
         ?int $sourceBId = null
     ): MatchSchedule {
-        return MatchSchedule::query()->create([
+        $seasonId = $this->activeSeasonId();
+
+        return MatchSchedule::query()->forActiveSeason()->create([
+            'season_id' => $seasonId,
             'age_group_id' => $ageGroupId,
             'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
             'round_label' => $roundLabel,
@@ -99,7 +102,9 @@ class KnockoutPlayin16Seeder extends AbstractDemoSeeder
             'source_match_a_id' => $sourceAId,
             'source_match_b_id' => $sourceBId,
             'club_a_id' => $clubA->id,
+            'club_a_season_id' => $this->seasonSnapshots()->seasonClubIdForClub($clubA->id, $seasonId),
             'club_b_id' => $clubB->id,
+            'club_b_season_id' => $this->seasonSnapshots()->seasonClubIdForClub($clubB->id, $seasonId),
             'match_day' => $matchDay,
             'venue' => 'Stadion Liga Anak Piaman Laweh',
             'match_date' => $matchDate->toDateString(),

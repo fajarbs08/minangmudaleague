@@ -3,6 +3,10 @@
 @php
     use Illuminate\Support\Str;
 
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
+    $clubModel = $isHistoricalPublicSeason ? $official->seasonClub : $official->club;
     $primaryAgeGroupName = $official->ageGroup?->name
         ?: $official->ageRegistrations->pluck('ageGroup.name')->filter()->first()
         ?: 'Kelompok usia belum diatur';
@@ -10,7 +14,7 @@
     $licenseLabel = $official->license_levels ?: $official->license_number ?: 'Terverifikasi panitia';
     $officialAge = $official->birth_date?->age;
     $officialInitial = Str::of($official->name)->trim()->substr(0, 2)->upper();
-    $officialSummary = trim($official->name.' adalah ofisial terverifikasi '.($official->club?->name ? 'dari '.$official->club->name.' ' : '').'yang ditampilkan pada portal publik Liga Anak Piaman Laweh. Halaman ini memuat peran kompetisi dan registrasi aktif tanpa menampilkan kontak pribadi atau identitas sensitif.');
+    $officialSummary = trim($official->name.' adalah ofisial terverifikasi '.($clubModel?->name ? 'dari '.$clubModel->name.' ' : '').'yang ditampilkan pada portal publik Liga Anak Piaman Laweh. Halaman ini memuat peran kompetisi dan registrasi aktif tanpa menampilkan kontak pribadi atau identitas sensitif.');
     $statusLabels = [
         'draft' => 'Draft',
         'submitted' => 'Menunggu Review',
@@ -25,7 +29,7 @@
         ['label' => 'Usia', 'value' => $officialAge ? $officialAge.' tahun' : '-'],
     ];
     $officialFacts = [
-        ['label' => 'Klub', 'value' => $official->club?->name ?: '-'],
+        ['label' => 'Klub', 'value' => $clubModel?->name ?: '-'],
         ['label' => 'Kelompok usia utama', 'value' => $primaryAgeGroupName],
         ['label' => 'Peran utama', 'value' => $roleLabel],
         ['label' => 'Lisensi', 'value' => $licenseLabel],
@@ -33,6 +37,7 @@
         ['label' => 'Ketersediaan', 'value' => $official->is_active ? 'Aktif mendampingi tim' : 'Tidak aktif'],
         ['label' => 'Status publik', 'value' => 'Terverifikasi'],
         ['label' => 'Akses', 'value' => 'Profil web publik'],
+        ['label' => 'Season', 'value' => $selectedPublicSeason?->name ?: 'Musim aktif'],
     ];
     $officialRegistrations = $official->ageRegistrations
         ->filter(fn ($registration) => $registration->ageGroup)
@@ -46,8 +51,8 @@
             ];
         })
         ->values();
-    $clubUrl = $official->club ? route('public.clubs.show', ['clubSlug' => $official->club->public_slug]) : route('public.clubs');
-    $clubMark = Str::upper(Str::substr($official->club?->short_name ?: $official->club?->name ?: 'KL', 0, 2));
+    $clubUrl = $clubModel ? route('public.clubs.show', ['clubSlug' => $clubModel->public_slug] + $publicSeasonQuery) : route('public.clubs', $publicSeasonQuery);
+    $clubMark = Str::upper(Str::substr($clubModel?->short_name ?: $clubModel?->name ?: 'KL', 0, 2));
 @endphp
 
 @push('styles')
@@ -529,13 +534,16 @@
                         </div>
 
                         <div class="lap-official-meta">
-                            <span>{{ $official->club?->name ?: 'Klub belum tersedia' }}</span>
+                            <span>{{ $clubModel?->name ?: 'Klub belum tersedia' }}</span>
                             <span>{{ $primaryAgeGroupName }}</span>
                             <span>{{ $official->is_active ? 'Aktif mendampingi tim' : 'Status nonaktif' }}</span>
                         </div>
 
                         <div class="lap-official-chip-list">
                             <span class="lap-official-chip is-accent">Terverifikasi</span>
+                            @if ($selectedPublicSeason)
+                                <span class="lap-official-chip">{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : '' }}</span>
+                            @endif
                             <span class="lap-official-chip">{{ $roleLabel }}</span>
                             <span class="lap-official-chip">{{ $licenseLabel }}</span>
                             <span class="lap-official-chip">{{ $primaryAgeGroupName }}</span>
@@ -614,16 +622,16 @@
 
                             <div class="lap-official-club-head">
                                 <div class="lap-official-club-mark">
-                                    @if ($official->club?->logo_file_url)
-                                        <img src="{{ $official->club->logo_file_url }}" alt="{{ $official->club->name }}">
+                                    @if ($clubModel?->logo_file_url)
+                                        <img src="{{ $clubModel->logo_file_url }}" alt="{{ $clubModel->name }}">
                                     @else
                                         <span>{{ $clubMark }}</span>
                                     @endif
                                 </div>
 
                                 <div>
-                                    <h5 class="lap-official-club-name">{{ $official->club?->short_name ?: $official->club?->name ?: 'Klub' }}</h5>
-                                    <div class="lap-official-club-meta">{{ $official->club?->name ?: 'Profil klub belum tersedia' }}</div>
+                                    <h5 class="lap-official-club-name">{{ $clubModel?->short_name ?: $clubModel?->name ?: 'Klub' }}</h5>
+                                    <div class="lap-official-club-meta">{{ $clubModel?->name ?: 'Profil klub belum tersedia' }}</div>
                                 </div>
                             </div>
 

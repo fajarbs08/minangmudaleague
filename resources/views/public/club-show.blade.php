@@ -3,6 +3,9 @@
 @php
     use Illuminate\Support\Str;
 
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
     $clubMark = Str::upper(Str::substr($club->short_name ?: $club->name, 0, 2));
     $clubPlayerCount = $clubPlayers->count();
     $clubOfficialCount = $clubOfficials->count();
@@ -11,13 +14,14 @@
     $clubAgeGroupCount = $clubAgeGroups->count();
     $heroSummary = $club->notes ?: 'Profil resmi klub beserta pemain terverifikasi, ofisial aktif, dan pertandingan terbaru.';
     $managerSummary = collect([$club->manager_name, $club->manager_title])->filter()->implode(' · ');
-    $matchDetailUrl = static function ($match) {
+    $matchDetailUrl = static function ($match) use ($publicSeasonQuery) {
         return $match->is_finished
-            ? route('public.results.show', ['matchSlug' => $match->public_slug])
-            : route('public.schedule.show', ['matchSlug' => $match->public_slug]);
+            ? route('public.results.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery)
+            : route('public.schedule.show', ['matchSlug' => $match->public_slug] + $publicSeasonQuery);
     };
     $matchStatusLabel = static fn ($match) => $match->is_finished ? 'Selesai' : 'Terjadwal';
     $clubMetaItems = collect([
+        $selectedPublicSeason?->name,
         $managerSummary ?: null,
         $club->zone ? 'Zona '.$club->zone : null,
         $club->founded_year ? 'Berdiri '.$club->founded_year : null,
@@ -36,10 +40,11 @@
         ['label' => 'Alamat', 'value' => $club->address ?: 'Belum diisi'],
         ['label' => 'Tahun berdiri', 'value' => $club->founded_year ?: 'Belum diisi'],
         ['label' => 'Status publik', 'value' => 'Terverifikasi'],
+        ['label' => 'Season', 'value' => $selectedPublicSeason?->name ?: 'Musim aktif'],
         ['label' => 'Kategori aktif', 'value' => $clubAgeGroupCount > 0 ? $clubAgeGroupCount.' kelompok usia' : 'Belum tersedia'],
     ];
     $clubLinks = [
-        ['label' => 'Kembali ke daftar klub', 'url' => route('public.clubs')],
+        ['label' => 'Kembali ke daftar klub', 'url' => route('public.clubs', $publicSeasonQuery)],
         ['label' => 'Lihat jadwal pertandingan', 'url' => route('public.schedule')],
         ['label' => 'Buka hasil pertandingan', 'url' => route('public.results')],
         ['label' => 'Lihat klasemen liga', 'url' => route('public.standings')],
@@ -774,6 +779,9 @@
 
                         <div class="lap-club-chip-list">
                             <span class="lap-club-chip is-accent">Terverifikasi</span>
+                            @if ($selectedPublicSeason)
+                                <span class="lap-club-chip">{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : '' }}</span>
+                            @endif
                             <span class="lap-club-chip">{{ strtoupper($club->zone ?: 'Zona TBD') }}</span>
                             <span class="lap-club-chip">{{ $clubAgeGroupCount > 0 ? $clubAgeGroupCount.' kategori aktif' : 'Kategori TBD' }}</span>
                             <span class="lap-club-chip">{{ $clubMatchCount }} laga tercatat</span>
@@ -847,7 +855,7 @@
                                                 </p>
                                             </div>
 
-                                            <a href="{{ route('public.players.show', ['playerSlug' => $player->public_slug]) }}" class="lap-club-row-link" aria-label="Buka profil {{ $player->name }}">
+                                            <a href="{{ route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery) }}" class="lap-club-row-link" aria-label="Buka profil {{ $player->name }}">
                                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                             </a>
                                         </article>
@@ -894,7 +902,7 @@
                                                 <p class="lap-club-person-sub">{{ $official->citizenship ?: 'Kewarganegaraan belum diisi' }}</p>
                                             </div>
 
-                                            <a href="{{ route('public.officials.show', ['officialSlug' => $official->public_slug]) }}" class="lap-club-row-link" aria-label="Buka profil {{ $official->name }}">
+                                            <a href="{{ route('public.officials.show', ['officialSlug' => $official->public_slug] + $publicSeasonQuery) }}" class="lap-club-row-link" aria-label="Buka profil {{ $official->name }}">
                                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                             </a>
                                         </article>
@@ -945,13 +953,13 @@
                                                 <div class="lap-club-match-teams">
                                                     <div class="lap-club-team">
                                                         <span class="lap-club-team-logo">
-                                                            @if ($match->clubA?->logo_file_url)
-                                                                <img src="{{ $match->clubA->logo_file_url }}" alt="{{ $match->clubA?->name ?: 'Klub A' }}">
+                                                            @if ($match->club_a_logo_file_url)
+                                                                <img src="{{ $match->club_a_logo_file_url }}" alt="{{ $match->club_a_display_name ?: 'Klub A' }}">
                                                             @else
-                                                                <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->clubA?->short_name ?: $match->clubA?->name ?: 'A', 0, 2)) }}</span>
+                                                                <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->club_a_display_name ?: 'A', 0, 2)) }}</span>
                                                             @endif
                                                         </span>
-                                                        <strong class="lap-club-team-name">{{ $match->clubA?->name ?: 'Klub A' }}</strong>
+                                                        <strong class="lap-club-team-name">{{ $match->club_a_display_name ?: 'Klub A' }}</strong>
                                                     </div>
 
                                                     <div class="lap-club-match-score">
@@ -963,19 +971,19 @@
                                                     </div>
 
                                                     <div class="lap-club-team is-away">
-                                                        <strong class="lap-club-team-name">{{ $match->clubB?->name ?: 'Klub B' }}</strong>
+                                                        <strong class="lap-club-team-name">{{ $match->club_b_display_name ?: 'Klub B' }}</strong>
                                                         <span class="lap-club-team-logo">
-                                                            @if ($match->clubB?->logo_file_url)
-                                                                <img src="{{ $match->clubB->logo_file_url }}" alt="{{ $match->clubB?->name ?: 'Klub B' }}">
+                                                            @if ($match->club_b_logo_file_url)
+                                                                <img src="{{ $match->club_b_logo_file_url }}" alt="{{ $match->club_b_display_name ?: 'Klub B' }}">
                                                             @else
-                                                                <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->clubB?->short_name ?: $match->clubB?->name ?: 'B', 0, 2)) }}</span>
+                                                                <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->club_b_display_name ?: 'B', 0, 2)) }}</span>
                                                             @endif
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <a href="{{ $matchDetailUrl($match) }}" class="lap-club-row-link" aria-label="Buka detail pertandingan {{ $match->clubA?->name }} melawan {{ $match->clubB?->name }}">
+                                            <a href="{{ $matchDetailUrl($match) }}" class="lap-club-row-link" aria-label="Buka detail pertandingan {{ $match->club_a_display_name }} melawan {{ $match->club_b_display_name }}">
                                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                             </a>
                                         </article>

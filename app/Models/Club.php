@@ -66,17 +66,22 @@ class Club extends Model
 
     public function lineupLists(): HasMany
     {
-        return $this->hasMany(LineupList::class);
+        return $this->hasMany(LineupList::class)->forActiveSeason();
     }
 
     public function homeMatches(): HasMany
     {
-        return $this->hasMany(MatchSchedule::class, 'club_a_id');
+        return $this->hasMany(MatchSchedule::class, 'club_a_id')->forActiveSeason();
     }
 
     public function awayMatches(): HasMany
     {
-        return $this->hasMany(MatchSchedule::class, 'club_b_id');
+        return $this->hasMany(MatchSchedule::class, 'club_b_id')->forActiveSeason();
+    }
+
+    public function seasonSnapshots(): HasMany
+    {
+        return $this->hasMany(SeasonClub::class);
     }
 
     public function reviewer(): BelongsTo

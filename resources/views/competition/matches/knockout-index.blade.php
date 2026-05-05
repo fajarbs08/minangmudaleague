@@ -1,5 +1,7 @@
 @extends('layouts.vertical', ['title' => $title])
 
+@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+
 @section('content')
 <style>
     .knockout-admin-feedback {
@@ -598,7 +600,9 @@
                                             data-knockout-card
                                             data-match-id="{{ $match->id }}"
                                             data-age-group-id="{{ $selectedBoard['age_group']->id }}"
-                                            data-update-url="{{ route('matches.knockout.position', $match) }}"
+                                            @unless($isHistoryView)
+                                                data-update-url="{{ route('matches.knockout.position', $match) }}"
+                                            @endunless
                                             data-slot-tone="{{ $slot['connector_tone'] === 'empty' ? 'occupied' : $slot['connector_tone'] }}"
                                         >
                                             <div class="d-flex justify-content-between align-items-start gap-2">
@@ -650,26 +654,32 @@
                                                 <span>{{ $match->venue }}</span>
                                             </div>
 
-                                            <div class="knockout-admin-actions">
-                                                <a href="{{ route('matches.edit', ['match' => $match, 'redirect_route' => $indexRouteName]) }}" class="btn btn-sm btn-light">Edit</a>
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-sm btn-outline-danger js-delete-match"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteMatchModal"
-                                                    data-action="{{ route('matches.destroy', ['match' => $match, 'redirect_route' => $indexRouteName]) }}"
-                                                    data-name="{{ ($match->clubA?->name ?: 'Klub A').' vs '.($match->clubB?->name ?: 'Klub B') }}"
-                                                >
-                                                    Hapus
-                                                </button>
-                                            </div>
+                                            @unless ($isHistoryView)
+                                                <div class="knockout-admin-actions">
+                                                    <a href="{{ route('matches.edit', ['match' => $match, 'redirect_route' => $indexRouteName]) }}" class="btn btn-sm btn-light">Edit</a>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-danger js-delete-match"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteMatchModal"
+                                                        data-action="{{ route('matches.destroy', ['match' => $match, 'redirect_route' => $indexRouteName]) }}"
+                                                        data-name="{{ ($match->clubA?->name ?: 'Klub A').' vs '.($match->clubB?->name ?: 'Klub B') }}"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </div>
+                                            @endunless
                                         </article>
                                     @endif
                                     <div class="knockout-admin-empty {{ $match ? 'd-none' : '' }}" data-knockout-empty-action>
-                                        <a href="{{ $slot['create_url'] }}" class="btn btn-outline-primary knockout-admin-empty-link">
-                                            <i data-lucide="plus-circle" class="fs-18"></i>
-                                            <span>Buat match di slot ini</span>
-                                        </a>
+                                        @unless ($isHistoryView)
+                                            <a href="{{ $slot['create_url'] }}" class="btn btn-outline-primary knockout-admin-empty-link">
+                                                <i data-lucide="plus-circle" class="fs-18"></i>
+                                                <span>Buat match di slot ini</span>
+                                            </a>
+                                        @else
+                                            <div class="small text-muted text-center px-3 py-4">Slot histori ini read-only.</div>
+                                        @endunless
                                     </div>
                                 </div>
                             </div>
@@ -785,6 +795,10 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     dropzones.forEach(syncSlotState);
+
+    if (@json($isHistoryView)) {
+        return;
+    }
 
     const drake = window.dragula(dropzones, {
         revertOnSpill: true,

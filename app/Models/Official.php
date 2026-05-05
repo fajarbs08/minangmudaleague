@@ -68,6 +68,11 @@ class Official extends Model
 
     public function ageRegistrations(): HasMany
     {
+        return $this->allAgeRegistrations()->forActiveSeason();
+    }
+
+    public function allAgeRegistrations(): HasMany
+    {
         return $this->hasMany(OfficialAgeGroup::class)->with('ageGroup')->orderBy('age_group_id');
     }
 
@@ -83,6 +88,11 @@ class Official extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function seasonSnapshots(): HasMany
+    {
+        return $this->hasMany(SeasonOfficial::class);
     }
 
     public function canBeEditedByClub(): bool

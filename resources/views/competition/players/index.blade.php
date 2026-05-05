@@ -2,6 +2,7 @@
 
 @php
     $selectedAgeGroupId = request('age_group_id') ? (int) request('age_group_id') : null;
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $visiblePlayers = $players->getCollection();
     $visibleTotal = $visiblePlayers->count();
     $approvedCount = $visiblePlayers->where('verification_status', 'approved')->count();
@@ -42,18 +43,20 @@
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
         </button>
-        @include('competition.partials.icon-button', [
-            'href' => route('players.create'),
-            'icon' => 'user-plus',
-            'label' => 'Tambah Pemain',
-            'class' => 'btn-primary',
-        ])
-        @if ($idCardExportUrl && $canDownloadIdCards)
+        @unless ($isHistoryView)
+            @include('competition.partials.icon-button', [
+                'href' => route('players.create'),
+                'icon' => 'user-plus',
+                'label' => 'Tambah Pemain',
+                'class' => 'btn-primary',
+            ])
+        @endunless
+        @if (! $isHistoryView && $idCardExportUrl && $canDownloadIdCards)
             <a class="btn btn-success d-inline-flex align-items-center gap-2" target="_blank" href="{{ $idCardExportUrl }}">
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </a>
-        @else
+        @elseif (! $isHistoryView)
             <button class="btn btn-success d-inline-flex align-items-center gap-2" type="button" disabled>
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
@@ -160,7 +163,7 @@
             <span class="badge bg-light text-dark border">{{ $players->total() }} data</span>
         </div>
     </div>
-    @if (auth()->user()->isAdmin())
+    @if (auth()->user()->isAdmin() && ! $isHistoryView)
     <form id="bulk-player-review-form" method="POST" action="{{ route('players.bulk-review') }}">
         @csrf
         <div class="card-body border-bottom bg-light-subtle">
@@ -225,7 +228,7 @@
     @endif
                 <thead>
                     <tr>
-                        @if (auth()->user()->isAdmin())
+                        @if (auth()->user()->isAdmin() && ! $isHistoryView)
                         <th class="text-center" style="width: 48px;">
                             <input type="checkbox" class="form-check-input js-check-all" data-target=".js-player-row">
                         </th>
@@ -249,7 +252,7 @@
                                 ->implode('');
                         @endphp
                         <tr>
-                            @if (auth()->user()->isAdmin())
+                            @if (auth()->user()->isAdmin() && ! $isHistoryView)
                             <td class="text-center">
                                 <input type="checkbox" class="form-check-input js-player-row" name="selected_ids[]" value="{{ $player->id }}" form="bulk-player-review-form">
                             </td>
@@ -276,12 +279,12 @@
                                 </div>
                             </td>
                             <td>
-                                @if ($player->club)
+                                @if (($isHistoryView ? $player->seasonClub : $player->club))
                                     <div class="d-flex align-items-center gap-3">
-                                        @if ($player->club->logo_file_url)
+                                        @if (($isHistoryView ? $player->seasonClub?->logo_file_url : $player->club?->logo_file_url))
                                             <img
-                                                src="{{ $player->club->logo_file_url }}"
-                                                alt="{{ $player->club->name }}"
+                                                src="{{ $isHistoryView ? $player->seasonClub?->logo_file_url : $player->club?->logo_file_url }}"
+                                                alt="{{ $isHistoryView ? $player->seasonClub?->name : $player->club?->name }}"
                                                 class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
                                                 width="36"
                                                 height="36"
@@ -291,7 +294,7 @@
                                                 <i data-lucide="flag" class="fs-18"></i>
                                             </div>
                                         @endif
-                                        <div class="fw-medium">{{ $player->club->name }}</div>
+                                        <div class="fw-medium">{{ $isHistoryView ? $player->seasonClub?->name : $player->club?->name }}</div>
                                     </div>
                                 @else
                                     -
@@ -346,7 +349,7 @@
                                             <div class="competition-action-label px-2 pb-2">Navigasi</div>
                                             <div class="small text-muted px-2 pb-2 text-wrap">{{ $actionHint }}</div>
                                             @include('competition.partials.action-item', [
-                                                'href' => route('players.show', $player),
+                                                'href' => route('players.show', $isHistoryView ? $player->player_id : $player),
                                                 'icon' => 'eye',
                                                 'label' => 'Lihat Detail',
                                             ])
@@ -362,7 +365,7 @@
                                                     ],
                                                 ])
                                             @endif
-                                            @if ($isAdmin || $player->canBeEditedByClub())
+                                            @if (! $isHistoryView && ($isAdmin || $player->canBeEditedByClub()))
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('players.edit', $player),
                                                     'icon' => 'square-pen',
@@ -370,7 +373,7 @@
                                                 ])
                                             @endif
                                         </div>
-                                        @if (($isAdmin && $player->canBeReviewedByAdmin()) || (!$isAdmin && $player->canBeSubmittedByClub()))
+                                        @if (! $isHistoryView && (($isAdmin && $player->canBeReviewedByAdmin()) || (!$isAdmin && $player->canBeSubmittedByClub())))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 @if ($isAdmin && $player->canBeReviewedByAdmin())
@@ -435,7 +438,7 @@
                                                 @endif
                                             </div>
                                         @endif
-                                        @if ($isAdmin || $player->canBeSubmittedByClub())
+                                        @if (! $isHistoryView && ($isAdmin || $player->canBeSubmittedByClub()))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -458,7 +461,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->isAdmin() ? 8 : 7 }}" class="competition-table-empty">Belum ada data pemain.</td>
+                            <td colspan="{{ (auth()->user()->isAdmin() && ! $isHistoryView) ? 8 : 7 }}" class="competition-table-empty">Belum ada data pemain.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -467,7 +470,7 @@
 
         <div class="mt-3">{{ $players->links() }}</div>
     </div>
-    @if (auth()->user()->isAdmin())
+    @if (auth()->user()->isAdmin() && ! $isHistoryView)
     </form>
     @endif
 </div>

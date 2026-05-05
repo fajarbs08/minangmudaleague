@@ -53,7 +53,7 @@ class SearchController extends Controller
                 ->limit(8)
                 ->get();
 
-            $lineupsQuery = LineupList::query()->select(['id', 'club_id', 'title', 'match_day', 'match_date']);
+            $lineupsQuery = LineupList::query()->forActiveSeason()->select(['id', 'club_id', 'title', 'match_day', 'match_date']);
             if ($clubIds) {
                 $lineupsQuery->whereIn('club_id', $clubIds);
             }
@@ -142,7 +142,7 @@ class SearchController extends Controller
                 ])
         );
 
-        $lineupsQuery = LineupList::query()->select(['id', 'club_id', 'title', 'match_day', 'match_date']);
+        $lineupsQuery = LineupList::query()->forActiveSeason()->select(['id', 'club_id', 'title', 'match_day', 'match_date']);
         if ($clubIds) {
             $lineupsQuery->whereIn('club_id', $clubIds);
         }

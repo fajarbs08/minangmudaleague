@@ -1,5 +1,7 @@
 @extends('layouts.vertical', ['title' => $title])
 
+@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
@@ -164,11 +166,15 @@
         <h5 class="card-title mb-0">Aksi Verifikasi</h5>
     </div>
     <div class="card-body">
-        @include('competition.partials.review-actions', [
-            'item' => $club,
-            'reviewRoute' => route('clubs.review', $club),
-            'submitRoute' => route('clubs.submit', $club),
-        ])
+        @if ($isHistoryView)
+            <div class="text-muted">Season histori bersifat read-only. Aksi verifikasi hanya tersedia pada season aktif.</div>
+        @else
+            @include('competition.partials.review-actions', [
+                'item' => $club,
+                'reviewRoute' => route('clubs.review', $club),
+                'submitRoute' => route('clubs.submit', $club),
+            ])
+        @endif
     </div>
 </div>
 @endsection

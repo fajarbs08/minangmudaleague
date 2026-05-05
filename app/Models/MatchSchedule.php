@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeasonScopes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,11 +10,14 @@ use Illuminate\Support\Str;
 
 class MatchSchedule extends Model
 {
+    use HasSeasonScopes;
+
     public const FORMAT_LEAGUE = 'league';
 
     public const FORMAT_KNOCKOUT = 'knockout';
 
     protected $fillable = [
+        'season_id',
         'age_group_id',
         'competition_format',
         'round_label',
@@ -22,7 +26,9 @@ class MatchSchedule extends Model
         'source_match_a_id',
         'source_match_b_id',
         'club_a_id',
+        'club_a_season_id',
         'club_b_id',
+        'club_b_season_id',
         'match_day',
         'venue',
         'match_date',
@@ -36,10 +42,16 @@ class MatchSchedule extends Model
     protected function casts(): array
     {
         return [
+            'season_id' => 'integer',
             'match_date' => 'date',
             'kickoff_time' => 'datetime:H:i',
             'is_finished' => 'boolean',
         ];
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(Season::class);
     }
 
     public function ageGroup(): BelongsTo
@@ -52,9 +64,19 @@ class MatchSchedule extends Model
         return $this->belongsTo(Club::class, 'club_a_id');
     }
 
+    public function clubASeason(): BelongsTo
+    {
+        return $this->belongsTo(SeasonClub::class, 'club_a_season_id');
+    }
+
     public function clubB(): BelongsTo
     {
         return $this->belongsTo(Club::class, 'club_b_id');
+    }
+
+    public function clubBSeason(): BelongsTo
+    {
+        return $this->belongsTo(SeasonClub::class, 'club_b_season_id');
     }
 
     public function sourceMatchA(): BelongsTo
@@ -69,12 +91,12 @@ class MatchSchedule extends Model
 
     public function lineupLists(): HasMany
     {
-        return $this->hasMany(LineupList::class, 'match_id');
+        return $this->hasMany(LineupList::class, 'match_id')->forSeason($this->season_id);
     }
 
     public function goalEvents(): HasMany
     {
-        return $this->hasMany(MatchGoal::class, 'match_id')->orderBy('display_order');
+        return $this->hasMany(MatchGoal::class, 'match_id')->forSeason($this->season_id)->orderBy('display_order');
     }
 
     public function includesClub(?int $clubId): bool
@@ -184,8 +206,28 @@ class MatchSchedule extends Model
         }
 
         return (int) $this->winner_club_id === (int) $this->club_a_id
-            ? ($this->clubA?->name ?: $this->clubA?->short_name)
-            : ($this->clubB?->name ?: $this->clubB?->short_name);
+            ? ($this->club_a_display_name ?: $this->clubA?->name ?: $this->clubA?->short_name)
+            : ($this->club_b_display_name ?: $this->clubB?->name ?: $this->clubB?->short_name);
+    }
+
+    public function getClubADisplayNameAttribute(): ?string
+    {
+        return $this->clubASeason?->name ?: $this->clubA?->name ?: $this->clubA?->short_name;
+    }
+
+    public function getClubBDisplayNameAttribute(): ?string
+    {
+        return $this->clubBSeason?->name ?: $this->clubB?->name ?: $this->clubB?->short_name;
+    }
+
+    public function getClubALogoFileUrlAttribute(): ?string
+    {
+        return $this->clubASeason?->logo_file_url ?: $this->clubA?->logo_file_url;
+    }
+
+    public function getClubBLogoFileUrlAttribute(): ?string
+    {
+        return $this->clubBSeason?->logo_file_url ?: $this->clubB?->logo_file_url;
     }
 
     public function getPublicSlugAttribute(): string

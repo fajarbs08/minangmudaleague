@@ -20,6 +20,7 @@
 @endphp
 
 @section('content')
+@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
 <style>
     .dsp-page {
         background: #fff;
@@ -256,7 +257,7 @@
             <p class="text-muted mb-0">{{ $lineupList->title }}</p>
         </div>
         <div class="d-flex gap-2">
-            @if ($isAdmin || $lineupList->canBeEditedByClub())
+            @if (! $isHistoryView && ($isAdmin || $lineupList->canBeEditedByClub()))
                 <a href="{{ route('lineup-lists.edit', $lineupList) }}" class="btn btn-light">{{ $isAdmin ? 'Edit oleh Admin' : 'Edit DSP' }}</a>
             @endif
             <button type="button" class="btn btn-primary" onclick="window.print()">Cetak DSP</button>
@@ -386,9 +387,11 @@
     </div>
 @endif
 
-@include('competition.partials.workflow-panel', [
-    'item' => $lineupList,
-    'submitRoute' => route('lineup-lists.submit', $lineupList),
-    'reviewRoute' => route('lineup-lists.review', $lineupList),
-])
+@unless ($isHistoryView)
+    @include('competition.partials.workflow-panel', [
+        'item' => $lineupList,
+        'submitRoute' => route('lineup-lists.submit', $lineupList),
+        'reviewRoute' => route('lineup-lists.review', $lineupList),
+    ])
+@endunless
 @endsection

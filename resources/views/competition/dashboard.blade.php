@@ -59,7 +59,7 @@
     </div>
 </div>
 
-@if (auth()->user()->isAdmin())
+@if (auth()->user()->isAdmin() && $showAdminWorkflow)
     <div class="row">
         @foreach ($adminReviewStats as $item)
             <div class="col-md-6 col-xl-3">
@@ -177,7 +177,7 @@
             </div>
         </div>
     </div>
-@else
+@elseif (! auth()->user()->isAdmin())
     <div class="row">
         <div class="col-md-6 col-xl-3">
             <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
@@ -256,7 +256,7 @@
 </div>
 @endif
 
-@if (auth()->user()->isAdmin())
+@if (auth()->user()->isAdmin() && $showAdminWorkflow)
 <div class="row">
     <div class="col-12">
         <div class="card" id="submission-terbaru">
@@ -330,7 +330,7 @@
                             @forelse ($recentPlayers as $player)
                                 <tr>
                                     <td>{{ $player->name }}</td>
-                                    <td>{{ $player->club?->name }}</td>
+                                    <td>{{ $player->seasonClub?->name ?? $player->club?->name }}</td>
                                     <td>{{ $player->primaryAgeGroup?->name ?: '-' }}</td>
                                 </tr>
                             @empty

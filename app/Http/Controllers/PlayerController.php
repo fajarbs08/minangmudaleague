@@ -6,8 +6,13 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Player;
+use App\Models\Season;
+use App\Models\SeasonClub;
+use App\Models\SeasonPlayer;
 use App\Services\IdCards\IdentityCardService;
 use App\Services\ImageAssetService;
+use App\Services\SeasonContext;
+use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +23,9 @@ class PlayerController extends Controller
 
     public function __construct(
         private IdentityCardService $identityCardService,
-        private ImageAssetService $imageAssetService
+        private ImageAssetService $imageAssetService,
+        private SeasonContext $seasonContext,
+        private SeasonSnapshotService $seasonSnapshotService
     ) {}
 
     public function index(Request $request)
@@ -41,76 +48,112 @@ class PlayerController extends Controller
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
 
-        $players = Player::query()
-            ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
-            ->whereIn('club_id', $clubs->pluck('id'))
-            ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
-            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
-            ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
-            ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('school_name', 'like', "%{$search}%")
-                        ->orWhere('position', 'like', "%{$search}%")
-                        ->orWhereHas('ageRegistrations', fn ($registration) => $registration->where('position', 'like', "%{$search}%"));
+        if ($this->isHistoryView()) {
+            $players = SeasonPlayer::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->with(['seasonClub', 'primaryAgeGroup'])
+                ->whereIn('club_id', $clubs->pluck('id'))
+                ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
+                ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereJsonContains('registered_age_group_ids', (int) $ageGroupId))
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('school_name', 'like', "%{$search}%")
+                            ->orWhere('position', 'like', "%{$search}%");
+                    });
                 });
-            });
 
-        match ($sort) {
-            'club' => $players->orderBy(
-                Club::query()->select('name')->whereColumn('clubs.id', 'players.club_id'),
-                $direction
-            ),
-            'age_group' => $players->orderBy(
-                AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'players.primary_age_group_id'),
-                $direction
-            ),
-            'position' => $request->input('age_group_id')
-                ? $players->orderBy(
-                    \DB::table('player_age_registrations')
-                        ->select('position')
-                        ->whereColumn('player_age_registrations.player_id', 'players.id')
-                        ->where('player_age_registrations.age_group_id', $request->input('age_group_id'))
-                        ->limit(1),
+            match ($sort) {
+                'club' => $players->orderBy(
+                    SeasonClub::query()->select('name')->whereColumn('season_clubs.id', 'season_players.season_club_id'),
                     $direction
-                )
-                : $players->orderBy('position', $direction),
-            'jersey_number' => $request->input('age_group_id')
-                ? $players->orderBy(
-                    \DB::table('player_age_registrations')
-                        ->select('jersey_number')
-                        ->whereColumn('player_age_registrations.player_id', 'players.id')
-                        ->where('player_age_registrations.age_group_id', $request->input('age_group_id'))
-                        ->limit(1),
+                ),
+                'age_group' => $players->orderBy(
+                    AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'season_players.primary_age_group_id'),
                     $direction
-                )
-                : $players->orderBy('jersey_number', $direction),
-            default => $players->orderBy($sort, $direction),
-        };
+                ),
+                default => $players->orderBy($sort, $direction),
+            };
 
-        $players = $players
-            ->paginate(10)
-            ->withQueryString();
+            $players = $players
+                ->paginate(10)
+                ->withQueryString();
 
-        $idCardFilterParams = collect([
-            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
-            'age_group_id' => $selectedAgeGroupId ?: null,
-            'status' => $request->input('status'),
-            'search' => $request->input('search'),
-            'limit' => $selectedAgeGroupId > 0 ? null : $this->allIdCardLimit($request),
-        ])->filter(fn ($value) => filled($value))->all();
+            $canDownloadIdCards = false;
+            $idCardExportUrl = null;
+        } else {
+            $players = Player::query()
+                ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
+                ->whereIn('club_id', $clubs->pluck('id'))
+                ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
+                ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('school_name', 'like', "%{$search}%")
+                            ->orWhere('position', 'like', "%{$search}%")
+                            ->orWhereHas('ageRegistrations', fn ($registration) => $registration->where('position', 'like', "%{$search}%"));
+                    });
+                });
 
-        $canDownloadIdCards = false;
-        $idCardExportUrl = null;
-        $clubScopeIds = $this->clubScopeIds($clubs, $selectedClubId);
+            match ($sort) {
+                'club' => $players->orderBy(
+                    Club::query()->select('name')->whereColumn('clubs.id', 'players.club_id'),
+                    $direction
+                ),
+                'age_group' => $players->orderBy(
+                    AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'players.primary_age_group_id'),
+                    $direction
+                ),
+                'position' => $request->input('age_group_id')
+                    ? $players->orderBy(
+                        \DB::table('player_age_registrations')
+                            ->select('position')
+                            ->whereColumn('player_age_registrations.player_id', 'players.id')
+                            ->where('player_age_registrations.age_group_id', $request->input('age_group_id'))
+                            ->limit(1),
+                        $direction
+                    )
+                    : $players->orderBy('position', $direction),
+                'jersey_number' => $request->input('age_group_id')
+                    ? $players->orderBy(
+                        \DB::table('player_age_registrations')
+                            ->select('jersey_number')
+                            ->whereColumn('player_age_registrations.player_id', 'players.id')
+                            ->where('player_age_registrations.age_group_id', $request->input('age_group_id'))
+                            ->limit(1),
+                        $direction
+                    )
+                    : $players->orderBy('jersey_number', $direction),
+                default => $players->orderBy($sort, $direction),
+            };
 
-        if (! empty($clubScopeIds)) {
-            if ($selectedAgeGroupId > 0) {
-                $canDownloadIdCards = $this->filteredPlayerIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
-                $idCardExportUrl = route('players.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
-            } else {
-                $canDownloadIdCards = $this->filteredPlayerCardBaseScopeQuery($request, $clubScopeIds)->exists();
-                $idCardExportUrl = route('players.id-cards.all.export', $idCardFilterParams);
+            $players = $players
+                ->paginate(10)
+                ->withQueryString();
+
+            $idCardFilterParams = collect([
+                'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+                'age_group_id' => $selectedAgeGroupId ?: null,
+                'status' => $request->input('status'),
+                'search' => $request->input('search'),
+                'limit' => $selectedAgeGroupId > 0 ? null : $this->allIdCardLimit($request),
+            ])->filter(fn ($value) => filled($value))->all();
+
+            $canDownloadIdCards = false;
+            $idCardExportUrl = null;
+            $clubScopeIds = $this->clubScopeIds($clubs, $selectedClubId);
+
+            if (! empty($clubScopeIds)) {
+                if ($selectedAgeGroupId > 0) {
+                    $canDownloadIdCards = $this->filteredPlayerIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
+                    $idCardExportUrl = route('players.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
+                } else {
+                    $canDownloadIdCards = $this->filteredPlayerCardBaseScopeQuery($request, $clubScopeIds)->exists();
+                    $idCardExportUrl = route('players.id-cards.all.export', $idCardFilterParams);
+                }
             }
         }
 
@@ -126,6 +169,7 @@ class PlayerController extends Controller
 
     public function bulkReview(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk meninjau data pemain.');
         $clubs = $this->availableClubs();
         $status = $request->input('status');
 
@@ -166,6 +210,7 @@ class PlayerController extends Controller
 
     public function create()
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah pemain.');
         return view('competition.players.create', [
             'title' => 'Tambah Pemain',
             'player' => new Player,
@@ -176,17 +221,20 @@ class PlayerController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah pemain.');
         [$data, $ageRegistrations] = $this->validatedData($request);
         $this->ensureClubAccess($data['club_id']);
 
         $player = Player::create($data);
         $this->syncAgeRegistrations($player, $ageRegistrations);
+        $this->seasonSnapshotService->syncPlayerSnapshot($player->fresh(['club', 'ageRegistrations.ageGroup']));
 
         return redirect()->route('players.index')->with('status', 'Data pemain berhasil ditambahkan.');
     }
 
     public function edit(Player $player)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah data pemain.');
         $this->ensureClubAccess($player->club_id);
         abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
         $player->load('ageRegistrations.ageGroup');
@@ -202,6 +250,20 @@ class PlayerController extends Controller
     public function show(Player $player)
     {
         $this->ensureClubAccess($player->club_id);
+
+        if ($this->isHistoryView()) {
+            $seasonPlayer = SeasonPlayer::query()
+                ->with(['seasonClub', 'primaryAgeGroup'])
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('player_id', $player->id)
+                ->firstOrFail();
+
+            return view('competition.players.show', [
+                'title' => 'Detail Pemain',
+                'player' => $seasonPlayer,
+            ]);
+        }
+
         $player->load(['club', 'primaryAgeGroup', 'reviewer', 'ageRegistrations.ageGroup', 'lineupLists']);
 
         return view('competition.players.show', [
@@ -218,6 +280,19 @@ class PlayerController extends Controller
 
         abort_unless(array_key_exists($document, $documents), 404);
 
+        if ($this->isHistoryView()) {
+            $seasonPlayer = SeasonPlayer::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('player_id', $player->id)
+                ->firstOrFail();
+
+            $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonPlayer->{$documents[$document]});
+
+            abort_unless($absolutePath, 404);
+
+            return response()->file($absolutePath);
+        }
+
         $absolutePath = $this->imageAssetService->documentAbsolutePath($player->{$documents[$document]});
 
         abort_unless($absolutePath, 404);
@@ -225,15 +300,27 @@ class PlayerController extends Controller
         return response()->file($absolutePath);
     }
 
-    public function publicShow(string $playerSlug)
+    public function publicShow(Request $request, string $playerSlug)
     {
         $player = $this->resolveApprovedPublicPlayer($playerSlug);
+        $season = $this->selectedPublicSeason($request);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
 
-        if ($playerSlug !== $player->public_slug) {
-            return redirect()->route('public.players.show', ['playerSlug' => $player->public_slug], 301);
+        if ($isHistoricalPublicSeason) {
+            $player = SeasonPlayer::query()
+                ->with(['seasonClub', 'primaryAgeGroup'])
+                ->where('season_id', $season?->id)
+                ->where('player_id', $player->id)
+                ->where('verification_status', Player::STATUS_APPROVED)
+                ->firstOrFail();
+        } else {
+            $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
         }
 
-        $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
+        if ($playerSlug !== $player->public_slug) {
+            return redirect()->route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery, 301);
+        }
 
         return view('public.player-show', [
             'title' => $player->name.' - Detail Pemain',
@@ -248,49 +335,65 @@ class PlayerController extends Controller
                 ['label' => $player->name],
             ],
             'seoTitle' => $player->name.' | Profil Pemain Liga Anak Piaman Laweh',
-            'seoDescription' => 'Profil publik pemain '.$player->name.' dari '.($player->club?->name ?: 'Liga Anak Piaman Laweh').' dengan detail roster dan registrasi kompetisi.',
+            'seoDescription' => 'Profil publik pemain '.$player->name.' dari '.($isHistoricalPublicSeason ? ($player->seasonClub?->name ?: 'Liga Anak Piaman Laweh') : ($player->club?->name ?: 'Liga Anak Piaman Laweh')).' dengan detail roster dan registrasi kompetisi.',
             'seoImage' => $player->photo_file_url ?: asset('og-share-card.jpg'),
             'seoType' => 'profile',
             'seoSchemaType' => 'ProfilePage',
-            'seoUrl' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+            'seoUrl' => route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery),
+            'selectedPublicSeason' => $season,
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
             'seoStructuredData' => [[
                 '@context' => 'https://schema.org',
                 '@type' => 'Person',
                 'name' => $player->name,
-                'url' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+                'url' => route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery),
                 'image' => $player->photo_file_url ?: asset('og-share-card.jpg'),
                 'sport' => 'Soccer',
-                'memberOf' => $player->club
+                'memberOf' => ($isHistoricalPublicSeason ? $player->seasonClub : $player->club)
                     ? array_filter([
                         '@type' => 'SportsTeam',
-                        'name' => $player->club->name,
-                        'url' => route('public.clubs.show', ['clubSlug' => $player->club->public_slug]),
+                        'name' => $isHistoricalPublicSeason ? $player->seasonClub->name : $player->club->name,
+                        'url' => route('public.clubs.show', ['clubSlug' => $isHistoricalPublicSeason ? $player->seasonClub->public_slug : $player->club->public_slug] + $publicSeasonQuery),
                     ], fn ($value) => filled($value))
                     : null,
             ]],
         ]);
     }
 
-    public function publicScanShow(string $playerSlug)
+    public function publicScanShow(Request $request, string $playerSlug)
     {
         $player = $this->resolveApprovedPublicPlayer($playerSlug);
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
 
-        if ($playerSlug !== $player->public_slug) {
-            return redirect()->route('public.players.scan', ['playerSlug' => $player->public_slug], 301);
+        if ($isHistoricalPublicSeason) {
+            $player = SeasonPlayer::query()
+                ->with(['seasonClub', 'primaryAgeGroup'])
+                ->where('season_id', $season?->id)
+                ->where('player_id', $player->id)
+                ->where('verification_status', Player::STATUS_APPROVED)
+                ->firstOrFail();
+        } else {
+            $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
         }
 
-        $player->load(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup']);
+        if ($playerSlug !== $player->public_slug) {
+            return redirect()->route('public.players.scan', ['playerSlug' => $player->public_slug] + $publicSeasonQuery, 301);
+        }
 
         return view('public.scan-result-player', [
             'title' => 'Hasil Scan Pemain',
             'player' => $player,
-            'canonicalUrl' => route('public.players.show', ['playerSlug' => $player->public_slug]),
+            'canonicalUrl' => route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery),
             'robotsContent' => 'noindex,nofollow',
         ]);
     }
 
     public function idCard(Player $player, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
 
@@ -310,6 +413,7 @@ class PlayerController extends Controller
 
     public function exportIdCard(Request $request, Player $player, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'ageRegistrations.ageGroup']);
 
@@ -339,6 +443,7 @@ class PlayerController extends Controller
 
     public function updateAgeRegistration(Player $player, AgeGroup $ageGroup, Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah kelompok usia pemain.');
         $this->ensureClubAccess($player->club_id);
         abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
 
@@ -383,6 +488,7 @@ class PlayerController extends Controller
 
     public function destroyAgeRegistration(Player $player, AgeGroup $ageGroup)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menghapus kelompok usia pemain.');
         $this->ensureClubAccess($player->club_id);
         abort_unless(auth()->user()->isAdmin() || $player->canBeEditedByClub(), 422);
         $this->ensureAgeRegistrationCanBeRemoved($player, $ageGroup);
@@ -410,6 +516,7 @@ class PlayerController extends Controller
 
     public function idCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -448,6 +555,7 @@ class PlayerController extends Controller
 
     public function exportIdCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -495,6 +603,7 @@ class PlayerController extends Controller
 
     public function idCardsAll(Request $request, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -534,6 +643,7 @@ class PlayerController extends Controller
 
     public function exportIdCardsAll(Request $request, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -584,6 +694,7 @@ class PlayerController extends Controller
 
     public function update(Request $request, Player $player)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah data pemain.');
         [$data, $ageRegistrations] = $this->validatedData($request, $player);
         $this->ensureClubAccess($player->club_id);
         $this->ensureClubAccess($data['club_id']);
@@ -593,12 +704,14 @@ class PlayerController extends Controller
 
         $player->update($data);
         $this->syncAgeRegistrations($player, $ageRegistrations);
+        $this->seasonSnapshotService->syncPlayerSnapshot($player->fresh(['club', 'ageRegistrations.ageGroup']));
 
         return redirect()->route('players.index')->with('status', 'Data pemain berhasil diperbarui.');
     }
 
     public function submit(Player $player)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengajukan verifikasi pemain.');
         $this->ensureClubAccess($player->club_id);
 
         return $this->submitForVerification($player, 'Data pemain berhasil dikirim untuk verifikasi.');
@@ -606,6 +719,7 @@ class PlayerController extends Controller
 
     public function review(Request $request, Player $player)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk me-review pemain.');
         $validated = $this->validateReviewPayload($request);
 
         return $this->reviewSubmission(
@@ -618,6 +732,7 @@ class PlayerController extends Controller
 
     public function destroy(Player $player)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menghapus pemain.');
         $this->ensureClubAccess($player->club_id);
         abort_unless(auth()->user()->isAdmin() || $player->canBeSubmittedByClub(), 403);
 
@@ -630,6 +745,8 @@ class PlayerController extends Controller
 
     private function validatedData(Request $request, ?Player $player = null): array
     {
+        $activeSeason = $this->seasonContext->requireActive();
+
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
             'primary_age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
@@ -695,7 +812,8 @@ class PlayerController extends Controller
         $ageRegistrations = collect($request->input('age_registrations', []))
             ->map(fn ($registration) => [
                 'age_group_id' => (int) ($registration['age_group_id'] ?? 0),
-                'season' => ($registration['season'] ?? '') ?: (string) date('Y'),
+                'season_id' => $activeSeason->id,
+                'season' => $activeSeason->name,
                 'jersey_number' => isset($registration['jersey_number']) && $registration['jersey_number'] !== '' ? (int) $registration['jersey_number'] : null,
                 'position' => ($registration['position'] ?? '') ?: null,
                 'notes' => $registration['notes'] ?? null,
@@ -709,7 +827,8 @@ class PlayerController extends Controller
         if ($ageRegistrations->isEmpty() && ! empty($data['primary_age_group_id'])) {
             $ageRegistrations = collect([[
                 'age_group_id' => (int) $data['primary_age_group_id'],
-                'season' => (string) date('Y'),
+                'season_id' => $activeSeason->id,
+                'season' => $activeSeason->name,
                 'jersey_number' => $data['jersey_number'] ?? null,
                 'position' => $data['position'] ?? null,
                 'notes' => null,
@@ -968,6 +1087,32 @@ class PlayerController extends Controller
         );
     }
 
+    private function isHistoryView(): bool
+    {
+        return $this->seasonContext->isViewingHistory();
+    }
+
+    private function selectedPublicSeason(Request $request): ?Season
+    {
+        return $this->seasonContext->resolvePublic($request->query('season'));
+    }
+
+    private function publicSeasonQuery(?Season $season): array
+    {
+        if (! $season || $this->seasonContext->isActiveSeason($season)) {
+            return [];
+        }
+
+        return ['season' => $season->slug];
+    }
+
+    private function ensureWritableSeasonContext(string $message): void
+    {
+        if ($this->isHistoryView()) {
+            abort(403, $message);
+        }
+    }
+
     private function resolveApprovedPublicPlayer(string $playerSlug): Player
     {
         preg_match('/^(\d+)(?:-|$)/', $playerSlug, $matches);
@@ -982,10 +1127,12 @@ class PlayerController extends Controller
 
     private function syncAgeRegistrations(Player $player, $ageRegistrations): void
     {
+        $activeSeason = $this->seasonContext->requireActive();
         $payload = collect($ageRegistrations)->mapWithKeys(function ($registration) use ($player) {
             return [
                 $registration['age_group_id'] => [
                     'player_id' => $player->id,
+                    'season_id' => $registration['season_id'],
                     'season' => $registration['season'],
                     'jersey_number' => $registration['jersey_number'],
                     'position' => $registration['position'],
@@ -999,6 +1146,7 @@ class PlayerController extends Controller
         });
 
         $ageGroupIdsToDelete = $player->ageRegistrations()
+            ->forSeason($activeSeason->id)
             ->pluck('age_group_id')
             ->diff($payload->keys())
             ->values();
@@ -1015,12 +1163,15 @@ class PlayerController extends Controller
                 }
             }
 
-            $player->ageRegistrations()->whereIn('age_group_id', $ageGroupIdsToDelete)->delete();
+            $player->allAgeRegistrations()->forSeason($activeSeason->id)->whereIn('age_group_id', $ageGroupIdsToDelete)->delete();
         }
 
         foreach ($payload as $ageGroupId => $registration) {
-            $player->ageRegistrations()->updateOrCreate(
-                ['age_group_id' => $ageGroupId],
+            $player->allAgeRegistrations()->updateOrCreate(
+                [
+                    'age_group_id' => $ageGroupId,
+                    'season_id' => $activeSeason->id,
+                ],
                 $registration
             );
         }

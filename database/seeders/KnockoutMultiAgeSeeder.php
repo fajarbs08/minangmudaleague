@@ -34,7 +34,7 @@ class KnockoutMultiAgeSeeder extends AbstractDemoSeeder
 
     private function purgeExistingKnockoutMatches(array $ageGroupIds): void
     {
-        $matchIds = MatchSchedule::query()
+        $matchIds = MatchSchedule::query()->forActiveSeason()
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->whereIn('age_group_id', $ageGroupIds)
             ->pluck('id');
@@ -43,9 +43,9 @@ class KnockoutMultiAgeSeeder extends AbstractDemoSeeder
             return;
         }
 
-        MatchGoal::query()->whereIn('match_id', $matchIds)->delete();
-        LineupList::query()->whereIn('match_id', $matchIds)->delete();
-        MatchSchedule::query()->whereIn('id', $matchIds)->delete();
+        MatchGoal::query()->forActiveSeason()->whereIn('match_id', $matchIds)->delete();
+        LineupList::query()->forActiveSeason()->whereIn('match_id', $matchIds)->delete();
+        MatchSchedule::query()->forActiveSeason()->whereIn('id', $matchIds)->delete();
     }
 
     private function seedBracketForAgeGroup(AgeGroup $ageGroup, array $plan): void
@@ -194,7 +194,10 @@ class KnockoutMultiAgeSeeder extends AbstractDemoSeeder
             throw new \LogicException('Skor untuk '.$matchDay.' tidak boleh seri pada seeder knockout.');
         }
 
-        $match = MatchSchedule::query()->create([
+        $seasonId = $this->activeSeasonId();
+
+        $match = MatchSchedule::query()->forActiveSeason()->create([
+            'season_id' => $seasonId,
             'age_group_id' => $ageGroupId,
             'competition_format' => MatchSchedule::FORMAT_KNOCKOUT,
             'round_label' => $roundLabel,
@@ -203,7 +206,9 @@ class KnockoutMultiAgeSeeder extends AbstractDemoSeeder
             'source_match_a_id' => $sourceAId,
             'source_match_b_id' => $sourceBId,
             'club_a_id' => $clubA->id,
+            'club_a_season_id' => $this->seasonSnapshots()->seasonClubIdForClub($clubA->id, $seasonId),
             'club_b_id' => $clubB->id,
+            'club_b_season_id' => $this->seasonSnapshots()->seasonClubIdForClub($clubB->id, $seasonId),
             'match_day' => $matchDay,
             'venue' => $venue,
             'match_date' => $matchDate->toDateString(),

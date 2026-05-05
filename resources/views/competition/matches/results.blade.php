@@ -2,6 +2,7 @@
 
 @php
     $filterCount = collect(request()->only(['age_group_id', 'competition_format']))->filter(fn ($value) => filled($value))->count();
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $resultModalPayload = $matches->getCollection()->mapWithKeys(function ($match) {
         $playersByClub = $match->lineupLists
             ->groupBy(fn ($lineup) => (int) $lineup->club_id)
@@ -284,7 +285,7 @@
                                 @endif
                             </td>
                             <td class="text-end competition-table-actions">
-                                @if (auth()->user()->isAdmin())
+                                @if (auth()->user()->isAdmin() && ! $isHistoryView)
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <span>Tindakan</span>
@@ -365,7 +366,7 @@
 
 </div>
 
-@if (auth()->user()->isAdmin())
+@if (auth()->user()->isAdmin() && ! $isHistoryView)
     <div class="modal fade" id="matchResultModal" tabindex="-1" aria-labelledby="matchResultModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">

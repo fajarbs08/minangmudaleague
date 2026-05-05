@@ -1,26 +1,27 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @section('content')
-@php($canManageAgeRegistrations = auth()->user()->isAdmin() || $player->canBeEditedByClub())
+@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+@php($canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeEditedByClub()))
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 lap-detail-head">
     <div>
         <h4 class="mb-1">Detail Pemain</h4>
         <p class="text-muted mb-0">{{ $player->name }}</p>
     </div>
     <div class="d-flex gap-2 flex-wrap lap-detail-actions">
-        @if (auth()->user()->isAdmin() || $player->canBeEditedByClub())
+        @if (! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeEditedByClub()))
             <a href="{{ route('players.edit', $player) }}" class="btn btn-light d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="square-pen" class="fs-14"></i>
                 <span>Edit</span>
             </a>
         @endif
-        @if ($player->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $player->canClubAccessIdCard()))
+        @if (! $isHistoryView && $player->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $player->canClubAccessIdCard()))
             <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </a>
         @endif
-        @if (auth()->user()->isAdmin() || $player->canBeSubmittedByClub())
+        @if (! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeSubmittedByClub()))
             <button
                 type="button"
                 class="btn btn-danger js-delete-player-detail d-inline-flex align-items-center gap-2 lap-detail-action-btn"
@@ -54,7 +55,7 @@
                     </div>
                 @endif
                 <h5 class="mb-1">{{ $player->name }}</h5>
-                <div class="text-muted">{{ $player->club?->name ?: '-' }}</div>
+                <div class="text-muted">{{ $isHistoryView ? ($player->seasonClub?->name ?: '-') : ($player->club?->name ?: '-') }}</div>
                 <div class="mt-3">@include('competition.partials.status-badge', ['status' => $player->verification_status])</div>
             </div>
         </div>
@@ -87,7 +88,7 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive competition-table-wrap">
-                    <table class="table competition-table competition-table-compact align-middle" data-update-url="{{ route('players.age-registrations.update', [$player, 'AGE_GROUP_ID']) }}">
+                    <table class="table competition-table competition-table-compact align-middle" @unless($isHistoryView) data-update-url="{{ route('players.age-registrations.update', [$player, 'AGE_GROUP_ID']) }}" @endunless>
                         <thead>
                             <tr>
                                 <th>Kelompok Usia</th>
@@ -164,6 +165,8 @@
                                                     <i data-lucide="trash-2" class="fs-14"></i>
                                                 </button>
                                             </div>
+                                        @elseif ($isHistoryView)
+                                            <span class="text-muted small">Read-only histori</span>
                                         @else
                                             <span class="text-muted small">Tidak tersedia</span>
                                         @endif
@@ -180,6 +183,7 @@
             </div>
         </div>
 
+        @unless ($isHistoryView)
         <div class="modal fade" id="editAgeModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -238,6 +242,7 @@
             'messagePrefix' => 'Kelompok usia',
             'messageSuffix' => 'akan dihapus dari pemain ini. Tindakan ini tidak bisa dibatalkan.',
         ])
+        @endunless
 
         <div class="card mt-4">
             <div class="card-header">
@@ -276,14 +281,17 @@
             </div>
         </div>
 
-        @include('competition.partials.workflow-panel', [
-            'item' => $player,
-            'submitRoute' => route('players.submit', $player),
-            'reviewRoute' => route('players.review', $player),
-        ])
+        @unless ($isHistoryView)
+            @include('competition.partials.workflow-panel', [
+                'item' => $player,
+                'submitRoute' => route('players.submit', $player),
+                'reviewRoute' => route('players.review', $player),
+            ])
+        @endunless
     </div>
 </div>
 
+@unless ($isHistoryView)
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -419,4 +427,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+@endunless
 @endsection

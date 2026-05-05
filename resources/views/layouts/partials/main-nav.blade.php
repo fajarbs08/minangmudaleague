@@ -191,8 +191,8 @@
                     <span class="menu-title-line" aria-hidden="true"></span>
                </li>
 
-               @if (auth()->user()->isAdmin())
-               <li class="menu-item">
+                @if (auth()->user()->isAdmin())
+                <li class="menu-item">
                     <a class="menu-link" href="#sidebarAccountManagement" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarAccountManagement">
                          <span class="nav-icon">
                               <i data-lucide="users"></i>
@@ -274,6 +274,15 @@
                                </li>
                           </ul>
                      </div>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('seasons.*') ? 'active' : '' }}">
+                     <a class="menu-link {{ request()->routeIs('seasons.*') ? 'active' : '' }}" href="{{ route('seasons.index') }}">
+                          <span class="nav-icon">
+                               <i data-lucide="calendar-range"></i>
+                          </span>
+                          <span class="nav-text">Season</span>
+                     </a>
                 </li>
                 @endif
 

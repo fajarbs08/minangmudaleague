@@ -1,5 +1,8 @@
 @php
      $currentUser = auth()->user();
+     $seasonContext = app(\App\Services\SeasonContext::class);
+     $selectedSeason = $seasonContext->selected();
+     $availableSeasons = $seasonContext->available();
      $notificationItems = [];
      $notificationTotal = 0;
      $cacheTtl = 45;
@@ -61,9 +64,26 @@
 @endphp
 
 <style>
-     @media (max-width: 991.98px) {
-          .topbar .button-toggle-menu {
-               width: 44px;
+      .topbar-season-switcher {
+           min-width: 220px;
+      }
+
+      .topbar-season-switcher .form-select {
+           min-width: 220px;
+      }
+
+      @media (max-width: 991.98px) {
+           .topbar-season-switcher {
+                min-width: 0;
+           }
+
+           .topbar-season-switcher .form-select {
+                min-width: 0;
+                width: min(56vw, 220px);
+           }
+
+           .topbar .button-toggle-menu {
+                width: 44px;
                height: 44px;
                padding: 0;
                align-items: center;
@@ -104,9 +124,23 @@
                     </form>
                </div>
 
-               <div class="d-flex align-items-center gap-2 ms-auto">
-                    <!-- Theme Color (Light/Dark) -->
-                    <div class="topbar-item">
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                     @if ($availableSeasons->isNotEmpty())
+                          <form method="POST" action="{{ route('seasons.select') }}" class="topbar-season-switcher d-none d-md-flex align-items-center gap-2">
+                               @csrf
+                               <input type="hidden" name="redirect_to" value="{{ route('dashboard.index', [], false) }}">
+                               <select name="season_id" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Pilih season">
+                                    @foreach ($availableSeasons as $season)
+                                         <option value="{{ $season->id }}" @selected((int) ($selectedSeason?->id ?? 0) === (int) $season->id)>
+                                              {{ $season->name }}{{ $season->is_active ? ' • aktif' : '' }}
+                                         </option>
+                                    @endforeach
+                               </select>
+                          </form>
+                     @endif
+
+                     <!-- Theme Color (Light/Dark) -->
+                     <div class="topbar-item">
                          <button type="button" class="topbar-button fs-24" id="light-dark-mode">
                               <i data-lucide="moon" class="light-mode"></i>
                               <i data-lucide="sun" class="dark-mode"></i>

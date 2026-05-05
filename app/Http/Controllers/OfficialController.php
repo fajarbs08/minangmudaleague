@@ -6,8 +6,13 @@ use App\Http\Controllers\Concerns\HandlesVerificationWorkflow;
 use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
+use App\Models\Season;
+use App\Models\SeasonClub;
+use App\Models\SeasonOfficial;
 use App\Services\IdCards\IdentityCardService;
 use App\Services\ImageAssetService;
+use App\Services\SeasonContext;
+use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +23,9 @@ class OfficialController extends Controller
 
     public function __construct(
         private IdentityCardService $identityCardService,
-        private ImageAssetService $imageAssetService
+        private ImageAssetService $imageAssetService,
+        private SeasonContext $seasonContext,
+        private SeasonSnapshotService $seasonSnapshotService
     ) {}
 
     public function index(Request $request)
@@ -40,56 +47,93 @@ class OfficialController extends Controller
 
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
+        $idCardFilterParams = [];
 
-        $officials = Official::query()
-            ->with(['club', 'ageGroup', 'ageRegistrations.ageGroup'])
-            ->whereIn('club_id', $clubs->pluck('id'))
-            ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
-            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
-            ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
-            ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('role', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+        if ($this->isHistoryView()) {
+            $officials = SeasonOfficial::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->with(['seasonClub', 'ageGroup'])
+                ->whereIn('club_id', $clubs->pluck('id'))
+                ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
+                ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereJsonContains('registered_age_group_ids', (int) $ageGroupId))
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('role', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
                 });
-            });
 
-        match ($sort) {
-            'club' => $officials->orderBy(
-                Club::query()->select('name')->whereColumn('clubs.id', 'officials.club_id'),
-                $direction
-            ),
-            'age_group' => $officials->orderBy(
-                AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'officials.age_group_id'),
-                $direction
-            ),
-            default => $officials->orderBy($sort, $direction),
-        };
+            match ($sort) {
+                'club' => $officials->orderBy(
+                    SeasonClub::query()->select('name')->whereColumn('season_clubs.id', 'season_officials.season_club_id'),
+                    $direction
+                ),
+                'age_group' => $officials->orderBy(
+                    AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'season_officials.age_group_id'),
+                    $direction
+                ),
+                default => $officials->orderBy($sort, $direction),
+            };
 
-        $officials = $officials
-            ->paginate(10)
-            ->withQueryString();
+            $officials = $officials
+                ->paginate(10)
+                ->withQueryString();
 
-        $idCardFilterParams = collect([
-            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
-            'age_group_id' => $selectedAgeGroupId ?: null,
-            'status' => $request->input('status'),
-            'search' => $request->input('search'),
-            'limit' => $selectedAgeGroupId > 0 ? null : $this->allIdCardLimit($request),
-        ])->filter(fn ($value) => filled($value))->all();
+            $canDownloadIdCards = false;
+            $idCardExportUrl = null;
+        } else {
+            $officials = Official::query()
+                ->with(['club', 'ageGroup', 'ageRegistrations.ageGroup'])
+                ->whereIn('club_id', $clubs->pluck('id'))
+                ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
+                ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
+                ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+                ->when($request->input('search'), function ($query, $search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('role', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+                });
 
-        $canDownloadIdCards = false;
-        $idCardExportUrl = null;
-        $clubScopeIds = $this->clubScopeIds($clubs, $selectedClubId);
+            match ($sort) {
+                'club' => $officials->orderBy(
+                    Club::query()->select('name')->whereColumn('clubs.id', 'officials.club_id'),
+                    $direction
+                ),
+                'age_group' => $officials->orderBy(
+                    AgeGroup::query()->select('name')->whereColumn('age_groups.id', 'officials.age_group_id'),
+                    $direction
+                ),
+                default => $officials->orderBy($sort, $direction),
+            };
 
-        if (! empty($clubScopeIds)) {
-            if ($selectedAgeGroupId > 0) {
-                $canDownloadIdCards = $this->filteredOfficialIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
-                $idCardExportUrl = route('officials.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
-            } else {
-                $canDownloadIdCards = $this->filteredOfficialCardBaseScopeQuery($request, $clubScopeIds)->exists();
-                $idCardExportUrl = route('officials.id-cards.all.export', $idCardFilterParams);
+            $officials = $officials
+                ->paginate(10)
+                ->withQueryString();
+
+            $idCardFilterParams = collect([
+                'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+                'age_group_id' => $selectedAgeGroupId ?: null,
+                'status' => $request->input('status'),
+                'search' => $request->input('search'),
+                'limit' => $selectedAgeGroupId > 0 ? null : $this->allIdCardLimit($request),
+            ])->filter(fn ($value) => filled($value))->all();
+
+            $canDownloadIdCards = false;
+            $idCardExportUrl = null;
+            $clubScopeIds = $this->clubScopeIds($clubs, $selectedClubId);
+
+            if (! empty($clubScopeIds)) {
+                if ($selectedAgeGroupId > 0) {
+                    $canDownloadIdCards = $this->filteredOfficialIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
+                    $idCardExportUrl = route('officials.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
+                } else {
+                    $canDownloadIdCards = $this->filteredOfficialCardBaseScopeQuery($request, $clubScopeIds)->exists();
+                    $idCardExportUrl = route('officials.id-cards.all.export', $idCardFilterParams);
+                }
             }
         }
 
@@ -106,6 +150,7 @@ class OfficialController extends Controller
 
     public function idCardsAll(Request $request, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -145,6 +190,7 @@ class OfficialController extends Controller
 
     public function exportIdCardsAll(Request $request, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -195,6 +241,7 @@ class OfficialController extends Controller
 
     public function bulkReview(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk meninjau data ofisial.');
         $clubs = $this->availableClubs();
         $status = $request->input('status');
 
@@ -235,6 +282,7 @@ class OfficialController extends Controller
 
     public function create()
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah ofisial.');
         $clubs = $this->availableClubs();
 
         return view('competition.officials.create', [
@@ -247,11 +295,13 @@ class OfficialController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah ofisial.');
         [$data, $ageRegistrations] = $this->validatedData($request);
         $this->ensureClubAccess($data['club_id']);
 
         $official = Official::create($data);
         $this->syncAgeRegistrations($official, $ageRegistrations);
+        $this->seasonSnapshotService->syncOfficialSnapshot($official->fresh(['club', 'ageRegistrations.ageGroup']));
 
         return redirect()
             ->route('officials.edit', $official)
@@ -260,6 +310,7 @@ class OfficialController extends Controller
 
     public function edit(Official $official)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah data ofisial.');
         $this->ensureClubAccess($official->club_id);
         abort_unless(auth()->user()->isAdmin() || $official->canBeEditedByClub(), 422);
         $official->load('ageRegistrations.ageGroup');
@@ -275,6 +326,20 @@ class OfficialController extends Controller
     public function show(Official $official)
     {
         $this->ensureClubAccess($official->club_id);
+
+        if ($this->isHistoryView()) {
+            $seasonOfficial = SeasonOfficial::query()
+                ->with(['seasonClub', 'ageGroup'])
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('official_id', $official->id)
+                ->firstOrFail();
+
+            return view('competition.officials.show', [
+                'title' => 'Detail Ofisial',
+                'official' => $seasonOfficial,
+            ]);
+        }
+
         $official->load(['club', 'reviewer', 'ageRegistrations.ageGroup']);
 
         return view('competition.officials.show', [
@@ -291,6 +356,19 @@ class OfficialController extends Controller
 
         abort_unless(array_key_exists($document, $documents), 404);
 
+        if ($this->isHistoryView()) {
+            $seasonOfficial = SeasonOfficial::query()
+                ->where('season_id', $this->seasonContext->currentId())
+                ->where('official_id', $official->id)
+                ->firstOrFail();
+
+            $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonOfficial->{$documents[$document]});
+
+            abort_unless($absolutePath, 404);
+
+            return response()->file($absolutePath);
+        }
+
         $absolutePath = $this->imageAssetService->documentAbsolutePath($official->{$documents[$document]});
 
         abort_unless($absolutePath, 404);
@@ -298,15 +376,27 @@ class OfficialController extends Controller
         return response()->file($absolutePath);
     }
 
-    public function publicShow(string $officialSlug)
+    public function publicShow(Request $request, string $officialSlug)
     {
         $official = $this->resolveApprovedPublicOfficial($officialSlug);
+        $season = $this->selectedPublicSeason($request);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
 
-        if ($officialSlug !== $official->public_slug) {
-            return redirect()->route('public.officials.show', ['officialSlug' => $official->public_slug], 301);
+        if ($isHistoricalPublicSeason) {
+            $official = SeasonOfficial::query()
+                ->with(['seasonClub', 'ageGroup'])
+                ->where('season_id', $season?->id)
+                ->where('official_id', $official->id)
+                ->where('verification_status', Official::STATUS_APPROVED)
+                ->firstOrFail();
+        } else {
+            $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
         }
 
-        $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
+        if ($officialSlug !== $official->public_slug) {
+            return redirect()->route('public.officials.show', ['officialSlug' => $official->public_slug] + $publicSeasonQuery, 301);
+        }
 
         return view('public.official-show', [
             'title' => $official->name.' - Detail Ofisial',
@@ -321,50 +411,66 @@ class OfficialController extends Controller
                 ['label' => $official->name],
             ],
             'seoTitle' => $official->name.' | Profil Ofisial Liga Anak Piaman Laweh',
-            'seoDescription' => 'Profil publik ofisial '.$official->name.' dari '.($official->club?->name ?: 'Liga Anak Piaman Laweh').' dengan detail peran dan registrasi kompetisi.',
+            'seoDescription' => 'Profil publik ofisial '.$official->name.' dari '.($isHistoricalPublicSeason ? ($official->seasonClub?->name ?: 'Liga Anak Piaman Laweh') : ($official->club?->name ?: 'Liga Anak Piaman Laweh')).' dengan detail peran dan registrasi kompetisi.',
             'seoImage' => $official->photo_file_url ?: asset('og-share-card.jpg'),
             'seoType' => 'profile',
             'seoSchemaType' => 'ProfilePage',
-            'seoUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+            'seoUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug] + $publicSeasonQuery),
+            'selectedPublicSeason' => $season,
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
             'seoStructuredData' => [[
                 '@context' => 'https://schema.org',
                 '@type' => 'Person',
                 'name' => $official->name,
                 'jobTitle' => $official->role ?: 'Ofisial',
-                'url' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+                'url' => route('public.officials.show', ['officialSlug' => $official->public_slug] + $publicSeasonQuery),
                 'image' => $official->photo_file_url ?: asset('og-share-card.jpg'),
                 'sport' => 'Soccer',
-                'memberOf' => $official->club
+                'memberOf' => ($isHistoricalPublicSeason ? $official->seasonClub : $official->club)
                     ? array_filter([
                         '@type' => 'SportsTeam',
-                        'name' => $official->club->name,
-                        'url' => route('public.clubs.show', ['clubSlug' => $official->club->public_slug]),
+                        'name' => $isHistoricalPublicSeason ? $official->seasonClub->name : $official->club->name,
+                        'url' => route('public.clubs.show', ['clubSlug' => $isHistoricalPublicSeason ? $official->seasonClub->public_slug : $official->club->public_slug] + $publicSeasonQuery),
                     ], fn ($value) => filled($value))
                     : null,
             ]],
         ]);
     }
 
-    public function publicScanShow(string $officialSlug)
+    public function publicScanShow(Request $request, string $officialSlug)
     {
         $official = $this->resolveApprovedPublicOfficial($officialSlug);
+        $season = $this->selectedPublicSeason($request);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
 
-        if ($officialSlug !== $official->public_slug) {
-            return redirect()->route('public.officials.scan', ['officialSlug' => $official->public_slug], 301);
+        if ($isHistoricalPublicSeason) {
+            $official = SeasonOfficial::query()
+                ->with(['seasonClub', 'ageGroup'])
+                ->where('season_id', $season?->id)
+                ->where('official_id', $official->id)
+                ->where('verification_status', Official::STATUS_APPROVED)
+                ->firstOrFail();
+        } else {
+            $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
         }
 
-        $official->load(['club', 'ageGroup', 'ageRegistrations.ageGroup']);
+        if ($officialSlug !== $official->public_slug) {
+            return redirect()->route('public.officials.scan', ['officialSlug' => $official->public_slug] + $publicSeasonQuery, 301);
+        }
 
         return view('public.scan-result-official', [
             'title' => 'Hasil Scan Ofisial',
             'official' => $official,
-            'canonicalUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug]),
+            'canonicalUrl' => route('public.officials.show', ['officialSlug' => $official->public_slug] + $publicSeasonQuery),
             'robotsContent' => 'noindex,nofollow',
         ]);
     }
 
     public function idCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -403,6 +509,7 @@ class OfficialController extends Controller
 
     public function exportIdCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $clubs = $this->availableClubs();
         $selectedClubId = (int) $request->input('club_id');
         $clubScope = $this->clubScope($clubs, $selectedClubId);
@@ -450,6 +557,7 @@ class OfficialController extends Controller
 
     public function idCard(Official $official, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
 
@@ -469,6 +577,7 @@ class OfficialController extends Controller
 
     public function exportIdCard(Request $request, Official $official, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
+        $this->ensureWritableSeasonContext('ID Card histori belum tersedia. Kembali ke season aktif untuk mencetak kartu.');
         $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'ageRegistrations.ageGroup']);
 
@@ -498,6 +607,7 @@ class OfficialController extends Controller
 
     public function destroyAgeRegistration(Official $official, AgeGroup $ageGroup)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menghapus kelompok usia ofisial.');
         $this->ensureClubAccess($official->club_id);
         abort_unless(auth()->user()->isAdmin() || $official->canBeEditedByClub(), 422);
         $this->ensureAgeRegistrationCanBeRemoved($official, $ageGroup);
@@ -520,6 +630,7 @@ class OfficialController extends Controller
 
     public function update(Request $request, Official $official)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengubah data ofisial.');
         [$data, $ageRegistrations] = $this->validatedData($request, $official);
         $this->ensureClubAccess($official->club_id);
         $this->ensureClubAccess($data['club_id']);
@@ -529,12 +640,14 @@ class OfficialController extends Controller
 
         $official->update($data);
         $this->syncAgeRegistrations($official, $ageRegistrations);
+        $this->seasonSnapshotService->syncOfficialSnapshot($official->fresh(['club', 'ageRegistrations.ageGroup']));
 
         return redirect()->route('officials.index')->with('status', 'Data ofisial berhasil diperbarui.');
     }
 
     public function submit(Official $official)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk mengajukan verifikasi ofisial.');
         $this->ensureClubAccess($official->club_id);
 
         return $this->submitForVerification($official, 'Data ofisial berhasil dikirim untuk verifikasi.');
@@ -542,6 +655,7 @@ class OfficialController extends Controller
 
     public function review(Request $request, Official $official)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk me-review ofisial.');
         $validated = $this->validateReviewPayload($request);
 
         return $this->reviewSubmission(
@@ -554,6 +668,7 @@ class OfficialController extends Controller
 
     public function destroy(Official $official)
     {
+        $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menghapus ofisial.');
         $this->ensureClubAccess($official->club_id);
         abort_unless(auth()->user()->isAdmin() || $official->canBeSubmittedByClub(), 403);
 
@@ -566,6 +681,8 @@ class OfficialController extends Controller
 
     private function validatedData(Request $request, ?Official $official = null): array
     {
+        $activeSeason = $this->seasonContext->requireActive();
+
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
             'age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
@@ -613,7 +730,8 @@ class OfficialController extends Controller
         $ageRegistrations = collect($request->input('age_registrations', []))
             ->map(fn ($registration) => [
                 'age_group_id' => (int) ($registration['age_group_id'] ?? 0),
-                'season' => ($registration['season'] ?? '') ?: (string) date('Y'),
+                'season_id' => $activeSeason->id,
+                'season' => $activeSeason->name,
                 'role' => ($registration['role'] ?? '') ?: $data['role'],
                 'license_levels' => ($registration['license_levels'] ?? '') ?: ($data['license_levels'] ?? null),
                 'notes' => $registration['notes'] ?? null,
@@ -625,7 +743,8 @@ class OfficialController extends Controller
         if ($ageRegistrations->isEmpty() && ! empty($data['age_group_id'])) {
             $ageRegistrations = collect([[
                 'age_group_id' => (int) $data['age_group_id'],
-                'season' => (string) date('Y'),
+                'season_id' => $activeSeason->id,
+                'season' => $activeSeason->name,
                 'role' => $data['role'],
                 'license_levels' => $data['license_levels'],
                 'notes' => null,
@@ -708,10 +827,12 @@ class OfficialController extends Controller
 
     private function syncAgeRegistrations(Official $official, $ageRegistrations): void
     {
+        $activeSeason = $this->seasonContext->requireActive();
         $payload = collect($ageRegistrations)->mapWithKeys(function ($registration) use ($official) {
             return [
                 $registration['age_group_id'] => [
                     'official_id' => $official->id,
+                    'season_id' => $registration['season_id'],
                     'season' => $registration['season'],
                     'role' => $registration['role'],
                     'license_levels' => $registration['license_levels'],
@@ -723,6 +844,7 @@ class OfficialController extends Controller
         });
 
         $ageGroupIdsToDelete = $official->ageRegistrations()
+            ->forSeason($activeSeason->id)
             ->pluck('age_group_id')
             ->diff($payload->keys())
             ->values();
@@ -739,12 +861,15 @@ class OfficialController extends Controller
                 }
             }
 
-            $official->ageRegistrations()->whereIn('age_group_id', $ageGroupIdsToDelete)->delete();
+            $official->allAgeRegistrations()->forSeason($activeSeason->id)->whereIn('age_group_id', $ageGroupIdsToDelete)->delete();
         }
 
         foreach ($payload as $ageGroupId => $registration) {
-            $official->ageRegistrations()->updateOrCreate(
-                ['age_group_id' => $ageGroupId],
+            $official->allAgeRegistrations()->updateOrCreate(
+                [
+                    'age_group_id' => $ageGroupId,
+                    'season_id' => $activeSeason->id,
+                ],
                 $registration
             );
         }
@@ -948,6 +1073,32 @@ class OfficialController extends Controller
             Club::where('id', $clubId)->where('user_id', $user->id)->exists(),
             403
         );
+    }
+
+    private function isHistoryView(): bool
+    {
+        return $this->seasonContext->isViewingHistory();
+    }
+
+    private function selectedPublicSeason(Request $request): ?Season
+    {
+        return $this->seasonContext->resolvePublic($request->query('season'));
+    }
+
+    private function publicSeasonQuery(?Season $season): array
+    {
+        if (! $season || $this->seasonContext->isActiveSeason($season)) {
+            return [];
+        }
+
+        return ['season' => $season->slug];
+    }
+
+    private function ensureWritableSeasonContext(string $message): void
+    {
+        if ($this->isHistoryView()) {
+            abort(403, $message);
+        }
     }
 
     private function resolveApprovedPublicOfficial(string $officialSlug): Official

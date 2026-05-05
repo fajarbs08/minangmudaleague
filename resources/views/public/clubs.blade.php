@@ -1,6 +1,10 @@
 @extends('public.public-layout')
 
 @php
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonOptions = $publicSeasonOptions ?? collect();
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
     $clubCount = $featuredClubs->count();
     $zoneCount = $featuredClubs->pluck('zone')->filter()->unique()->count();
     $managerCount = $featuredClubs->filter(fn ($club) => filled($club->manager_name))->count();
@@ -229,10 +233,26 @@
                         <p>Daftar klub yang sudah dipublikasikan resmi. Buka detail untuk melihat profil, pemain, ofisial, dan riwayat laga klub.</p>
                     </div>
                     <div class="club-summary">
+                        @if ($selectedPublicSeason)
+                            <span>{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : ' · aktif' }}</span>
+                        @endif
                         <span>{{ $clubCount }} klub tampil</span>
                         <span>{{ $zoneCount }} zona</span>
                         <span>{{ $managerCount }} manajer diisi</span>
                     </div>
+
+                    @if ($publicSeasonOptions->isNotEmpty())
+                        <form method="GET" class="mt-4 d-flex flex-wrap gap-2 align-items-center">
+                            <label for="public-season" class="fw-bold text-uppercase small text-muted mb-0">Season</label>
+                            <select id="public-season" name="season" class="form-select" style="max-width: 260px;" onchange="this.form.submit()">
+                                @foreach ($publicSeasonOptions as $season)
+                                    <option value="{{ $season->slug }}" @selected(($selectedPublicSeason?->id ?? 0) === $season->id)>
+                                        {{ $season->name }}{{ $season->is_active ? ' • aktif' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @endif
                 </div>
 
                 <div class="latest-world-ranking-table wow fadeInUp" data-wow-delay=".25s">
@@ -270,7 +290,7 @@
                                         <td>{{ $club->founded_year ?: '-' }}</td>
                                         <td>{{ $club->manager_name ?: '-' }}</td>
                                         <td class="text-center">
-                                            @include('public.partials.table-detail-link', ['href' => route('public.clubs.show', ['clubSlug' => $club->public_slug])])
+                                            @include('public.partials.table-detail-link', ['href' => route('public.clubs.show', ['clubSlug' => $club->public_slug] + $publicSeasonQuery)])
                                         </td>
                                     </tr>
                                 @empty

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeasonScopes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class LineupList extends Model
 {
+    use HasSeasonScopes;
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_SUBMITTED = 'submitted';
@@ -29,7 +32,9 @@ class LineupList extends Model
     public const MAX_SUBSTITUTES = 9;
 
     protected $fillable = [
+        'season_id',
         'club_id',
+        'season_club_id',
         'age_group_id',
         'match_id',
         'title',
@@ -52,6 +57,7 @@ class LineupList extends Model
     protected function casts(): array
     {
         return [
+            'season_id' => 'integer',
             'match_date' => 'date',
             'played_time' => 'datetime:H:i',
             'submitted_at' => 'datetime',
@@ -59,9 +65,19 @@ class LineupList extends Model
         ];
     }
 
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(Season::class);
+    }
+
     public function club(): BelongsTo
     {
         return $this->belongsTo(Club::class);
+    }
+
+    public function seasonClub(): BelongsTo
+    {
+        return $this->belongsTo(SeasonClub::class);
     }
 
     public function ageGroup(): BelongsTo
@@ -82,7 +98,7 @@ class LineupList extends Model
     public function players(): BelongsToMany
     {
         return $this->belongsToMany(Player::class)
-            ->withPivot(['role', 'display_order', 'jersey_number'])
+            ->withPivot(['role', 'display_order', 'jersey_number', 'season_player_id'])
             ->withTimestamps()
             ->orderByPivot('role')
             ->orderByPivot('display_order');

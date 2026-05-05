@@ -13,6 +13,7 @@
         'approved' => 'Diterima',
         'rejected' => 'Ditolak',
     ];
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
 @endphp
 
 @section('content')
@@ -41,12 +42,14 @@
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
         </button>
-        @include('competition.partials.icon-button', [
-            'href' => route('lineup-lists.create'),
-            'icon' => 'plus-circle',
-            'label' => 'Tambah DSP',
-            'class' => 'btn-primary',
-        ])
+        @unless ($isHistoryView)
+            @include('competition.partials.icon-button', [
+                'href' => route('lineup-lists.create'),
+                'icon' => 'plus-circle',
+                'label' => 'Tambah DSP',
+                'class' => 'btn-primary',
+            ])
+        @endunless
     </div>
 </div>
 
@@ -148,7 +151,7 @@
             <span class="badge bg-light text-dark border">{{ $lineupLists->total() }} data</span>
         </div>
     </div>
-    @if (auth()->user()->isAdmin())
+    @if (auth()->user()->isAdmin() && ! $isHistoryView)
     <form id="bulk-lineup-review-form" method="POST" action="{{ route('lineup-lists.bulk-review') }}">
         @csrf
         <div class="card-body border-bottom bg-light-subtle">
@@ -213,7 +216,7 @@
         @endif
                 <thead>
                     <tr>
-                        @if (auth()->user()->isAdmin())
+                        @if (auth()->user()->isAdmin() && ! $isHistoryView)
                         <th class="text-center" style="width: 48px;">
                             <input type="checkbox" class="form-check-input js-check-all" data-target=".js-lineup-row">
                         </th>
@@ -326,7 +329,7 @@
                                                     ],
                                                 ])
                                             @endif
-                                            @if ($isAdmin || $lineup->canBeEditedByClub())
+                                            @if (! $isHistoryView && ($isAdmin || $lineup->canBeEditedByClub()))
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('lineup-lists.edit', $lineup),
                                                     'icon' => 'square-pen',
@@ -334,7 +337,7 @@
                                                 ])
                                             @endif
                                         </div>
-                                        @if (($isAdmin && $lineup->canBeReviewedByAdmin()) || (!$isAdmin && $lineup->canBeSubmittedByClub()))
+                                        @if (! $isHistoryView && (($isAdmin && $lineup->canBeReviewedByAdmin()) || (!$isAdmin && $lineup->canBeSubmittedByClub())))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 @if ($isAdmin && $lineup->canBeReviewedByAdmin())
@@ -399,7 +402,7 @@
                                                 @endif
                                             </div>
                                         @endif
-                                        @if ($isAdmin || $lineup->canBeSubmittedByClub())
+                                        @if (! $isHistoryView && ($isAdmin || $lineup->canBeSubmittedByClub()))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -422,7 +425,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->isAdmin() ? 9 : 8 }}" class="competition-table-empty">Belum ada DSP.</td>
+                            <td colspan="{{ (auth()->user()->isAdmin() && ! $isHistoryView) ? 9 : 8 }}" class="competition-table-empty">Belum ada DSP.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -431,7 +434,7 @@
 
         <div class="mt-3">{{ $lineupLists->links() }}</div>
     </div>
-    @if (auth()->user()->isAdmin())
+    @if (auth()->user()->isAdmin() && ! $isHistoryView)
     </form>
     @endif
 </div>

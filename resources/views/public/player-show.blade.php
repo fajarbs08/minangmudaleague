@@ -3,12 +3,16 @@
 @php
     use Illuminate\Support\Str;
 
+    $selectedPublicSeason = $selectedPublicSeason ?? null;
+    $publicSeasonQuery = $publicSeasonQuery ?? [];
+    $isHistoricalPublicSeason = $isHistoricalPublicSeason ?? false;
+    $clubModel = $isHistoricalPublicSeason ? $player->seasonClub : $player->club;
     $primaryAgeGroupName = $player->primaryAgeGroup?->name ?: 'Kelompok usia belum diatur';
     $positionLabel = $player->displayPosition($player->primary_age_group_id) ?: 'Pemain';
     $jerseyNumber = $player->displayJerseyNumber($player->primary_age_group_id);
     $playerAge = $player->birth_date?->age;
     $playerInitial = Str::of($player->name)->trim()->substr(0, 2)->upper();
-    $playerSummary = trim($player->name.' adalah pemain terverifikasi '.($player->club?->name ? 'dari '.$player->club->name.' ' : '').'yang tercatat pada roster publik Liga Anak Piaman Laweh. Halaman ini menampilkan detail profil kompetisi dan registrasi aktif tanpa membuka data administrasi pribadi.');
+    $playerSummary = trim($player->name.' adalah pemain terverifikasi '.($clubModel?->name ? 'dari '.$clubModel->name.' ' : '').'yang tercatat pada roster publik Liga Anak Piaman Laweh. Halaman ini menampilkan detail profil kompetisi dan registrasi aktif tanpa membuka data administrasi pribadi.');
     $statusLabels = [
         'draft' => 'Draft',
         'submitted' => 'Menunggu Review',
@@ -23,7 +27,7 @@
         ['label' => 'Berat', 'value' => $player->weight_kg ? $player->weight_kg.' kg' : '-'],
     ];
     $playerFacts = [
-        ['label' => 'Klub', 'value' => $player->club?->name ?: '-'],
+        ['label' => 'Klub', 'value' => $clubModel?->name ?: '-'],
         ['label' => 'Kelompok usia utama', 'value' => $primaryAgeGroupName],
         ['label' => 'Posisi', 'value' => $positionLabel],
         ['label' => 'Nomor punggung', 'value' => $jerseyNumber ? '#'.$jerseyNumber : '-'],
@@ -31,6 +35,7 @@
         ['label' => 'Dominan kaki', 'value' => $player->dominant_foot ?: '-'],
         ['label' => 'Kapten', 'value' => $player->is_captain ? 'Ya' : 'Tidak'],
         ['label' => 'Status publik', 'value' => 'Terverifikasi'],
+        ['label' => 'Season', 'value' => $selectedPublicSeason?->name ?: 'Musim aktif'],
     ];
     $playerRegistrations = $player->ageRegistrations
         ->filter(fn ($registration) => $registration->ageGroup)
@@ -48,8 +53,8 @@
             ];
         })
         ->values();
-    $clubUrl = $player->club ? route('public.clubs.show', ['clubSlug' => $player->club->public_slug]) : route('public.clubs');
-    $clubMark = Str::upper(Str::substr($player->club?->short_name ?: $player->club?->name ?: 'KL', 0, 2));
+    $clubUrl = $clubModel ? route('public.clubs.show', ['clubSlug' => $clubModel->public_slug] + $publicSeasonQuery) : route('public.clubs', $publicSeasonQuery);
+    $clubMark = Str::upper(Str::substr($clubModel?->short_name ?: $clubModel?->name ?: 'KL', 0, 2));
 @endphp
 
 @push('styles')
@@ -539,13 +544,16 @@
                         </div>
 
                         <div class="lap-player-meta">
-                            <span>{{ $player->club?->name ?: 'Klub belum tersedia' }}</span>
+                            <span>{{ $clubModel?->name ?: 'Klub belum tersedia' }}</span>
                             <span>{{ $primaryAgeGroupName }}</span>
                             <span>{{ $player->is_captain ? 'Kapten Tim' : 'Pemain Aktif' }}</span>
                         </div>
 
                         <div class="lap-player-chip-list">
                             <span class="lap-player-chip is-accent">Terverifikasi</span>
+                            @if ($selectedPublicSeason)
+                                <span class="lap-player-chip">{{ $selectedPublicSeason->name }}{{ $isHistoricalPublicSeason ? ' · histori' : '' }}</span>
+                            @endif
                             <span class="lap-player-chip">{{ $positionLabel }}</span>
                             <span class="lap-player-chip">{{ $primaryAgeGroupName }}</span>
                             @if ($jerseyNumber)
@@ -633,16 +641,16 @@
 
                             <div class="lap-player-club-head">
                                 <div class="lap-player-club-mark">
-                                    @if ($player->club?->logo_file_url)
-                                        <img src="{{ $player->club->logo_file_url }}" alt="{{ $player->club->name }}">
+                                    @if ($clubModel?->logo_file_url)
+                                        <img src="{{ $clubModel->logo_file_url }}" alt="{{ $clubModel->name }}">
                                     @else
                                         <span>{{ $clubMark }}</span>
                                     @endif
                                 </div>
 
                                 <div>
-                                    <h5 class="lap-player-club-name">{{ $player->club?->short_name ?: $player->club?->name ?: 'Klub' }}</h5>
-                                    <div class="lap-player-club-meta">{{ $player->club?->name ?: 'Profil klub belum tersedia' }}</div>
+                                    <h5 class="lap-player-club-name">{{ $clubModel?->short_name ?: $clubModel?->name ?: 'Klub' }}</h5>
+                                    <div class="lap-player-club-meta">{{ $clubModel?->name ?: 'Profil klub belum tersedia' }}</div>
                                 </div>
                             </div>
 

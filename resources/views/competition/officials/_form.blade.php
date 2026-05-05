@@ -9,7 +9,7 @@
         ])->values()->all()
         : [[
             'age_group_id' => old('age_group_id', $official->age_group_id),
-            'season' => date('Y'),
+            'season' => app(\App\Services\SeasonContext::class)->activeName() ?? date('Y'),
             'role' => old('role', $official->role),
             'license_levels' => old('license_levels', $official->license_levels),
             'notes' => null,
@@ -198,8 +198,8 @@
                             </select>
                         </div>
                         <div class="col-lg-2">
-                            <label class="form-label">Season</label>
-                            <input type="text" name="age_registrations[{{ $index }}][season]" class="form-control" value="{{ $registration['season'] ?? date('Y') }}">
+                            <label class="form-label">Season Aktif</label>
+                            <input type="text" name="age_registrations[{{ $index }}][season]" class="form-control" value="{{ $registration['season'] ?? (app(\App\Services\SeasonContext::class)->activeName() ?? date('Y')) }}" readonly>
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label">Jabatan</label>
@@ -254,8 +254,8 @@
                 </select>
             </div>
             <div class="col-lg-2">
-                <label class="form-label">Season</label>
-                <input type="text" data-name="season" class="form-control" value="{{ date('Y') }}">
+                <label class="form-label">Season Aktif</label>
+                <input type="text" data-name="season" class="form-control" value="{{ app(\App\Services\SeasonContext::class)->activeName() ?? date('Y') }}" readonly>
             </div>
             <div class="col-lg-3">
                 <label class="form-label">Jabatan</label>

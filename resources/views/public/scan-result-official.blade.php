@@ -78,6 +78,7 @@
     </style>
 </head>
 <body>
+    @php($clubModel = method_exists($official, 'seasonClub') && $official->seasonClub ? $official->seasonClub : $official->club)
     <div class="wrap">
         <div class="card">
             <div class="head">
@@ -95,13 +96,13 @@
                 </div>
                 <div>
                     <div class="name">{{ $official->name }}</div>
-                    <div class="sub">{{ $official->club?->name ?: '-' }} · {{ $official->ageGroup?->name ?: '-' }}</div>
+                    <div class="sub">{{ $clubModel?->name ?: '-' }} · {{ $official->ageGroup?->name ?: '-' }}</div>
                     <div class="badge">Terverifikasi untuk dilihat publik</div>
                     <div class="note">Halaman QR publik ini hanya menampilkan ringkasan verifikasi ofisial. Kontak pribadi, nomor identitas, dan dokumen pendukung tidak ditampilkan.</div>
 
                     <div class="grid">
                         <div class="item"><div class="label">Peran</div><div class="value">{{ $official->role ?: '-' }}</div></div>
-                        <div class="item"><div class="label">Klub</div><div class="value">{{ $official->club?->name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Klub</div><div class="value">{{ $clubModel?->name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Kelompok Usia</div><div class="value">{{ $official->ageGroup?->name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Lisensi</div><div class="value">{{ $official->license_levels ?: 'Terverifikasi panitia' }}</div></div>
                     </div>

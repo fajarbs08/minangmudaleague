@@ -2,6 +2,7 @@
 
 @php
     $isAdmin = auth()->user()->isAdmin();
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $visibleClubs = $clubs->getCollection();
     $visibleTotal = $visibleClubs->count();
     $approvedCount = $visibleClubs->where('verification_status', 'approved')->count();
@@ -46,7 +47,7 @@
                 @endif
             </button>
         @endif
-        @if ($isAdmin || (auth()->user()->isClubUser() && $clubs->isEmpty()))
+        @if (! $isHistoryView && ($isAdmin || (auth()->user()->isClubUser() && $clubs->isEmpty())))
         @include('competition.partials.icon-button', [
             'href' => route('clubs.create'),
             'icon' => 'plus-circle',
@@ -162,7 +163,7 @@
             @endif
         </div>
     </div>
-    @if ($isAdmin)
+    @if ($isAdmin && ! $isHistoryView)
     <form id="bulk-club-review-form" method="POST" action="{{ route('clubs.bulk-review') }}">
         @csrf
         <div class="card-body border-bottom bg-light-subtle">
@@ -227,7 +228,7 @@
     @endif
                 <thead>
                     <tr>
-                        @if (auth()->user()->isAdmin())
+                        @if (auth()->user()->isAdmin() && ! $isHistoryView)
                         <th class="text-center" style="width: 48px;">
                             <input type="checkbox" class="form-check-input js-check-all" data-target=".js-club-row">
                         </th>
@@ -244,7 +245,7 @@
                 <tbody>
                     @forelse ($clubs as $club)
                         <tr>
-                            @if (auth()->user()->isAdmin())
+                            @if (auth()->user()->isAdmin() && ! $isHistoryView)
                             <td class="text-center">
                                 <input type="checkbox" class="form-check-input js-club-row" name="selected_ids[]" value="{{ $club->id }}" form="bulk-club-review-form">
                             </td>
@@ -327,7 +328,7 @@
                                             <div class="competition-action-label px-2 pb-2">Navigasi</div>
                                             <div class="small text-muted px-2 pb-2 text-wrap">{{ $actionHint }}</div>
                                             @include('competition.partials.action-item', [
-                                                'href' => route('clubs.show', $club),
+                                                'href' => route('clubs.show', $isHistoryView ? $club->club_id : $club),
                                                 'icon' => 'eye',
                                                 'label' => 'Lihat Detail',
                                             ])
@@ -343,7 +344,7 @@
                                                     ],
                                                 ])
                                             @endif
-                                            @if ($isAdmin || $club->canBeSubmittedByClub())
+                                            @if (! $isHistoryView && ($isAdmin || $club->canBeSubmittedByClub()))
                                                 @include('competition.partials.action-item', [
                                                     'href' => route('clubs.edit', $club),
                                                     'icon' => 'square-pen',
@@ -351,7 +352,7 @@
                                                 ])
                                             @endif
                                         </div>
-                                        @if (($isAdmin && $club->canBeReviewedByAdmin()) || (!$isAdmin && $club->canBeSubmittedByClub()))
+                                        @if (! $isHistoryView && (($isAdmin && $club->canBeReviewedByAdmin()) || (!$isAdmin && $club->canBeSubmittedByClub())))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 @if ($isAdmin && $club->canBeReviewedByAdmin())
@@ -416,7 +417,7 @@
                                                 @endif
                                             </div>
                                         @endif
-                                        @if ($isAdmin || $club->canBeSubmittedByClub())
+                                        @if (! $isHistoryView && ($isAdmin || $club->canBeSubmittedByClub()))
                                             <div class="dropdown-divider"></div>
                                             <div class="competition-action-section">
                                                 <div class="competition-action-label px-2 pb-2">Zona Bahaya</div>
@@ -439,7 +440,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->isAdmin() ? 9 : 8 }}" class="competition-table-empty">Belum ada data klub.</td>
+                            <td colspan="{{ (auth()->user()->isAdmin() && ! $isHistoryView) ? 9 : 8 }}" class="competition-table-empty">Belum ada data klub.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -448,12 +449,12 @@
 
         <div class="mt-3">{{ $clubs->links() }}</div>
     </div>
-    @if ($isAdmin)
+    @if ($isAdmin && ! $isHistoryView)
     </form>
     @endif
 </div>
 
-@if ($isAdmin)
+@if ($isAdmin && ! $isHistoryView)
 <div class="offcanvas offcanvas-end" tabindex="-1" id="clubFilterCanvas" aria-labelledby="clubFilterCanvasLabel">
     <div class="offcanvas-header">
         <div>

@@ -11,6 +11,7 @@
     $createButtonLabel = filled($fixedCompetitionFormat ?? null)
         ? 'Tambah Jadwal '.($formatOptions[$fixedCompetitionFormat] ?? ucfirst($fixedCompetitionFormat))
         : 'Tambah Jadwal';
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
 @endphp
 
 @section('content')
@@ -39,7 +40,9 @@
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
         </button>
-        <a href="{{ $createUrl }}" class="btn btn-primary">{{ $createButtonLabel }}</a>
+        @unless ($isHistoryView)
+            <a href="{{ $createUrl }}" class="btn btn-primary">{{ $createButtonLabel }}</a>
+        @endunless
     </div>
 </div>
 
@@ -49,26 +52,30 @@
     <form id="bulk-match-delete-form" method="POST" action="{{ route('matches.bulk-delete', request()->only(['club_id', 'age_group_id', 'lineup_status', 'competition_format', 'sort', 'direction'])) }}">
         @csrf
         <input type="hidden" name="redirect_route" value="{{ $indexRouteName }}">
-        <div class="card-body border-bottom bg-light-subtle">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div>
-                    <h4 class="card-title mb-1">Hapus Jadwal Massal</h4>
-                    <p class="text-muted mb-0">Pilih beberapa jadwal sekaligus. Jadwal yang sudah dipakai DSP akan dilewati otomatis saat proses hapus massal.</p>
-                </div>
-                <div class="d-flex flex-wrap align-items-center gap-3">
-                    <div class="small text-muted"><span data-bulk-selected-count>0</span> jadwal dipilih di halaman ini.</div>
-                    <button type="submit" class="btn btn-dark" data-bulk-submit disabled>Hapus Jadwal Terpilih</button>
+        @unless ($isHistoryView)
+            <div class="card-body border-bottom bg-light-subtle">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h4 class="card-title mb-1">Hapus Jadwal Massal</h4>
+                        <p class="text-muted mb-0">Pilih beberapa jadwal sekaligus. Jadwal yang sudah dipakai DSP akan dilewati otomatis saat proses hapus massal.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="small text-muted"><span data-bulk-selected-count>0</span> jadwal dipilih di halaman ini.</div>
+                        <button type="submit" class="btn btn-dark" data-bulk-submit disabled>Hapus Jadwal Terpilih</button>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endunless
         <div class="card-body p-0">
         <div class="table-responsive competition-table-wrap">
             <table class="table competition-table align-middle text-nowrap">
                 <thead>
                     <tr>
-                        <th class="text-center" style="width: 64px;">
-                            <input type="checkbox" class="form-check-input js-check-all">
-                        </th>
+                        @unless ($isHistoryView)
+                            <th class="text-center" style="width: 64px;">
+                                <input type="checkbox" class="form-check-input js-check-all">
+                            </th>
+                        @endunless
                         @include('competition.partials.sortable-th', ['key' => 'match_day', 'label' => 'Label Jadwal', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'matchup', 'label' => 'Pertandingan', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
@@ -92,9 +99,11 @@
                             $isComplete = $clubAReady && $clubBReady;
                         @endphp
                         <tr>
-                            <td class="text-center">
-                                <input type="checkbox" class="form-check-input js-match-row" name="selected_ids[]" value="{{ $match->id }}" aria-label="Pilih {{ $match->clubA?->name }} vs {{ $match->clubB?->name }}">
-                            </td>
+                            @unless ($isHistoryView)
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input js-match-row" name="selected_ids[]" value="{{ $match->id }}" aria-label="Pilih {{ $match->clubA?->name }} vs {{ $match->clubB?->name }}">
+                                </td>
+                            @endunless
                             <td>{{ $match->match_day }}</td>
                             <td>{{ $match->clubA?->name }} vs {{ $match->clubB?->name }}</td>
                             <td>{{ $match->ageGroup?->name }}</td>
@@ -140,24 +149,29 @@
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end p-2 competition-action-menu">
                                         <div class="competition-action-section">
-                                            <div class="competition-action-label px-2 pb-2">Jadwal Pertandingan</div>
-                                            <div class="small text-muted px-2 pb-2 text-wrap">Kelola detail jadwal atau hapus jadwal yang belum dipakai DSP.</div>
-                                            @include('competition.partials.action-item', [
-                                                'href' => route('matches.edit', ['match' => $match, 'redirect_route' => $indexRouteName]),
-                                                'icon' => 'square-pen',
-                                                'label' => 'Edit Jadwal',
-                                            ])
-                                            @include('competition.partials.action-item', [
-                                                'icon' => 'trash-2',
-                                                'label' => 'Hapus Jadwal',
-                                                'class' => 'text-danger js-delete-match',
-                                                'attributes' => [
-                                                    'data-bs-toggle' => 'modal',
-                                                    'data-bs-target' => '#deleteMatchModal',
-                                                    'data-action' => route('matches.destroy', ['match' => $match, 'redirect_route' => $indexRouteName]),
-                                                    'data-name' => $match->clubA?->name.' vs '.$match->clubB?->name,
-                                                ],
-                                            ])
+                                            @if ($isHistoryView)
+                                                <div class="competition-action-label px-2 pb-2">Histori Season</div>
+                                                <div class="small text-muted px-2 pb-2 text-wrap">Season histori bersifat read-only. Gunakan season aktif untuk menambah atau mengubah jadwal.</div>
+                                            @else
+                                                <div class="competition-action-label px-2 pb-2">Jadwal Pertandingan</div>
+                                                <div class="small text-muted px-2 pb-2 text-wrap">Kelola detail jadwal atau hapus jadwal yang belum dipakai DSP.</div>
+                                                @include('competition.partials.action-item', [
+                                                    'href' => route('matches.edit', ['match' => $match, 'redirect_route' => $indexRouteName]),
+                                                    'icon' => 'square-pen',
+                                                    'label' => 'Edit Jadwal',
+                                                ])
+                                                @include('competition.partials.action-item', [
+                                                    'icon' => 'trash-2',
+                                                    'label' => 'Hapus Jadwal',
+                                                    'class' => 'text-danger js-delete-match',
+                                                    'attributes' => [
+                                                        'data-bs-toggle' => 'modal',
+                                                        'data-bs-target' => '#deleteMatchModal',
+                                                        'data-action' => route('matches.destroy', ['match' => $match, 'redirect_route' => $indexRouteName]),
+                                                        'data-name' => $match->clubA?->name.' vs '.$match->clubB?->name,
+                                                    ],
+                                                ])
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -165,7 +179,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="competition-table-empty">Belum ada {{ strtolower($pageHeading) }}.</td>
+                            <td colspan="{{ $isHistoryView ? 10 : 11 }}" class="competition-table-empty">Belum ada {{ strtolower($pageHeading) }}.</td>
                         </tr>
                     @endforelse
                 </tbody>

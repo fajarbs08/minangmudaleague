@@ -8,6 +8,8 @@ use App\Models\LineupList;
 use App\Models\MatchGoal;
 use App\Models\MatchSchedule;
 use App\Services\HtmlPdfRenderer;
+use App\Services\SeasonContext;
+use App\Services\SeasonSnapshotService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -17,6 +19,11 @@ use Illuminate\Validation\ValidationException;
 
 class MatchScheduleController extends Controller
 {
+    public function __construct(
+        private SeasonContext $seasonContext,
+        private SeasonSnapshotService $seasonSnapshotService
+    ) {}
+
     public function index(Request $request)
     {
         return $this->renderMatchIndex($request, MatchSchedule::FORMAT_LEAGUE);
@@ -34,6 +41,8 @@ class MatchScheduleController extends Controller
 
     public function create(Request $request)
     {
+        $this->ensureWritableSeasonContext();
+
         $matchSchedule = new MatchSchedule;
         $requestedCompetitionFormat = $this->normalizeCompetitionFormat($request->input('competition_format'));
         $matchSchedule->competition_format = $requestedCompetitionFormat ?? MatchSchedule::FORMAT_LEAGUE;
@@ -59,6 +68,8 @@ class MatchScheduleController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureWritableSeasonContext();
+
         $match = MatchSchedule::create($this->validatedData($request));
         $redirectRouteName = $this->resolveMatchIndexRouteName($request, $match->competition_format);
 
@@ -67,6 +78,8 @@ class MatchScheduleController extends Controller
 
     public function edit(Request $request, MatchSchedule $match)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonMatch($match);
         $redirectRouteName = $this->resolveMatchIndexRouteName($request, $match->competition_format);
 
         return view('competition.matches.edit', [
@@ -85,6 +98,9 @@ class MatchScheduleController extends Controller
 
     public function update(Request $request, MatchSchedule $match)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonMatch($match);
+
         if ($match->lineupLists()->exists()) {
             throw ValidationException::withMessages([
                 'match' => 'Jadwal ini sudah dipakai di DSP, jadi tidak bisa diubah. Buat jadwal baru atau hapus DSP yang terkait terlebih dahulu.',
@@ -100,6 +116,9 @@ class MatchScheduleController extends Controller
 
     public function destroy(Request $request, MatchSchedule $match)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonMatch($match);
+
         if ($match->lineupLists()->exists()) {
             throw ValidationException::withMessages([
                 'match' => 'Jadwal pertandingan yang sudah dipakai DSP tidak bisa dihapus.',
@@ -117,13 +136,14 @@ class MatchScheduleController extends Controller
     public function bulkDestroy(Request $request)
     {
         abort_unless($request->user()?->isAdmin(), 403);
+        $this->ensureWritableSeasonContext();
 
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1'],
             'selected_ids.*' => ['integer', 'exists:match_schedules,id'],
         ]);
 
-        $matches = MatchSchedule::query()
+        $matches = MatchSchedule::query()->forActiveSeason()
             ->withCount('lineupLists')
             ->whereIn('id', $validated['selected_ids'])
             ->get();
@@ -147,7 +167,7 @@ class MatchScheduleController extends Controller
                 ]);
         }
 
-        MatchSchedule::query()->whereIn('id', $deletableIds)->delete();
+        MatchSchedule::query()->forActiveSeason()->whereIn('id', $deletableIds)->delete();
 
         $message = $deletableIds->count().' jadwal pertandingan berhasil dihapus.';
 
@@ -163,6 +183,8 @@ class MatchScheduleController extends Controller
     public function updateKnockoutPosition(Request $request, MatchSchedule $match)
     {
         abort_unless($request->user()?->isAdmin(), 403);
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonMatch($match);
         abort_unless($match->competition_format === MatchSchedule::FORMAT_KNOCKOUT, 404);
 
         $validated = $request->validate([
@@ -183,7 +205,7 @@ class MatchScheduleController extends Controller
         }
 
         if (filled($validated['swap_match_id'] ?? null)) {
-            $swapMatch = MatchSchedule::query()->findOrFail((int) $validated['swap_match_id']);
+            $swapMatch = MatchSchedule::query()->forActiveSeason()->findOrFail((int) $validated['swap_match_id']);
 
             if ($swapMatch->competition_format !== MatchSchedule::FORMAT_KNOCKOUT || (int) $swapMatch->age_group_id !== (int) $match->age_group_id) {
                 throw ValidationException::withMessages([
@@ -299,7 +321,7 @@ class MatchScheduleController extends Controller
             allowedSorts: ['match_day', 'matchup', 'age_group', 'competition_format', 'round_order', 'venue', 'match_date', 'kickoff_time'],
         );
 
-        $matches = MatchSchedule::query()
+        $matches = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id,verification_status'])
             ->when($request->input('club_id'), function ($query, $clubId) {
                 $query->where(fn ($inner) => $inner
@@ -356,7 +378,7 @@ class MatchScheduleController extends Controller
             allowedSorts: ['match_day', 'matchup', 'age_group', 'competition_format', 'round_order', 'match_date', 'venue', 'is_finished'],
         );
 
-        $matches = MatchSchedule::query()
+        $matches = MatchSchedule::query()->forActiveSeason()
             ->with([
                 'ageGroup',
                 'clubA',
@@ -590,6 +612,8 @@ class MatchScheduleController extends Controller
     public function updateResult(Request $request, MatchSchedule $match)
     {
         abort_unless($request->user()?->isAdmin(), 403);
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonMatch($match);
 
         $validated = $request->validate([
             'score_club_a' => ['nullable', 'integer', 'min:0', 'max:99', 'required_with:score_club_b,is_finished'],
@@ -635,6 +659,7 @@ class MatchScheduleController extends Controller
 
     private function validatedData(Request $request): array
     {
+        $activeSeason = $this->seasonContext->requireActive();
         $validated = $request->validate([
             'age_group_id' => ['required', AgeGroup::competitionExistsRule()],
             'competition_format' => ['required', 'in:league,knockout'],
@@ -656,7 +681,7 @@ class MatchScheduleController extends Controller
         $clubIds = [(int) $validated['club_a_id'], (int) $validated['club_b_id']];
         sort($clubIds);
 
-        $baseQuery = MatchSchedule::query()
+        $baseQuery = MatchSchedule::query()->forActiveSeason()
             ->when($matchId, fn ($query) => $query->whereKeyNot($matchId));
 
         $pairConflict = (clone $baseQuery)
@@ -720,6 +745,10 @@ class MatchScheduleController extends Controller
             currentMatchId: $matchId,
         );
 
+        $validated['season_id'] = $activeSeason->id;
+        $validated['club_a_season_id'] = $this->seasonSnapshotService->seasonClubIdForClub((int) $validated['club_a_id'], $activeSeason->id);
+        $validated['club_b_season_id'] = $this->seasonSnapshotService->seasonClubIdForClub((int) $validated['club_b_id'], $activeSeason->id);
+
         return $validated;
     }
 
@@ -733,7 +762,7 @@ class MatchScheduleController extends Controller
 
     private function buildKnockoutSourceOptionsByAgeGroup(?int $ignoreMatchId = null): array
     {
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->with([
                 'clubA:id,name,short_name',
                 'clubB:id,name,short_name',
@@ -774,7 +803,7 @@ class MatchScheduleController extends Controller
             ->orderBy('name')
             ->get();
 
-        $matchesByAgeGroup = MatchSchedule::query()
+        $matchesByAgeGroup = MatchSchedule::query()->forActiveSeason()
             ->with([
                 'clubA',
                 'clubB',
@@ -889,7 +918,7 @@ class MatchScheduleController extends Controller
 
     private function buildKnockoutAgeGroupSummaries(): Collection
     {
-        $matchCountsByAgeGroup = MatchSchedule::query()
+        $matchCountsByAgeGroup = MatchSchedule::query()->forActiveSeason()
             ->select('age_group_id', DB::raw('COUNT(*) as total_matches'))
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->groupBy('age_group_id')
@@ -976,7 +1005,7 @@ class MatchScheduleController extends Controller
                 $messages['source_match_b_id'] = 'Sumber Tim A dan Tim B harus berasal dari pertandingan yang berbeda.';
             }
 
-            $sourceMatches = MatchSchedule::query()
+            $sourceMatches = MatchSchedule::query()->forActiveSeason()
                 ->whereIn('id', $sourceSelections->values())
                 ->get(['id', 'age_group_id', 'competition_format', 'round_order'])
                 ->keyBy('id');
@@ -1012,7 +1041,7 @@ class MatchScheduleController extends Controller
         }
 
         if ($currentMatch) {
-            $downstreamMatches = MatchSchedule::query()
+            $downstreamMatches = MatchSchedule::query()->forActiveSeason()
                 ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
                 ->where('age_group_id', $ageGroupId)
                 ->where(function ($query) use ($currentMatch) {
@@ -1227,7 +1256,7 @@ class MatchScheduleController extends Controller
 
     private function buildReportSummary($user, Collection $clubIds, ?int $ageGroupId = null): array
     {
-        $matchQuery = MatchSchedule::query()
+        $matchQuery = MatchSchedule::query()->forActiveSeason()
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
             ->whereNotNull('score_club_b')
@@ -1241,7 +1270,7 @@ class MatchScheduleController extends Controller
         }
 
         $matches = $matchQuery->get(['id', 'age_group_id', 'score_club_a', 'score_club_b']);
-        $assistQuery = MatchGoal::query()
+        $assistQuery = MatchGoal::query()->forActiveSeason()
             ->join('match_schedules', 'match_schedules.id', '=', 'match_goals.match_id')
             ->where('match_schedules.is_finished', true)
             ->whereNotNull('match_goals.assist_player_id')
@@ -1282,7 +1311,7 @@ class MatchScheduleController extends Controller
     {
         $relationColumn = $type === 'assist' ? 'assist_player_id' : 'player_id';
         $ageGroups = AgeGroup::competition()->get()->keyBy('id');
-        $rows = MatchGoal::query()
+        $rows = MatchGoal::query()->forActiveSeason()
             ->select([
                 'match_schedules.age_group_id',
                 'players.id as player_id',
@@ -1336,7 +1365,7 @@ class MatchScheduleController extends Controller
             return collect();
         }
 
-        $query = MatchSchedule::query()
+        $query = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->when($ageGroupId, fn ($builder) => $builder->where('age_group_id', $ageGroupId));
@@ -1507,7 +1536,7 @@ class MatchScheduleController extends Controller
 
     private function knockoutEliminatedClubIdsByAgeGroup(?int $ignoreMatchId = null): array
     {
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -1579,7 +1608,7 @@ class MatchScheduleController extends Controller
             return;
         }
 
-        $existingMatch = MatchSchedule::query()
+        $existingMatch = MatchSchedule::query()->forActiveSeason()
             ->with(['clubA:id,name', 'clubB:id,name'])
             ->when($currentMatchId, fn ($query) => $query->whereKeyNot($currentMatchId))
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
@@ -1610,7 +1639,7 @@ class MatchScheduleController extends Controller
             return collect();
         }
 
-        $baseQuery = MatchSchedule::query()
+        $baseQuery = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
             ->where('is_finished', true)
@@ -1619,7 +1648,7 @@ class MatchScheduleController extends Controller
             ->when($ageGroupId, fn ($query) => $query->where('age_group_id', $ageGroupId));
 
         if (! $user->isAdmin()) {
-            $allowedAgeGroupIds = MatchSchedule::query()
+            $allowedAgeGroupIds = MatchSchedule::query()->forActiveSeason()
                 ->where(function ($query) use ($clubIds) {
                     $query->whereIn('club_a_id', $clubIds)
                         ->orWhereIn('club_b_id', $clubIds);
@@ -1718,8 +1747,10 @@ class MatchScheduleController extends Controller
 
     private function normalizeGoalEvents(array $goalEvents): array
     {
+        $activeSeasonId = $this->seasonContext->requireActive()->id;
+
         return collect($goalEvents)
-            ->map(function ($goalEvent, int $index) {
+            ->map(function ($goalEvent, int $index) use ($activeSeasonId) {
                 $clubId = isset($goalEvent['club_id']) && $goalEvent['club_id'] !== '' ? (int) $goalEvent['club_id'] : null;
                 $playerId = isset($goalEvent['player_id']) && $goalEvent['player_id'] !== '' ? (int) $goalEvent['player_id'] : null;
                 $assistPlayerId = isset($goalEvent['assist_player_id']) && $goalEvent['assist_player_id'] !== '' ? (int) $goalEvent['assist_player_id'] : null;
@@ -1729,9 +1760,13 @@ class MatchScheduleController extends Controller
                 }
 
                 return [
+                    'season_id' => $activeSeasonId,
                     'club_id' => $clubId,
+                    'season_club_id' => $clubId ? $this->seasonSnapshotService->seasonClubIdForClub($clubId, $activeSeasonId) : null,
                     'player_id' => $playerId,
+                    'season_player_id' => $playerId ? $this->seasonSnapshotService->seasonPlayerIdForPlayer($playerId, $activeSeasonId) : null,
                     'assist_player_id' => $assistPlayerId,
+                    'assist_season_player_id' => $assistPlayerId ? $this->seasonSnapshotService->seasonPlayerIdForPlayer($assistPlayerId, $activeSeasonId) : null,
                     'display_order' => $index + 1,
                 ];
             })
@@ -1832,5 +1867,21 @@ class MatchScheduleController extends Controller
                 ->unique()
                 ->values())
             ->toArray();
+    }
+
+    private function ensureActiveSeasonMatch(MatchSchedule $match): void
+    {
+        $activeSeasonId = $this->seasonContext->activeId();
+
+        if ($match->season_id && $activeSeasonId && (int) $match->season_id !== (int) $activeSeasonId) {
+            abort(403, 'Data pertandingan dari season yang sudah tidak aktif bersifat read-only.');
+        }
+    }
+
+    private function ensureWritableSeasonContext(): void
+    {
+        if ($this->seasonContext->isViewingHistory()) {
+            abort(403, 'Kamu sedang melihat histori season. Kembali ke season aktif untuk menambah atau mengubah data pertandingan.');
+        }
     }
 }

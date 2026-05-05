@@ -18,6 +18,8 @@
             <div class="page-container">
                 <div class="page-content">
 
+                    @include('layouts.partials.season-context-banner')
+
                     @yield('content')
 
                 </div>

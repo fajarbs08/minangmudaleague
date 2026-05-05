@@ -162,6 +162,7 @@
     </style>
 </head>
 <body>
+    @php($clubModel = method_exists($player, 'seasonClub') && $player->seasonClub ? $player->seasonClub : $player->club)
     <div class="wrap">
         <div class="card">
             <div class="head">
@@ -179,12 +180,12 @@
                 </div>
                 <div>
                     <div class="name">{{ $player->name }}</div>
-                    <div class="sub">{{ $player->club?->name ?: '-' }} · {{ $player->primaryAgeGroup?->name ?: '-' }}</div>
+                    <div class="sub">{{ $clubModel?->name ?: '-' }} · {{ $player->primaryAgeGroup?->name ?: '-' }}</div>
                     <div class="badge">Terverifikasi untuk dilihat publik</div>
                     <div class="note">Halaman QR publik ini hanya menampilkan ringkasan verifikasi pemain. Data pribadi dan dokumen pendukung tidak ditampilkan.</div>
 
                     <div class="grid">
-                        <div class="item"><div class="label">Klub</div><div class="value">{{ $player->club?->name ?: '-' }}</div></div>
+                        <div class="item"><div class="label">Klub</div><div class="value">{{ $clubModel?->name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Kelompok Usia</div><div class="value">{{ $player->primaryAgeGroup?->name ?: '-' }}</div></div>
                         <div class="item"><div class="label">Posisi</div><div class="value">{{ $player->displayPosition($player->primary_age_group_id) ?: $player->position ?: '-' }}</div></div>
                         <div class="item"><div class="label">Nomor Punggung</div><div class="value">{{ $player->displayJerseyNumber($player->primary_age_group_id) ?: '-' }}</div></div>

@@ -9,6 +9,8 @@ use App\Models\LineupList;
 use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
+use App\Services\SeasonContext;
+use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +18,11 @@ use Illuminate\Validation\ValidationException;
 class LineupListController extends Controller
 {
     use HandlesVerificationWorkflow;
+
+    public function __construct(
+        private SeasonContext $seasonContext,
+        private SeasonSnapshotService $seasonSnapshotService
+    ) {}
 
     public function index(Request $request)
     {
@@ -34,7 +41,7 @@ class LineupListController extends Controller
             ->orderBy('name')
             ->get();
 
-        $lineupLists = LineupList::query()
+        $lineupLists = LineupList::query()->forActiveSeason()
             ->with(['club', 'ageGroup', 'players', 'match.clubA', 'match.clubB', 'match.lineupLists:id,match_id,club_id'])
             ->whereIn('club_id', $clubs->pluck('id'))
             ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
@@ -74,6 +81,7 @@ class LineupListController extends Controller
 
     public function bulkReview(Request $request)
     {
+        $this->ensureWritableSeasonContext();
         $clubs = $this->availableClubs();
         abort_unless(auth()->user()->isAdmin(), 403);
 
@@ -90,7 +98,7 @@ class LineupListController extends Controller
             ]);
         }
 
-        $models = LineupList::query()
+        $models = LineupList::query()->forActiveSeason()
             ->whereIn('club_id', $clubs->pluck('id'))
             ->whereKey($validated['selected_ids'])
             ->get();
@@ -127,6 +135,8 @@ class LineupListController extends Controller
 
     public function create()
     {
+        $this->ensureWritableSeasonContext();
+
         $lineupList = new LineupList([
             'club_id' => request('club_id'),
             'age_group_id' => request('age_group_id'),
@@ -152,6 +162,8 @@ class LineupListController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureWritableSeasonContext();
+
         $data = $this->validatedData($request);
         $this->ensureClubAccess($data['club_id']);
         $this->ensureUniqueLineup($data);
@@ -165,6 +177,8 @@ class LineupListController extends Controller
 
     public function edit(LineupList $lineupList)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonLineup($lineupList);
         $this->ensureClubAccess($lineupList->club_id);
         abort_unless(auth()->user()->isAdmin() || $lineupList->canBeEditedByClub(), 422);
         $lineupPlayers = $this->lineupPlayers();
@@ -244,6 +258,8 @@ class LineupListController extends Controller
 
     public function update(Request $request, LineupList $lineupList)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonLineup($lineupList);
         $data = $this->validatedData($request);
         $this->ensureClubAccess($lineupList->club_id);
         $this->ensureClubAccess($data['club_id']);
@@ -259,6 +275,8 @@ class LineupListController extends Controller
 
     public function submit(LineupList $lineupList)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonLineup($lineupList);
         $this->ensureClubAccess($lineupList->club_id);
 
         return $this->submitForVerification($lineupList, 'DSP berhasil dikirim untuk verifikasi.');
@@ -266,6 +284,7 @@ class LineupListController extends Controller
 
     public function review(Request $request, LineupList $lineupList)
     {
+        $this->ensureWritableSeasonContext();
         $validated = $this->validateReviewPayload($request);
 
         return $this->reviewSubmission(
@@ -278,6 +297,8 @@ class LineupListController extends Controller
 
     public function destroy(LineupList $lineupList)
     {
+        $this->ensureWritableSeasonContext();
+        $this->ensureActiveSeasonLineup($lineupList);
         $this->ensureClubAccess($lineupList->club_id);
         abort_unless(auth()->user()->isAdmin() || $lineupList->canBeSubmittedByClub(), 403);
 
@@ -326,8 +347,10 @@ class LineupListController extends Controller
         ));
 
         return [
+            'season_id' => $this->seasonContext->requireActive()->id,
             'match_id' => $match->id,
             'club_id' => (int) $validated['club_id'],
+            'season_club_id' => $this->seasonSnapshotService->seasonClubIdForClub((int) $validated['club_id']),
             'age_group_id' => $match->age_group_id,
             'title' => substr($title, 0, 255),
             'match_day' => $match->match_day,
@@ -388,7 +411,7 @@ class LineupListController extends Controller
         $clubIds = $this->availableClubs()->pluck('id');
         $currentClubId = ! $user->isAdmin() ? (int) $clubIds->first() : null;
 
-        $query = MatchSchedule::query()
+        $query = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB', 'lineupLists:id,match_id,club_id'])
             ->when(! $clubIds->isEmpty(), function ($query) use ($clubIds) {
                 $query->where(function ($inner) use ($clubIds) {
@@ -454,6 +477,7 @@ class LineupListController extends Controller
                     'role' => LineupList::ROLE_STARTER,
                     'display_order' => $index + 1,
                     'jersey_number' => $this->cleanJerseyNumberForStorage($starterJerseys[$playerId] ?? null),
+                    'season_player_id' => $this->seasonSnapshotService->seasonPlayerIdForPlayer((int) $playerId),
                 ];
             }
         }
@@ -464,6 +488,7 @@ class LineupListController extends Controller
                     'role' => LineupList::ROLE_SUBSTITUTE,
                     'display_order' => $index + 1,
                     'jersey_number' => $this->cleanJerseyNumberForStorage($substituteJerseys[$playerId] ?? null),
+                    'season_player_id' => $this->seasonSnapshotService->seasonPlayerIdForPlayer((int) $playerId),
                 ];
             }
         }
@@ -591,7 +616,7 @@ class LineupListController extends Controller
 
     private function ensureUniqueLineup(array $data, ?int $ignoreId = null): void
     {
-        $exists = LineupList::query()
+        $exists = LineupList::query()->forActiveSeason()
             ->where('match_id', $data['match_id'])
             ->where('club_id', $data['club_id'])
             ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
@@ -617,5 +642,21 @@ class LineupListController extends Controller
     {
         return $this->lineupPlayerBaseQuery()
             ->where('verification_status', Player::STATUS_APPROVED);
+    }
+
+    private function ensureActiveSeasonLineup(LineupList $lineupList): void
+    {
+        $activeSeasonId = $this->seasonContext->activeId();
+
+        if ($lineupList->season_id && $activeSeasonId && (int) $lineupList->season_id !== (int) $activeSeasonId) {
+            abort(403, 'DSP dari season yang sudah tidak aktif bersifat read-only.');
+        }
+    }
+
+    private function ensureWritableSeasonContext(): void
+    {
+        if ($this->seasonContext->isViewingHistory()) {
+            abort(403, 'Kamu sedang melihat histori season. Kembali ke season aktif untuk menambah atau mengubah DSP.');
+        }
     }
 }

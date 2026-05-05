@@ -9,15 +9,23 @@ use App\Models\LineupList;
 use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
+use App\Models\Season;
+use App\Models\SeasonClub;
+use App\Models\SeasonOfficial;
+use App\Models\SeasonPlayer;
 use App\Models\Sponsor;
 use App\Models\User;
+use App\Services\SeasonContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
+    public function __construct(private SeasonContext $seasonContext) {}
+
     public function publicHome()
     {
         return view('public.home', $this->publicPageData([
@@ -97,7 +105,7 @@ class DashboardController extends Controller
                     ))
             )
             ->merge(
-                MatchSchedule::query()
+                MatchSchedule::query()->forActiveSeason()
                     ->with([
                         'clubA:id,name,short_name',
                         'clubB:id,name,short_name',
@@ -290,7 +298,7 @@ class DashboardController extends Controller
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $scheduledMatchesQuery = MatchSchedule::query()
+        $scheduledMatchesQuery = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->whereDate('match_date', '>=', now()->toDateString())
             ->where('is_finished', false)
@@ -388,7 +396,7 @@ class DashboardController extends Controller
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $resultsQuery = MatchSchedule::query()
+        $resultsQuery = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -682,51 +690,121 @@ class DashboardController extends Controller
         return view('public.standings', $viewData);
     }
 
-    public function publicClubs()
+    public function publicClubs(Request $request)
     {
+        $season = $this->selectedPublicSeason($request);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $featuredClubs = $isHistoricalPublicSeason
+            ? SeasonClub::query()
+                ->where('season_id', $season?->id)
+                ->where('verification_status', Club::STATUS_APPROVED)
+                ->orderBy('name')
+                ->get()
+            : Club::query()
+                ->where('verification_status', Club::STATUS_APPROVED)
+                ->latest('updated_at')
+                ->limit(12)
+                ->get();
+
         return view('public.clubs', $this->publicPageData([
             'title' => 'Klub Peserta',
             'seoTitle' => 'Klub Peserta Liga Anak Piaman Laweh | Profil Tim',
             'activePublicPage' => 'clubs',
             'bannerTitle' => 'Daftar Klub',
             'bannerCurrent' => 'Daftar Klub',
-            'seoDescription' => 'Daftar klub peserta Liga Anak Piaman Laweh lengkap dengan profil singkat, pemain, dan ofisial terdaftar.',
+            'seoDescription' => 'Daftar klub peserta '.($season?->name ?: 'Liga Anak Piaman Laweh').' lengkap dengan profil singkat, pemain, dan ofisial terdaftar.',
+            'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
+            'featuredClubs' => $featuredClubs,
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
         ]));
     }
 
-    public function publicClubShow(string $clubSlug)
+    public function publicClubShow(Request $request, string $clubSlug)
     {
         preg_match('/(\d+)$/', $clubSlug, $matches);
         $clubId = isset($matches[1]) ? (int) $matches[1] : 0;
 
-        $club = Club::query()->findOrFail($clubId);
+        $season = $this->selectedPublicSeason($request);
+        $isHistoricalPublicSeason = ! $this->seasonContext->isActiveSeason($season);
+        $publicSeasonQuery = $this->publicSeasonQuery($season);
 
-        abort_unless($club->verification_status === Club::STATUS_APPROVED, 404);
+        if ($isHistoricalPublicSeason) {
+            $club = SeasonClub::query()
+                ->where('season_id', $season?->id)
+                ->where('club_id', $clubId)
+                ->where('verification_status', Club::STATUS_APPROVED)
+                ->firstOrFail();
 
-        $club->load([
-            'players' => fn ($query) => $query
+            if ($clubSlug !== $club->public_slug) {
+                return redirect()->route('public.clubs.show', ['clubSlug' => $club->public_slug] + $publicSeasonQuery, 301);
+            }
+
+            $clubPlayers = SeasonPlayer::query()
                 ->with('primaryAgeGroup')
+                ->where('season_id', $season?->id)
+                ->where('club_id', $club->club_id)
                 ->where('verification_status', Player::STATUS_APPROVED)
                 ->orderByDesc('is_captain')
-                ->orderBy('name'),
-            'officials' => fn ($query) => $query
+                ->orderBy('name')
+                ->get();
+
+            $clubOfficials = SeasonOfficial::query()
                 ->with('ageGroup')
+                ->where('season_id', $season?->id)
+                ->where('club_id', $club->club_id)
                 ->where('verification_status', Official::STATUS_APPROVED)
                 ->where('is_active', true)
                 ->orderBy('role')
-                ->orderBy('name'),
-        ]);
+                ->orderBy('name')
+                ->get();
 
-        $clubMatches = MatchSchedule::query()
-            ->with(['ageGroup', 'clubA', 'clubB'])
-            ->where(function ($query) use ($club) {
-                $query->where('club_a_id', $club->id)
-                    ->orWhere('club_b_id', $club->id);
-            })
-            ->orderByDesc('match_date')
-            ->orderByDesc('kickoff_time')
-            ->limit(6)
-            ->get();
+            $clubMatches = MatchSchedule::query()
+                ->forSeason($season?->id)
+                ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
+                ->where(function ($query) use ($club) {
+                    $query->where('club_a_id', $club->club_id)
+                        ->orWhere('club_b_id', $club->club_id);
+                })
+                ->orderByDesc('match_date')
+                ->orderByDesc('kickoff_time')
+                ->limit(6)
+                ->get();
+        } else {
+            $club = Club::query()->findOrFail($clubId);
+
+            abort_unless($club->verification_status === Club::STATUS_APPROVED, 404);
+
+            $club->load([
+                'players' => fn ($query) => $query
+                    ->with('primaryAgeGroup')
+                    ->where('verification_status', Player::STATUS_APPROVED)
+                    ->orderByDesc('is_captain')
+                    ->orderBy('name'),
+                'officials' => fn ($query) => $query
+                    ->with('ageGroup')
+                    ->where('verification_status', Official::STATUS_APPROVED)
+                    ->where('is_active', true)
+                    ->orderBy('role')
+                    ->orderBy('name'),
+            ]);
+
+            $clubPlayers = $club->players;
+            $clubOfficials = $club->officials;
+            $clubMatches = MatchSchedule::query()->forActiveSeason()
+                ->with(['ageGroup', 'clubA', 'clubB'])
+                ->where(function ($query) use ($club) {
+                    $query->where('club_a_id', $club->id)
+                        ->orWhere('club_b_id', $club->id);
+                })
+                ->orderByDesc('match_date')
+                ->orderByDesc('kickoff_time')
+                ->limit(6)
+                ->get();
+        }
 
         return view('public.club-show', $this->publicPageData([
             'title' => $club->name.' - Klub Peserta',
@@ -736,26 +814,31 @@ class DashboardController extends Controller
             'pageHeadingAccentWord' => 'Klub',
             'breadcrumbItems' => [
                 ['label' => 'Beranda', 'url' => route('public.home')],
-                ['label' => 'Daftar Klub', 'url' => route('public.clubs')],
+                ['label' => 'Daftar Klub', 'url' => route('public.clubs', $publicSeasonQuery)],
                 ['label' => $club->name],
             ],
             'club' => $club,
-            'clubPlayers' => $club->players,
-            'clubOfficials' => $club->officials,
+            'clubPlayers' => $clubPlayers,
+            'clubOfficials' => $clubOfficials,
             'clubRecentMatches' => $clubMatches,
             'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
-            'seoDescription' => 'Profil klub '.$club->name.' di Liga Anak Piaman Laweh, termasuk pemain, ofisial, dan riwayat pertandingan terbaru.',
+            'seoDescription' => 'Profil klub '.$club->name.' pada '.($season?->name ?: 'Liga Anak Piaman Laweh').', termasuk pemain, ofisial, dan riwayat pertandingan terbaru.',
             'seoImage' => $this->normalizeAbsoluteUrl($club->logo_file_url ?: $this->defaultSeoImageUrl()),
+            'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
             'seoSchemaType' => 'ProfilePage',
             'seoStructuredData' => [[
                 '@context' => 'https://schema.org',
                 '@type' => 'SportsTeam',
                 'name' => $club->name,
                 'alternateName' => $club->short_name ?: null,
-                'url' => route('public.clubs.show', ['clubSlug' => $club->public_slug]),
+                'url' => route('public.clubs.show', ['clubSlug' => $club->public_slug] + $publicSeasonQuery),
                 'logo' => $this->normalizeAbsoluteUrl($club->logo_file_url ?: $this->defaultSeoImageUrl()),
                 'sport' => 'Soccer',
             ]],
+            'selectedPublicSeason' => $season,
+            'publicSeasonOptions' => $this->seasonContext->publicVisible(),
+            'publicSeasonQuery' => $publicSeasonQuery,
+            'isHistoricalPublicSeason' => $isHistoricalPublicSeason,
         ]));
     }
 
@@ -763,10 +846,25 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $clubIds = $user->isAdmin() ? Club::query()->select('id') : $user->clubs()->select('id');
+        $currentSeasonId = $this->seasonContext->currentId();
+        $showAdminWorkflow = $user->isAdmin() && ! $this->seasonContext->isViewingHistory();
+        $hasSeasonSnapshots = $currentSeasonId
+            && Schema::hasTable('season_clubs')
+            && Schema::hasTable('season_officials')
+            && Schema::hasTable('season_players');
 
-        return view('competition.dashboard', [
-            'title' => 'Dashboard Registrasi',
-            'stats' => [
+        $stats = $hasSeasonSnapshots
+            ? [
+                'clubs' => SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
+                'officials' => SeasonOfficial::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
+                'players' => SeasonPlayer::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
+                'lineups' => LineupList::query()->forActiveSeason()->whereIn('club_id', $clubIds)->count(),
+                'pending_clubs' => SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                'pending_officials' => SeasonOfficial::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                'pending_players' => SeasonPlayer::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                'pending_lineups' => LineupList::query()->forActiveSeason()->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+            ]
+            : [
                 'clubs' => Club::whereIn('id', $clubIds)->count(),
                 'officials' => Official::whereIn('club_id', $clubIds)->count(),
                 'players' => Player::whereIn('club_id', $clubIds)->count(),
@@ -775,15 +873,39 @@ class DashboardController extends Controller
                 'pending_officials' => Official::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
                 'pending_players' => Player::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
                 'pending_lineups' => LineupList::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-            ],
-            'recentPlayers' => Player::with(['club', 'primaryAgeGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get(),
-            'recentLineups' => LineupList::with(['club', 'ageGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get(),
-            'clubSummary' => ! $user->isAdmin() ? Club::whereIn('id', $clubIds)->latest()->first() : null,
-            'adminReviewStats' => $user->isAdmin() ? $this->adminReviewStats() : [],
-            'adminQueues' => $user->isAdmin() ? $this->adminQueues() : [],
-            'recentSubmissions' => $user->isAdmin() ? $this->recentSubmissions() : collect(),
-            'oldestPendingReviews' => $user->isAdmin() ? $this->oldestPendingReviews() : collect(),
-            'adminResources' => $user->isAdmin() ? [
+            ];
+
+        $recentPlayers = $hasSeasonSnapshots
+            ? SeasonPlayer::query()->with(['seasonClub', 'primaryAgeGroup'])->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->latest('updated_at')->take(5)->get()
+            : Player::with(['club', 'primaryAgeGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get();
+
+        $recentLineups = LineupList::query()
+            ->when($hasSeasonSnapshots, fn ($query) => $query->forActiveSeason())
+            ->with(['club', 'ageGroup'])
+            ->whereIn('club_id', $clubIds)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $clubSummary = null;
+        if (! $user->isAdmin()) {
+            $clubSummary = $hasSeasonSnapshots
+                ? SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->latest('id')->first()
+                : Club::whereIn('id', $clubIds)->latest()->first();
+        }
+
+        return view('competition.dashboard', [
+            'title' => 'Dashboard Registrasi',
+            'stats' => $stats,
+            'recentPlayers' => $recentPlayers,
+            'recentLineups' => $recentLineups,
+            'clubSummary' => $clubSummary,
+            'showAdminWorkflow' => $showAdminWorkflow,
+            'adminReviewStats' => $showAdminWorkflow ? $this->adminReviewStats() : [],
+            'adminQueues' => $showAdminWorkflow ? $this->adminQueues() : [],
+            'recentSubmissions' => $showAdminWorkflow ? $this->recentSubmissions() : collect(),
+            'oldestPendingReviews' => $showAdminWorkflow ? $this->oldestPendingReviews() : collect(),
+            'adminResources' => $showAdminWorkflow ? [
                 'club_accounts' => User::query()->where('role', 'club')->count(),
                 'unused_club_accounts' => User::query()->where('role', 'club')->doesntHave('clubs')->count(),
             ] : [],
@@ -792,7 +914,7 @@ class DashboardController extends Controller
 
     private function publicStandingsMatchesQuery(): Builder
     {
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
             ->where('is_finished', true)
@@ -904,7 +1026,7 @@ class DashboardController extends Controller
 
     private function publicKnockoutBrackets(): Collection
     {
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->whereHas('ageGroup', fn (Builder $query) => $query->competition())
@@ -1137,7 +1259,7 @@ class DashboardController extends Controller
 
     private function publicPageData(array $overrides = []): array
     {
-        $upcomingMatches = MatchSchedule::query()
+        $upcomingMatches = MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->whereDate('match_date', '>=', now()->toDateString())
             ->orderBy('match_date')
@@ -1171,7 +1293,7 @@ class DashboardController extends Controller
                 'clubs' => Club::query()->count(),
                 'officials' => Official::query()->count(),
                 'players' => Player::query()->count(),
-                'lineups' => LineupList::query()->count(),
+                'lineups' => LineupList::query()->forActiveSeason()->count(),
             ],
             'featuredClubs' => $featuredClubs,
             'featuredPlayers' => $featuredPlayers,
@@ -1212,7 +1334,7 @@ class DashboardController extends Controller
 
     private function publicResultsQuery(): Builder
     {
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -1228,6 +1350,20 @@ class DashboardController extends Controller
         }
 
         return $value;
+    }
+
+    private function selectedPublicSeason(Request $request): ?Season
+    {
+        return $this->seasonContext->resolvePublic($request->query('season'));
+    }
+
+    private function publicSeasonQuery(?Season $season): array
+    {
+        if (! $season || $this->seasonContext->isActiveSeason($season)) {
+            return [];
+        }
+
+        return ['season' => $season->slug];
     }
 
     private function resolvePublicResult(string $matchSlug): MatchSchedule
@@ -1247,7 +1383,7 @@ class DashboardController extends Controller
 
         abort_unless($matchId > 0, 404);
 
-        return MatchSchedule::query()
+        return MatchSchedule::query()->forActiveSeason()
             ->with(['ageGroup', 'clubA', 'clubB'])
             ->whereKey($matchId)
             ->firstOrFail();
@@ -1255,7 +1391,7 @@ class DashboardController extends Controller
 
     private function buildPublicResultClubStats(MatchSchedule $match, int $clubId): array
     {
-        $history = MatchSchedule::query()
+        $history = MatchSchedule::query()->forActiveSeason()
             ->select(['id', 'club_a_id', 'club_b_id', 'score_club_a', 'score_club_b', 'match_date', 'kickoff_time'])
             ->where('age_group_id', $match->age_group_id)
             ->where('competition_format', $match->competition_format)
@@ -1428,7 +1564,7 @@ class DashboardController extends Controller
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_SUBMITTED)->count()
                     + Official::query()->where('verification_status', Official::STATUS_SUBMITTED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_SUBMITTED)->count()
-                    + LineupList::query()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
+                    + LineupList::query()->forActiveSeason()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
                 'hint' => 'Total klub, ofisial, pemain, dan DSP yang baru diajukan.',
                 'class' => 'border-warning border-opacity-25',
                 'tone' => 'pending',
@@ -1439,7 +1575,7 @@ class DashboardController extends Controller
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_REVISION)->count()
                     + Official::query()->where('verification_status', Official::STATUS_REVISION)->count()
                     + Player::query()->where('verification_status', Player::STATUS_REVISION)->count()
-                    + LineupList::query()->where('verification_status', LineupList::STATUS_REVISION)->count(),
+                    + LineupList::query()->forActiveSeason()->where('verification_status', LineupList::STATUS_REVISION)->count(),
                 'hint' => 'Data yang sudah dikembalikan ke klub untuk diperbaiki.',
                 'class' => 'border-info border-opacity-25',
                 'tone' => 'support',
@@ -1450,7 +1586,7 @@ class DashboardController extends Controller
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_APPROVED)->count()
                     + Official::query()->where('verification_status', Official::STATUS_APPROVED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_APPROVED)->count()
-                    + LineupList::query()->where('verification_status', LineupList::STATUS_APPROVED)->count(),
+                    + LineupList::query()->forActiveSeason()->where('verification_status', LineupList::STATUS_APPROVED)->count(),
                 'hint' => 'Data yang sudah selesai diverifikasi admin.',
                 'class' => 'border-success border-opacity-25',
                 'tone' => 'approved',
@@ -1461,7 +1597,7 @@ class DashboardController extends Controller
                 'value' => Club::query()->where('verification_status', ClubModel::STATUS_REJECTED)->count()
                     + Official::query()->where('verification_status', Official::STATUS_REJECTED)->count()
                     + Player::query()->where('verification_status', Player::STATUS_REJECTED)->count()
-                    + LineupList::query()->where('verification_status', LineupList::STATUS_REJECTED)->count(),
+                    + LineupList::query()->forActiveSeason()->where('verification_status', LineupList::STATUS_REJECTED)->count(),
                 'hint' => 'Data yang ditolak dan butuh tindak lanjut panitia.',
                 'class' => 'border-danger border-opacity-25',
                 'tone' => 'danger',
@@ -1493,7 +1629,7 @@ class DashboardController extends Controller
             ],
             [
                 'label' => 'DSP Menunggu Review',
-                'count' => LineupList::query()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
+                'count' => LineupList::query()->forActiveSeason()->where('verification_status', LineupList::STATUS_SUBMITTED)->count(),
                 'hint' => 'Lihat daftar DSP terfilter',
                 'href' => route('lineup-lists.index', ['status' => LineupList::STATUS_SUBMITTED]),
             ],
@@ -1551,7 +1687,7 @@ class DashboardController extends Controller
                     'reviewed_by' => $player->reviewer?->name,
                     'href' => route('players.show', $player),
                 ]),
-            LineupList::query()
+            LineupList::query()->forActiveSeason()
                 ->with(['club', 'reviewer'])
                 ->latest('submitted_at')
                 ->take(4)
@@ -1614,7 +1750,7 @@ class DashboardController extends Controller
                     'submitted_at' => $player->submitted_at,
                     'href' => route('players.show', $player),
                 ]),
-            LineupList::query()
+            LineupList::query()->forActiveSeason()
                 ->with('club')
                 ->where('verification_status', LineupList::STATUS_SUBMITTED)
                 ->oldest('submitted_at')

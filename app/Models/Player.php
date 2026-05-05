@@ -72,14 +72,24 @@ class Player extends Model
 
     public function ageRegistrations(): HasMany
     {
+        return $this->allAgeRegistrations()->forActiveSeason();
+    }
+
+    public function allAgeRegistrations(): HasMany
+    {
         return $this->hasMany(PlayerAgeGroup::class)->with('ageGroup')->orderBy('age_group_id');
     }
 
     public function lineupLists(): BelongsToMany
     {
         return $this->belongsToMany(LineupList::class)
-            ->withPivot(['role', 'display_order'])
+            ->withPivot(['role', 'display_order', 'jersey_number', 'season_player_id'])
             ->withTimestamps();
+    }
+
+    public function seasonSnapshots(): HasMany
+    {
+        return $this->hasMany(SeasonPlayer::class);
     }
 
     public function reviewer(): BelongsTo

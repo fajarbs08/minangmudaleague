@@ -8,6 +8,7 @@ use App\Http\Controllers\MatchScheduleController;
 use App\Http\Controllers\OfficialController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SeasonController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SponsorController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +52,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('dashboard/index', [DashboardController::class, 'index'])->name('dashboard.index');
     Route::get('dashboard/pencarian/saran', [SearchController::class, 'suggestions'])->name('search.suggestions');
     Route::get('dashboard/pencarian', [SearchController::class, 'index'])->name('search.index');
+    Route::post('dashboard/season-context', [SeasonController::class, 'select'])->name('seasons.select');
     Route::middleware('role:admin,club')->group(function () {
         Route::get('dashboard/hasil-pertandingan', [MatchScheduleController::class, 'results'])->name('match-results.index');
         Route::get('dashboard/laporan/klasemen', [MatchScheduleController::class, 'standings'])->name('reports.standings');
@@ -142,6 +144,11 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('dashboard/akun-klub/{clubAccount}/edit', [SettingsController::class, 'editClubAccount'])->name('club-accounts.edit');
         Route::put('dashboard/akun-klub/{clubAccount}', [SettingsController::class, 'updateClubAccount'])->name('club-accounts.update');
         Route::delete('dashboard/akun-klub/{clubAccount}', [SettingsController::class, 'destroyClubAccount'])->name('club-accounts.destroy');
+        Route::get('dashboard/season', [SeasonController::class, 'index'])->name('seasons.index');
+        Route::post('dashboard/season', [SeasonController::class, 'store'])->name('seasons.store');
+        Route::put('dashboard/season/{season}', [SeasonController::class, 'update'])->name('seasons.update');
+        Route::post('dashboard/season/{season}/activate', [SeasonController::class, 'activate'])->name('seasons.activate');
+        Route::post('dashboard/season/{season}/archive', [SeasonController::class, 'archive'])->name('seasons.archive');
         Route::delete('dashboard/klub/{club}', [ClubController::class, 'destroy'])->name('clubs.destroy');
 
     });

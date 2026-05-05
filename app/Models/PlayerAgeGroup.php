@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeasonScopes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PlayerAgeGroup extends Model
 {
+    use HasSeasonScopes;
+
     protected $fillable = [
         'player_id',
         'age_group_id',
+        'season_id',
         'season',
         'jersey_number',
         'position',
@@ -23,6 +27,7 @@ class PlayerAgeGroup extends Model
     protected function casts(): array
     {
         return [
+            'season_id' => 'integer',
             'status_date' => 'datetime',
             'is_starter' => 'boolean',
             'is_substitute' => 'boolean',
@@ -37,5 +42,10 @@ class PlayerAgeGroup extends Model
     public function ageGroup(): BelongsTo
     {
         return $this->belongsTo(AgeGroup::class);
+    }
+
+    public function seasonModel(): BelongsTo
+    {
+        return $this->belongsTo(Season::class, 'season_id');
     }
 }
