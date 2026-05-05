@@ -15,6 +15,13 @@
     </div>
 </div>
 
+@if (! empty($document['isLimited']))
+    <div class="alert alert-warning">
+        Ekspor batch dibatasi ke {{ $document['count'] }} kartu pertama untuk menjaga proses PDF tetap stabil.
+        Gunakan parameter <code>limit</code> pada URL jika perlu menyesuaikan jumlahnya.
+    </div>
+@endif
+
 <div class="row g-3 mb-4">
     <div class="col-md-4 col-xl-3">
         <div class="card h-100">

@@ -55,6 +55,7 @@
 @endphp
 
 @section('content')
+<div class="match-results-page">
 <div class="lap-admin-page-head">
     <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
@@ -104,6 +105,86 @@
 
     .match-results-table .small {
         line-height: 1.3;
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .card {
+        background: var(--lap-admin-surface-card);
+        border-color: var(--lap-admin-border-soft);
+        box-shadow: var(--lap-admin-shadow-card);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .card-header,
+    html[data-bs-theme="dark"] .match-results-page .card-body {
+        background: transparent;
+        border-color: var(--lap-admin-border-soft);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .match-results-table {
+        --bs-table-bg: transparent;
+        --bs-table-hover-bg: rgba(148, 163, 184, 0.06);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .match-results-table > thead > tr > th {
+        background: rgba(148, 163, 184, 0.08);
+        color: var(--lap-admin-text-muted);
+        border-bottom-color: var(--lap-admin-border-soft);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .match-results-table > :not(caption) > * > * {
+        border-bottom-color: var(--lap-admin-border-soft);
+        color: var(--lap-admin-text-soft);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .match-results-table .fw-semibold,
+    html[data-bs-theme="dark"] .match-results-page .match-results-table .text-end,
+    html[data-bs-theme="dark"] .match-results-page .match-results-table td,
+    html[data-bs-theme="dark"] .match-results-page .match-results-table th,
+    html[data-bs-theme="dark"] .match-results-page .match-results-table .competition-sort-link,
+    html[data-bs-theme="dark"] .match-results-page .card-title {
+        color: var(--lap-admin-text-strong) !important;
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .match-results-table .small,
+    html[data-bs-theme="dark"] .match-results-page .match-results-table .text-muted,
+    html[data-bs-theme="dark"] .match-results-page .competition-table-empty,
+    html[data-bs-theme="dark"] .match-results-page .card-header p.text-muted {
+        color: var(--lap-admin-text-muted) !important;
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .goal-event-row {
+        border-color: var(--lap-admin-border-soft);
+        background: rgba(18, 26, 41, 0.88);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .competition-action-toggle {
+        background: var(--lap-admin-surface-soft);
+        border-color: var(--lap-admin-border-soft);
+        color: var(--lap-admin-text-soft);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .competition-action-toggle:hover,
+    html[data-bs-theme="dark"] .match-results-page .competition-action-toggle:focus,
+    html[data-bs-theme="dark"] .match-results-page .competition-action-toggle.show {
+        background: var(--lap-admin-surface-elevated);
+        border-color: var(--lap-admin-border-strong);
+        color: var(--lap-admin-text-strong);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .competition-action-menu {
+        background: var(--lap-admin-surface-card);
+        border-color: var(--lap-admin-border-soft);
+        box-shadow: var(--lap-admin-shadow-floating);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .competition-action-menu .dropdown-item,
+    html[data-bs-theme="dark"] .match-results-page .competition-action-label {
+        color: var(--lap-admin-text-soft);
+    }
+
+    html[data-bs-theme="dark"] .match-results-page .competition-action-menu .dropdown-item:hover,
+    html[data-bs-theme="dark"] .match-results-page .competition-action-menu .dropdown-item:focus {
+        background: rgba(148, 163, 184, 0.10);
+        color: var(--lap-admin-text-strong);
     }
 
     @media (max-width: 600px) {
@@ -280,6 +361,8 @@
             </div>
         </form>
     </div>
+</div>
+
 </div>
 
 @if (auth()->user()->isAdmin())

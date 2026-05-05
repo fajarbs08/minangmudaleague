@@ -539,31 +539,6 @@ class MatchScheduleController extends Controller
         return view('competition.matches.brackets-print', $this->bracketReportViewData($request));
     }
 
-    public function bracketsPdf(Request $request)
-    {
-        $ageGroupId = $request->integer('age_group_id') ?: null;
-        $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
-        $reportData = $this->bracketReportViewData($request);
-
-        return $this->streamReportPdf(
-            request: $request,
-            view: 'competition.matches.brackets-pdf',
-            fileName: $this->pdfFileName('laporan-bagan-knockout', $selectedAgeGroup),
-            data: [
-                'selectedAgeGroup' => $selectedAgeGroup,
-                'brackets' => $reportData['brackets'],
-                'bracketryBrackets' => $reportData['bracketryBrackets'],
-            ],
-            paper: 'a4',
-            orientation: 'landscape',
-            options: [
-                'wait_for_function' => 'window.__BRACKET_PDF_READY === true',
-                'wait_for_function_timeout' => 10000,
-                'delay' => 250,
-            ],
-        );
-    }
-
     private function bracketReportViewData(Request $request): array
     {
         $user = $request->user();
@@ -1467,13 +1442,13 @@ class MatchScheduleController extends Controller
 
                     $contestants[$homeKey] = [
                         'players' => [[
-                            'title' => $match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A',
+                            'title' => $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A',
                         ]],
                     ];
 
                     $contestants[$awayKey] = [
                         'players' => [[
-                            'title' => $match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B',
+                            'title' => $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B',
                         ]],
                     ];
 

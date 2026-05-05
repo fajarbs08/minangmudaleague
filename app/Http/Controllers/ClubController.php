@@ -231,7 +231,7 @@ class ClubController extends Controller
             'manager_title' => ['required', 'string', 'max:255'],
             'zone' => ['required', 'string', 'max:255'],
             'founded_year' => ['required', 'integer', 'min:1900', 'max:'.date('Y')],
-            'logo_file' => [blank($club?->logo_url) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072', 'dimensions:min_width=120,min_height=120'],
+            'logo_file' => [blank($club?->logo_url) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512', 'dimensions:min_width=120,min_height=120'],
             'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:4096'],
             'address' => ['required', 'string'],
             'training_address' => ['required', 'string'],

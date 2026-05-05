@@ -42,6 +42,7 @@
                 <div class="col-lg-6">
                     <label class="form-label">Ganti Logo</label>
                     <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,.svg">
+                    <small class="text-muted d-block mt-2">Logo maks. 512 KB dan akan dinormalisasi ke format square transparan.</small>
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label d-block">Logo Saat Ini</label>

@@ -9,7 +9,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            AgeGroupSeeder::class,
             AdminSeeder::class,
+            ClubSeeder::class,
+            OfficialSeeder::class,
+            PlayerSeeder::class,
+            MatchSeeder::class,
+            SponsorSeeder::class,
         ]);
     }
 }

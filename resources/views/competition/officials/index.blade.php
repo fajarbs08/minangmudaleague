@@ -42,24 +42,17 @@
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $filterCount }}</span>
             @endif
         </button>
-        <div class="dropdown">
-            <button class="btn btn-success dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" @disabled(! $canDownloadIdCards)>
+        @if ($idCardExportUrl && $canDownloadIdCards)
+            <a class="btn btn-success d-inline-flex align-items-center gap-2" target="_blank" href="{{ $idCardExportUrl }}">
+                <i data-lucide="id-card" class="fs-14"></i>
+                <span>Unduh ID Card</span>
+            </a>
+        @else
+            <button class="btn btn-success d-inline-flex align-items-center gap-2" type="button" disabled>
                 <i data-lucide="id-card" class="fs-14"></i>
                 <span>Unduh ID Card</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                @foreach ($ageGroups as $ageGroup)
-                    <li>
-                        <a class="dropdown-item" target="_blank" href="{{ route('officials.id-cards', ['ageGroup' => $ageGroup->id, 'club_id' => request('club_id')]) }}">
-                            {{ $ageGroup->name }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-        @unless ($canDownloadIdCards)
-            <div class="text-muted small">ID Card tersedia setelah ofisial disetujui admin.</div>
-        @endunless
+        @endif
         @include('competition.partials.icon-button', [
             'href' => route('officials.create'),
             'icon' => 'user-plus',

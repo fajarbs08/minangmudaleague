@@ -4,12 +4,6 @@ return [
     'competition_name' => env('ID_CARDS_COMPETITION_NAME', 'Liga Anak Piaman Laweh'),
     'website' => env('ID_CARDS_WEBSITE', 'ligaanakpiamanlaweh.com'),
     'organizer' => env('ID_CARDS_ORGANIZER', 'Liga Anak Piaman Laweh Organizer'),
-    'chrome_path' => env('ID_CARDS_CHROME_PATH', '/usr/bin/google-chrome'),
-    'node_binary' => env('ID_CARDS_NODE_BINARY', '/usr/bin/node'),
-    'node_modules_path' => env('ID_CARDS_NODE_MODULES_PATH', storage_path('app/id-card-node/node_modules')),
-    'timeout' => (int) env('ID_CARDS_TIMEOUT', 90),
-    'wait_until' => env('ID_CARDS_WAIT_UNTIL', 'load'),
-    'no_sandbox' => env('ID_CARDS_NO_SANDBOX', true),
     'card' => [
         'width_mm' => 85.6,
         'height_mm' => 54.0,

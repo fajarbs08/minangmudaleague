@@ -51,16 +51,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('dashboard/index', [DashboardController::class, 'index'])->name('dashboard.index');
     Route::get('dashboard/pencarian/saran', [SearchController::class, 'suggestions'])->name('search.suggestions');
     Route::get('dashboard/pencarian', [SearchController::class, 'index'])->name('search.index');
-    Route::get('dashboard/alur-klub-pdf', [DashboardController::class, 'workflowPdf'])
-        ->middleware('role:club')
-        ->name('dashboard.workflow-pdf');
-    Route::get('dashboard/panduan-admin-pdf', [DashboardController::class, 'adminManualPdf'])
-        ->middleware('role:admin')
-        ->name('dashboard.admin-manual-pdf');
-    Route::get('dashboard/panduan-klub-pdf', [DashboardController::class, 'clubManualPdf'])
-        ->middleware('role:club')
-        ->name('dashboard.club-manual-pdf');
-
     Route::middleware('role:admin,club')->group(function () {
         Route::get('dashboard/hasil-pertandingan', [MatchScheduleController::class, 'results'])->name('match-results.index');
         Route::get('dashboard/laporan/klasemen', [MatchScheduleController::class, 'standings'])->name('reports.standings');
@@ -71,7 +61,6 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('dashboard/laporan/top-assist/pdf', [MatchScheduleController::class, 'topAssistsPdf'])->name('reports.top-assists.pdf');
         Route::get('dashboard/laporan/bagan-knockout', [MatchScheduleController::class, 'brackets'])->name('reports.brackets');
         Route::get('dashboard/laporan/bagan-knockout/print', [MatchScheduleController::class, 'bracketsPrint'])->name('reports.brackets.print');
-        Route::get('dashboard/laporan/bagan-knockout/pdf', [MatchScheduleController::class, 'bracketsPdf'])->name('reports.brackets.pdf');
         Route::get('dashboard/laporan/rekap', [MatchScheduleController::class, 'reports'])->name('reports.overview');
         Route::get('dashboard/laporan/rekap/pdf', [MatchScheduleController::class, 'reportsPdf'])->name('reports.overview.pdf');
         Route::get('dashboard/klub', [ClubController::class, 'index'])->name('clubs.index');
@@ -97,8 +86,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::resource('dashboard/dsp', LineupListController::class)
             ->parameters(['dsp' => 'lineupList'])
             ->names('lineup-lists');
+        Route::get('dashboard/pemain/kartu-identitas', [PlayerController::class, 'idCardsAll'])->name('players.id-cards.all');
+        Route::get('dashboard/pemain/kartu-identitas/pdf', [PlayerController::class, 'exportIdCardsAll'])->name('players.id-cards.all.export');
         Route::get('dashboard/pemain/kartu-identitas/{ageGroup}', [PlayerController::class, 'idCards'])->name('players.id-cards');
         Route::get('dashboard/pemain/kartu-identitas/{ageGroup}/pdf', [PlayerController::class, 'exportIdCards'])->name('players.id-cards.export');
+        Route::get('dashboard/ofisial/kartu-identitas', [OfficialController::class, 'idCardsAll'])->name('officials.id-cards.all');
+        Route::get('dashboard/ofisial/kartu-identitas/pdf', [OfficialController::class, 'exportIdCardsAll'])->name('officials.id-cards.all.export');
         Route::get('dashboard/ofisial/kartu-identitas/{ageGroup}', [OfficialController::class, 'idCards'])->name('officials.id-cards');
         Route::get('dashboard/ofisial/kartu-identitas/{ageGroup}/pdf', [OfficialController::class, 'exportIdCards'])->name('officials.id-cards.export');
         Route::get('dashboard/ofisial/{official}', [OfficialController::class, 'show'])->name('officials.show');

@@ -12,9 +12,17 @@
             <div class="idc-compact-left">
                 @foreach (($card['front']['rows'] ?? $card['front']['meta']) as $meta)
                     <div class="idc-compact-row">
-                        <span class="idc-compact-label">{{ $meta['label'] }}</span>
-                        <span class="idc-compact-sep">:</span>
-                        <span class="idc-compact-value">{{ $meta['value'] }}</span>
+                        <div class="idc-compact-label">{{ $meta['label'] }}</div>
+                        <div class="idc-compact-sep">:</div>
+                        <div class="idc-compact-value{{ ! empty($meta['multiline']) ? ' idc-compact-value--multiline' : '' }}">
+                            @if (! empty($meta['lines']))
+                                @foreach ($meta['lines'] as $line)
+                                    <span class="idc-compact-value-line">{{ $line }}</span>
+                                @endforeach
+                            @else
+                                {{ $meta['value'] }}
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -23,8 +31,13 @@
                 <div class="idc-compact-photo-card">
                     <img src="{{ $card['front']['photoSrc'] }}" alt="{{ $card['front']['name'] }}" class="idc-compact-photo{{ $card['front']['photoMissing'] ? ' idc-photo-placeholder' : '' }}">
                 </div>
-                <div class="idc-compact-qr-card">
-                    <img src="{{ $card['back']['qrSrc'] }}" alt="{{ $card['back']['qrLabel'] }}" class="idc-compact-qr">
+                <div class="idc-compact-qr-block">
+                    <div class="idc-compact-qr-card">
+                        <img src="{{ $card['back']['qrSrc'] }}" alt="{{ $card['back']['qrLabel'] }}" class="idc-compact-qr">
+                    </div>
+                    @if (! empty($card['front']['verificationText']))
+                        <div class="idc-compact-qr-status">{{ $card['front']['verificationText'] }}</div>
+                    @endif
                 </div>
             </div>
         </div>

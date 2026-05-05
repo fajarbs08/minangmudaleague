@@ -38,6 +38,9 @@ class PlayerController extends Controller
             ->orderBy('name')
             ->get();
 
+        $selectedClubId = (int) $request->input('club_id');
+        $selectedAgeGroupId = (int) $request->input('age_group_id');
+
         $players = Player::query()
             ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
             ->whereIn('club_id', $clubs->pluck('id'))
@@ -89,14 +92,35 @@ class PlayerController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $idCardFilterParams = collect([
+            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+            'age_group_id' => $selectedAgeGroupId ?: null,
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+            'limit' => $selectedAgeGroupId > 0 ? null : $this->allIdCardLimit($request),
+        ])->filter(fn ($value) => filled($value))->all();
+
+        $canDownloadIdCards = false;
+        $idCardExportUrl = null;
+        $clubScopeIds = $this->clubScopeIds($clubs, $selectedClubId);
+
+        if (! empty($clubScopeIds)) {
+            if ($selectedAgeGroupId > 0) {
+                $canDownloadIdCards = $this->filteredPlayerIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
+                $idCardExportUrl = route('players.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
+            } else {
+                $canDownloadIdCards = $this->filteredPlayerCardBaseScopeQuery($request, $clubScopeIds)->exists();
+                $idCardExportUrl = route('players.id-cards.all.export', $idCardFilterParams);
+            }
+        }
+
         return view('competition.players.index', [
             'title' => 'Pemain',
             'players' => $players,
             'clubs' => $clubs,
             'ageGroups' => AgeGroup::competition()->get(),
-            'canDownloadIdCards' => $user->isAdmin() || $this->approvedPlayersQueryForClub(
-                (int) ($request->input('club_id') ?: $clubs->value('id'))
-            )->exists(),
+            'canDownloadIdCards' => $canDownloadIdCards,
+            'idCardExportUrl' => $idCardExportUrl,
         ]);
     }
 
@@ -387,69 +411,172 @@ class PlayerController extends Controller
     public function idCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
         $clubs = $this->availableClubs();
-        $clubId = (int) ($request->input('club_id') ?: $clubs->value('id'));
+        $selectedClubId = (int) $request->input('club_id');
+        $clubScope = $this->clubScope($clubs, $selectedClubId);
+        $filterParams = collect([
+            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+            'age_group_id' => $ageGroup->id,
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+        ])->filter(fn ($value) => filled($value))->all();
 
-        if (! $clubId) {
+        if ($clubScope->isEmpty()) {
             return redirect()
                 ->route('players.index')
                 ->with('status', 'Belum ada data klub atau pemain untuk membuat kartu identitas.');
         }
 
-        $this->ensureClubAccess($clubId);
+        if ($selectedClubId > 0) {
+            $this->ensureClubAccess($selectedClubId);
+        }
 
-        $club = Club::query()->findOrFail($clubId);
-        $players = $this->playerIdCardQuery($clubId, $ageGroup->id)->get();
+        $document = $this->buildScopedPlayerIdCardDocument($request, $clubScope, $ageGroup, $identityCardService);
 
-        if ($players->isEmpty()) {
+        if ($document === null) {
             return redirect()
-                ->route('players.index', ['club_id' => $clubId])
+                ->route('players.index', $filterParams)
                 ->with('status', 'ID Card pemain baru tersedia setelah data disetujui admin.');
         }
 
         return view('competition.id-cards.preview', [
-            'document' => $identityCardService->buildPlayerDocument($club, $ageGroup, $players),
-            'backUrl' => route('players.index', ['club_id' => $clubId]),
-            'pdfUrl' => route('players.id-cards.export', ['ageGroup' => $ageGroup->id, 'club_id' => $clubId]),
-            'downloadUrl' => route('players.id-cards.export', ['ageGroup' => $ageGroup->id, 'club_id' => $clubId, 'download' => 1]),
+            'document' => $document,
+            'backUrl' => route('players.index', $filterParams),
+            'pdfUrl' => route('players.id-cards.export', ['ageGroup' => $ageGroup->id] + $filterParams),
+            'downloadUrl' => route('players.id-cards.export', ['ageGroup' => $ageGroup->id] + $filterParams + ['download' => 1]),
         ]);
     }
 
     public function exportIdCards(Request $request, AgeGroup $ageGroup, IdentityCardService $identityCardService)
     {
         $clubs = $this->availableClubs();
-        $clubId = (int) ($request->input('club_id') ?: $clubs->value('id'));
+        $selectedClubId = (int) $request->input('club_id');
+        $clubScope = $this->clubScope($clubs, $selectedClubId);
+        $filterParams = collect([
+            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+            'age_group_id' => $ageGroup->id,
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+        ])->filter(fn ($value) => filled($value))->all();
 
-        if (! $clubId) {
+        if ($clubScope->isEmpty()) {
             return redirect()
                 ->route('players.index')
                 ->with('status', 'Belum ada data klub atau pemain untuk mencetak kartu identitas.');
         }
 
-        $this->ensureClubAccess($clubId);
+        if ($selectedClubId > 0) {
+            $this->ensureClubAccess($selectedClubId);
+        }
 
-        $club = Club::query()->findOrFail($clubId);
-        $players = $this->playerIdCardQuery($clubId, $ageGroup->id)->get();
+        $document = $this->buildScopedPlayerIdCardDocument($request, $clubScope, $ageGroup, $identityCardService);
 
-        if ($players->isEmpty()) {
+        if ($document === null) {
             return redirect()
-                ->route('players.index', ['club_id' => $clubId])
+                ->route('players.index', $filterParams)
                 ->with('status', 'ID Card pemain baru tersedia setelah data disetujui admin.');
         }
 
-        $document = $identityCardService->buildPlayerDocument($club, $ageGroup, $players);
-
         $cacheKey = implode('|', [
             'players',
-            'club='.$club->id,
+            'clubs='.implode(',', $clubScope->pluck('id')->all()),
             'age='.$ageGroup->id,
-            'count='.$players->count(),
-            'max='.$players->max('updated_at')?->timestamp,
-            'clubUpdated='.$club->updated_at?->timestamp,
+            'count='.$document['count'],
+            'max='.collect($document['cards'])->pluck('id')->implode(','),
+            'clubUpdated='.($clubScope->max('updated_at')?->timestamp ?: '0'),
         ]);
 
         return $identityCardService->pdfResponseCached(
             $document,
-            "id-card-pemain-{$club->id}-{$ageGroup->code}.pdf",
+            "id-card-pemain-{$ageGroup->code}.pdf",
+            $cacheKey,
+            $request->boolean('download')
+        );
+    }
+
+    public function idCardsAll(Request $request, IdentityCardService $identityCardService)
+    {
+        $clubs = $this->availableClubs();
+        $selectedClubId = (int) $request->input('club_id');
+        $clubScope = $this->clubScope($clubs, $selectedClubId);
+        $limit = $this->allIdCardLimit($request);
+        $filterParams = collect([
+            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+            'limit' => $limit,
+        ])->filter(fn ($value) => filled($value))->all();
+
+        if ($clubScope->isEmpty()) {
+            return redirect()
+                ->route('players.index')
+                ->with('status', 'Belum ada data klub atau pemain untuk membuat kartu identitas.');
+        }
+
+        if ($selectedClubId > 0) {
+            $this->ensureClubAccess($selectedClubId);
+        }
+
+        $document = $this->buildScopedPlayerIdCardDocument($request, $clubScope, null, $identityCardService, $limit);
+
+        if ($document === null) {
+            return redirect()
+                ->route('players.index', $filterParams)
+                ->with('status', 'Tidak ada data pemain pada filter aktif yang bisa dibuatkan ID Card.');
+        }
+
+        return view('competition.id-cards.preview', [
+            'document' => $document,
+            'backUrl' => route('players.index', $filterParams),
+            'pdfUrl' => route('players.id-cards.all.export', $filterParams),
+            'downloadUrl' => route('players.id-cards.all.export', $filterParams + ['download' => 1]),
+        ]);
+    }
+
+    public function exportIdCardsAll(Request $request, IdentityCardService $identityCardService)
+    {
+        $clubs = $this->availableClubs();
+        $selectedClubId = (int) $request->input('club_id');
+        $clubScope = $this->clubScope($clubs, $selectedClubId);
+        $limit = $this->allIdCardLimit($request);
+        $filterParams = collect([
+            'club_id' => $selectedClubId > 0 ? $selectedClubId : null,
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+            'limit' => $limit,
+        ])->filter(fn ($value) => filled($value))->all();
+
+        if ($clubScope->isEmpty()) {
+            return redirect()
+                ->route('players.index')
+                ->with('status', 'Belum ada data klub atau pemain untuk mencetak kartu identitas.');
+        }
+
+        if ($selectedClubId > 0) {
+            $this->ensureClubAccess($selectedClubId);
+        }
+
+        $document = $this->buildScopedPlayerIdCardDocument($request, $clubScope, null, $identityCardService, $limit);
+
+        if ($document === null) {
+            return redirect()
+                ->route('players.index', $filterParams)
+                ->with('status', 'Tidak ada data pemain pada filter aktif yang bisa dibuatkan ID Card.');
+        }
+
+        $cacheKey = implode('|', [
+            'players-all',
+            'clubs='.implode(',', $clubScope->pluck('id')->all()),
+            'status='.($request->input('status') ?: 'all'),
+            'search='.md5((string) $request->input('search')),
+            'limit='.$limit,
+            'count='.$document['count'],
+            'cardMax='.collect($document['cards'])->pluck('id')->implode(','),
+            'clubUpdated='.($clubScope->max('updated_at')?->timestamp ?: '0'),
+        ]);
+
+        return $identityCardService->pdfResponseCached(
+            $document,
+            'id-card-pemain-all.pdf',
             $cacheKey,
             $request->boolean('download')
         );
@@ -513,7 +640,7 @@ class PlayerController extends Controller
             'position' => ['nullable', 'string', 'max:255'],
             'citizenship' => ['required', 'in:WNI,WNA'],
             'birth_place' => ['required', 'string', 'max:255'],
-            'photo_file' => [blank($player?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'photo_file' => [blank($player?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512'],
             'diploma_file' => [blank($player?->diploma_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'report_file' => [blank($player?->report_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
             'birth_certificate_file' => [blank($player?->birth_certificate_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
@@ -663,6 +790,22 @@ class PlayerController extends Controller
             ->get();
     }
 
+    private function clubScope($clubs, int $selectedClubId)
+    {
+        if ($selectedClubId > 0) {
+            return $clubs->where('id', $selectedClubId)->values();
+        }
+
+        return $clubs->values();
+    }
+
+    private function clubScopeIds($clubs, int $selectedClubId): array
+    {
+        return $this->clubScope($clubs, $selectedClubId)
+            ->pluck('id')
+            ->all();
+    }
+
     private function approvedPlayersQueryForClub(int $clubId)
     {
         return Player::query()
@@ -672,15 +815,141 @@ class PlayerController extends Controller
 
     private function playerIdCardQuery(int $clubId, int $ageGroupId)
     {
+        return $this->filteredPlayerIdCardScopeQuery(request(), [$clubId], $ageGroupId);
+    }
+
+    private function filteredPlayerCardBaseScopeQuery(Request $request, array $clubIds)
+    {
         return Player::query()
             ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
-            ->where('club_id', $clubId)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->whereIn('club_id', $clubIds)
+            ->whereHas('ageRegistrations', fn ($query) => $query->whereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition()))
+            ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('school_name', 'like', "%{$search}%")
+                        ->orWhere('position', 'like', "%{$search}%")
+                        ->orWhereHas('ageRegistrations', fn ($registration) => $registration->where('position', 'like', "%{$search}%"));
+                });
+            })
             ->when(
                 ! auth()->user()->isAdmin(),
                 fn ($query) => $query->where('verification_status', Player::STATUS_APPROVED)
             )
             ->orderBy('name');
+    }
+
+    private function filteredPlayerIdCardScopeQuery(Request $request, array $clubIds, int $ageGroupId)
+    {
+        return $this->filteredPlayerCardBaseScopeQuery($request, $clubIds)
+            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->orderBy('name');
+    }
+
+    private function buildScopedPlayerIdCardDocument(Request $request, $clubScope, ?AgeGroup $selectedAgeGroup, IdentityCardService $identityCardService, ?int $cardLimit = null): ?array
+    {
+        $clubScope = collect($clubScope)->values();
+
+        if ($clubScope->isEmpty()) {
+            return null;
+        }
+
+        $clubIds = $clubScope->pluck('id')->all();
+        $players = ($selectedAgeGroup
+            ? $this->filteredPlayerIdCardScopeQuery($request, $clubIds, $selectedAgeGroup->id)
+            : $this->filteredPlayerCardBaseScopeQuery($request, $clubIds))
+            ->get();
+
+        if ($players->isEmpty()) {
+            return null;
+        }
+
+        $ageGroups = $selectedAgeGroup
+            ? collect([$selectedAgeGroup])
+            : AgeGroup::competition()
+                ->get()
+                ->filter(fn (AgeGroup $ageGroup) => $players->contains(fn (Player $player) => $player->registrationForAgeGroup($ageGroup->id)))
+                ->values();
+
+        if ($ageGroups->isEmpty()) {
+            return null;
+        }
+
+        $baseClub = $clubScope->first();
+        $document = $identityCardService->buildPlayerDocument($baseClub, $ageGroups->first(), collect());
+        $cards = [];
+        $remainingCards = $selectedAgeGroup ? null : $cardLimit;
+        $isLimited = false;
+
+        foreach ($clubScope as $club) {
+            $clubPlayers = $players->where('club_id', $club->id)->values();
+
+            foreach ($ageGroups as $ageGroup) {
+                if ($remainingCards !== null && $remainingCards <= 0) {
+                    $isLimited = true;
+
+                    break 2;
+                }
+
+                $groupPlayers = $clubPlayers
+                    ->filter(fn (Player $player) => $player->registrationForAgeGroup($ageGroup->id))
+                    ->values();
+
+                if ($groupPlayers->isEmpty()) {
+                    continue;
+                }
+
+                if ($remainingCards !== null && $groupPlayers->count() > $remainingCards) {
+                    $groupPlayers = $groupPlayers->take($remainingCards)->values();
+                    $isLimited = true;
+                }
+
+                $groupDocument = $identityCardService->buildPlayerDocument($club, $ageGroup, $groupPlayers);
+                $cards = array_merge($cards, $groupDocument['cards']);
+
+                if ($remainingCards !== null) {
+                    $remainingCards -= count($groupDocument['cards']);
+                }
+            }
+        }
+
+        if (empty($cards)) {
+            return null;
+        }
+
+        if ($clubScope->count() > 1) {
+            $document['club'] = [
+                'name' => 'Semua Klub',
+                'shortName' => 'SEMUA',
+                'zone' => null,
+                'logoSrc' => $document['club']['logoSrc'],
+                'initials' => 'SK',
+            ];
+        }
+
+        if (! $selectedAgeGroup) {
+            $document['ageGroup'] = [
+                'id' => null,
+                'name' => 'Semua Kelompok Umur',
+                'code' => 'ALL',
+            ];
+        }
+
+        $document['cards'] = $cards;
+        $document['count'] = count($cards);
+
+        if ($cardLimit !== null) {
+            $document['limit'] = $cardLimit;
+            $document['isLimited'] = $isLimited;
+        }
+
+        return $document;
+    }
+
+    private function allIdCardLimit(Request $request): int
+    {
+        return $this->identityCardService->normalizeBatchExportLimit($request->input('limit'));
     }
 
     private function ensureClubAccess(?int $clubId): void

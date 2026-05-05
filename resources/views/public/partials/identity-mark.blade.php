@@ -6,13 +6,13 @@
     $initials = trim((string) ($initials ?? ''));
 
     if ($initials === '') {
-        $initials = \\Illuminate\\Support\\Str::of($label !== '' ? $label : 'Klub')
+        $initials = \Illuminate\Support\Str::of($label !== '' ? $label : 'Klub')
             ->replaceMatches('/[^A-Za-z0-9 ]+/', ' ')
             ->upper()
             ->explode(' ')
             ->filter()
             ->take(2)
-            ->map(fn ($part) => \\Illuminate\\Support\\Str::substr($part, 0, 1))
+            ->map(fn ($part) => \Illuminate\Support\Str::substr($part, 0, 1))
             ->implode('');
     }
 

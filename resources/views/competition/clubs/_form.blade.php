@@ -1,5 +1,5 @@
 @php
-    $uploadHelp = 'Logo: JPG, PNG, atau WebP, min. 120 x 120 px, maks. 3 MB. Surat: PDF, JPG, PNG, WebP, DOC, atau DOCX, maks. 4 MB.';
+    $uploadHelp = 'Logo: JPG, PNG, atau WebP, min. 120 x 120 px, maks. 512 KB. Surat: PDF, JPG, PNG, WebP, DOC, atau DOCX, maks. 4 MB.';
     $requiresLogoUpload = blank($club->logo_url);
     $requiresStatementUpload = blank($club->statement_file_path);
 @endphp

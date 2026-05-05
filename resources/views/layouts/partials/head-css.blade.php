@@ -88,6 +88,16 @@
         --lap-admin-surface: #f7f8fc;
     }
 
+    html[data-bs-theme="dark"] {
+        --lap-admin-ink: #edf4ff;
+        --lap-admin-navy: #93c5fd;
+        --lap-admin-accent: #ff7a1f;
+        --lap-admin-accent-deep: #fb923c;
+        --lap-admin-danger: #f87171;
+        --lap-admin-muted: #94a3b8;
+        --lap-admin-surface: #121a29;
+    }
+
     @media (max-width: 1140px) {
         html:not(.sidebar-enable) .main-nav {
             margin-left: calc(var(--bs-main-nav-width, 250px) * -1);
@@ -131,45 +141,45 @@
     }
 
     .lap-admin-chip-primary {
-        background: rgba(254, 89, 0, 0.10);
-        border-color: rgba(254, 89, 0, 0.16);
-        color: var(--lap-admin-accent);
+        background: rgba(254, 89, 0, 0.10) !important;
+        border-color: rgba(254, 89, 0, 0.18) !important;
+        color: var(--lap-admin-accent) !important;
     }
 
     .lap-admin-chip-support {
-        background: rgba(13, 47, 103, 0.10);
-        border-color: rgba(13, 47, 103, 0.16);
-        color: var(--lap-admin-navy);
+        background: rgba(13, 47, 103, 0.10) !important;
+        border-color: rgba(13, 47, 103, 0.18) !important;
+        color: var(--lap-admin-navy) !important;
     }
 
     .lap-admin-chip-approved {
-        background: rgba(3, 5, 35, 0.12);
-        border-color: rgba(3, 5, 35, 0.16);
-        color: var(--lap-admin-ink);
+        background: rgba(3, 5, 35, 0.12) !important;
+        border-color: rgba(3, 5, 35, 0.16) !important;
+        color: var(--lap-admin-ink) !important;
     }
 
     .lap-admin-chip-pending {
-        background: rgba(254, 89, 0, 0.10);
-        border-color: rgba(254, 89, 0, 0.18);
-        color: var(--lap-admin-accent-deep);
+        background: rgba(254, 89, 0, 0.10) !important;
+        border-color: rgba(254, 89, 0, 0.18) !important;
+        color: var(--lap-admin-accent-deep) !important;
     }
 
     .lap-admin-chip-revision {
-        background: rgba(13, 47, 103, 0.10);
-        border-color: rgba(13, 47, 103, 0.18);
-        color: var(--lap-admin-navy);
+        background: rgba(13, 47, 103, 0.10) !important;
+        border-color: rgba(13, 47, 103, 0.18) !important;
+        color: var(--lap-admin-navy) !important;
     }
 
     .lap-admin-chip-danger {
-        background: rgba(228, 27, 35, 0.10);
-        border-color: rgba(228, 27, 35, 0.18);
-        color: var(--lap-admin-danger);
+        background: rgba(228, 27, 35, 0.10) !important;
+        border-color: rgba(228, 27, 35, 0.18) !important;
+        color: var(--lap-admin-danger) !important;
     }
 
     .lap-admin-chip-draft {
-        background: rgba(3, 5, 35, 0.08);
-        border-color: rgba(3, 5, 35, 0.14);
-        color: rgba(3, 5, 35, 0.82);
+        background: rgba(3, 5, 35, 0.08) !important;
+        border-color: rgba(3, 5, 35, 0.14) !important;
+        color: rgba(3, 5, 35, 0.82) !important;
     }
 
     .lap-admin-chip-count {

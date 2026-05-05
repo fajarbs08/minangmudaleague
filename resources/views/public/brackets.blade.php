@@ -207,6 +207,10 @@
             min-width: 0;
         }
 
+        .bracket-mobile-controls {
+            display: none;
+        }
+
         .lap-bracket-host [data-bracketry-target] {
             height: 100%;
         }
@@ -628,6 +632,136 @@
 
             .lap-bracket-host {
                 min-height: var(--lap-bracket-height-mobile, clamp(420px, 128vw, 640px));
+            }
+
+            .lap-bracket-stage-shell {
+                min-height: var(--lap-bracket-height-mobile, clamp(420px, 128vw, 640px));
+                border-radius: .75rem;
+            }
+
+            .lap-bracket-group-head {
+                align-items: flex-start;
+            }
+
+            .lap-bracket-group-badge {
+                align-self: flex-start;
+            }
+
+            .lap-bracket-host[data-bracket-mobile-controls="true"] .navigation-button,
+            .lap-bracket-host[data-bracket-mobile-controls="true"] .scroll-button {
+                display: none !important;
+            }
+
+            .lap-bracket-host[data-bracket-mobile-controls="true"] .match-lines-area,
+            .lap-bracket-host[data-bracket-mobile-controls="true"] .line-wrapper {
+                display: none !important;
+            }
+
+            .bracket-mobile-controls {
+                display: grid;
+                grid-template-columns: 3.4rem minmax(0, 1fr) 3.4rem;
+                align-items: center;
+                gap: .75rem;
+                margin-top: .85rem;
+            }
+
+            .bracket-mobile-controls__button {
+                min-width: 3.4rem;
+                width: 3.4rem;
+                height: 3.4rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid #d5dbe7;
+                border-radius: 999px;
+                background: #fff;
+                color: #0d2f67;
+                box-shadow: 0 10px 20px rgba(15, 23, 42, .08);
+                font-size: 1.55rem;
+                font-weight: 900;
+                line-height: 1;
+            }
+
+            .bracket-mobile-controls__button:disabled {
+                opacity: .38;
+                box-shadow: none;
+            }
+
+            .bracket-mobile-controls__label {
+                min-width: 0;
+                text-align: center;
+            }
+
+            .bracket-mobile-controls__eyebrow {
+                color: #64748b;
+                font-size: .67rem;
+                font-weight: 800;
+                letter-spacing: .08em;
+                text-transform: uppercase;
+            }
+
+            .bracket-mobile-controls__title {
+                margin-top: .2rem;
+                color: #0f172a;
+                font-size: .95rem;
+                font-weight: 800;
+                line-height: 1.15;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .lap-bracket-host .bt-match {
+                gap: .3rem;
+                padding: .65rem .72rem .72rem;
+                border-radius: .7rem;
+            }
+
+            .lap-bracket-host .bt-match.is-final {
+                gap: .45rem;
+            }
+
+            .lap-bracket-host .bt-match-main {
+                gap: .3rem;
+            }
+
+            .lap-bracket-host .bt-match-head {
+                gap: .5rem;
+            }
+
+            .lap-bracket-host .bt-match-ribbon {
+                padding: .12rem .42rem;
+                font-size: .6rem;
+            }
+
+            .lap-bracket-host .bt-match-status {
+                max-width: 10ch;
+                font-size: .62rem;
+            }
+
+            .lap-bracket-host .bt-side {
+                gap: .55rem;
+            }
+
+            .lap-bracket-host .bt-side + .bt-side {
+                padding-top: .34rem;
+            }
+
+            .lap-bracket-host .bt-side-name {
+                font-size: .86rem;
+                line-height: 1.16;
+                word-break: break-word;
+            }
+
+            .lap-bracket-host .bt-side-score {
+                min-width: 1.85rem;
+                padding: .12rem .35rem;
+                font-size: .78rem;
+            }
+
+            .lap-bracket-host .bt-vs {
+                margin: 0;
+                font-size: .64rem;
             }
 
             .lap-bracket-preliminary-track {

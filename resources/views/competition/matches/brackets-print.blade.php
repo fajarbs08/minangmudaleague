@@ -1,125 +1,148 @@
+@php
+    $reportBrackets = $bracketryBrackets ?? collect();
+@endphp
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bagan Knockout</title>
+    @vite(['resources/js/public-brackets.js'])
     <style>
         @page {
-            size: A4 landscape;
-            margin: 8mm;
+            margin: 6mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            color: #0f172a;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         body {
-            margin: 0;
-            font-family: Inter, Arial, sans-serif;
-            color: #0f172a;
-            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        .print-shell {
-            display: grid;
-            gap: 20px;
-        }
-
-        .print-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            padding: 12px 14px;
-            border: 1px solid rgba(148, 163, 184, .22);
-            border-radius: 14px;
-            background: #eef4fb;
-        }
-
-        .print-head h1 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #102a43;
-        }
-
-        .print-head p {
-            margin: 4px 0 0;
-            font-size: 10px;
-            color: #486581;
-        }
-
-        .print-meta {
-            display: grid;
-            gap: 4px;
-            text-align: right;
-            font-size: 9px;
-            color: #486581;
-            text-transform: uppercase;
-        }
-
-        .print-chip {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: fit-content;
-            margin-left: auto;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: #d9e7f6;
-            color: #102a43;
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .print-group {
-            page-break-inside: avoid;
-        }
-
-        .print-group + .print-group {
-            page-break-before: always;
-        }
-
-        .print-group-head {
+        .print-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, .94);
+            color: #fff;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, .18);
         }
 
-        .print-group-head h2 {
+        .print-toolbar strong {
+            display: block;
+            font-size: .98rem;
+        }
+
+        .print-toolbar p {
+            margin: .2rem 0 0;
+            color: rgba(255, 255, 255, .72);
+            font-size: .84rem;
+        }
+
+        .print-toolbar-actions {
+            display: flex;
+            gap: .75rem;
+        }
+
+        .print-toolbar button {
+            border: 0;
+            border-radius: .8rem;
+            padding: .8rem 1rem;
+            background: #2563eb;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .print-toolbar button:last-child {
+            background: rgba(255, 255, 255, .12);
+        }
+
+        .report-bracket-document {
+            padding: 1rem;
+        }
+
+        .report-bracket-group + .report-bracket-group {
+            margin-top: 1rem;
+        }
+
+        .report-bracket-sheet {
+            width: min(100%, 1480px);
+            margin: 0 auto;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 1rem;
+            background: #fff;
+            box-shadow: 0 14px 40px rgba(15, 23, 42, .08);
+        }
+
+        .report-bracket-group-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            padding-bottom: .75rem;
+            border-bottom: 1px solid rgba(148, 163, 184, .2);
+            margin-bottom: 1rem;
+        }
+
+        .report-bracket-group-head h1 {
             margin: 0;
-            font-size: 14px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #102a43;
+            font-size: 1.35rem;
+            line-height: 1.1;
         }
 
-        .print-group-badge {
+        .report-bracket-group-head p {
+            margin: .35rem 0 0;
+            color: #64748b;
+            font-size: .92rem;
+        }
+
+        .report-bracket-badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 4px 10px;
+            padding: .35rem .7rem;
             border-radius: 999px;
             background: rgba(37, 99, 235, .1);
             color: #1d4ed8;
-            font-size: 9px;
+            font-size: .75rem;
             font-weight: 800;
+            letter-spacing: .06em;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
         .report-bracket-shell {
             position: relative;
-            min-height: var(--report-bracket-height, 680px);
+            min-height: var(--report-bracket-height, 560px);
             border: 1px solid rgba(148, 163, 184, .18);
-            border-radius: 14px;
+            border-radius: 1rem;
             background: #fff;
             overflow: hidden;
         }
 
         .lap-bracket-host {
-            min-height: var(--report-bracket-height, 680px);
+            min-height: var(--report-bracket-height, 560px);
             min-width: 0;
         }
 
@@ -135,7 +158,7 @@
         }
 
         .lap-bracket-host .round-title {
-            font-size: 10px;
+            font-size: .82rem;
             font-weight: 900;
             letter-spacing: .02em;
             text-transform: none;
@@ -145,81 +168,87 @@
         .lap-bracket-host .bt-match {
             position: relative;
             display: grid;
-            gap: 5px;
+            gap: .3rem;
             width: 100%;
-            padding: 7px 8px;
-            border: 1.5px solid #c8d5e7;
-            border-radius: 10px;
-            background: #ffffff;
-            box-shadow: 0 6px 14px rgba(15, 23, 42, .04);
+            padding: .58rem .62rem .62rem;
+            border: 1px solid #e2e8f0;
+            border-radius: .7rem;
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, .04);
             text-align: left;
+            transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
         }
 
-        .lap-bracket-host .bt-match.is-final,
+        .lap-bracket-host .bt-match.is-final {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            gap: .45rem;
+        }
+
+        .lap-bracket-host .bt-match.is-final .bt-match-main,
         .lap-bracket-host .bt-match-main {
             width: 100%;
             display: grid;
-            gap: 5px;
+            gap: .3rem;
         }
 
         .lap-bracket-host .bt-match-head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 8px;
+            gap: .55rem;
         }
 
         .lap-bracket-host .bt-match-ribbon {
             display: inline-flex;
             align-items: center;
-            padding: 2px 6px;
+            padding: .12rem .42rem;
             border-radius: 999px;
-            background: #edf3ff;
+            background: #f2f6ff;
             color: #0d2f67;
-            border: 1px solid #c8d8f8;
-            font-size: 7px;
+            font-size: .6rem;
             font-weight: 800;
             letter-spacing: .08em;
-            text-transform: uppercase;
         }
 
         .lap-bracket-host .bt-match-status {
             color: #64748b;
-            font-size: 7px;
+            font-size: .62rem;
             font-weight: 700;
             text-align: right;
-            max-width: 13ch;
+            max-width: 12ch;
         }
 
         .lap-bracket-host .bt-side {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
-            gap: 6px;
+            gap: .5rem;
             align-items: center;
             padding-left: 0;
         }
 
         .lap-bracket-host .bt-side + .bt-side {
-            padding-top: 4px;
+            padding-top: .32rem;
             border-top: 1px solid #edf1f6;
         }
 
         .lap-bracket-host .bt-side-name {
             color: #0f172a;
-            font-size: 9px;
+            font-size: .78rem;
             font-weight: 800;
             letter-spacing: -.01em;
-            line-height: 1.2;
+            line-height: 1.15;
+            word-break: break-word;
         }
 
         .lap-bracket-host .bt-side-score {
-            min-width: 20px;
-            padding: 2px 5px;
-            border-radius: 5px;
-            background: #0d2f67;
-            color: #ffffff;
+            min-width: 1.9rem;
+            padding: .12rem .35rem;
+            border-radius: .45rem;
+            background: #f3f4f7;
+            color: #0d2f67;
             text-align: center;
-            font-size: 8px;
+            font-size: .74rem;
             font-weight: 900;
         }
 
@@ -227,8 +256,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
             color: #0f172a;
-            font-size: 6px;
+            font-size: .62rem;
             font-weight: 900;
             letter-spacing: .12em;
         }
@@ -287,82 +317,154 @@
             background: #fff8f8;
         }
 
-        .print-empty {
-            padding: 40px 20px;
+        .report-bracket-empty {
+            width: min(100%, 960px);
+            margin: 2rem auto;
+            padding: 3rem 1.5rem;
+            border: 1px dashed #cbd5e1;
+            border-radius: 1rem;
+            background: #fff;
             text-align: center;
             color: #64748b;
-            font-size: 12px;
-            border: 1px solid rgba(148, 163, 184, .18);
-            border-radius: 14px;
         }
-    </style>
-    @vite(['resources/js/public-brackets.js'])
-</head>
-<body>
-    <script>
-        window.__BRACKET_PDF_READY = false;
-        document.addEventListener('DOMContentLoaded', () => {
-            const markReady = () => {
-                const hosts = Array.from(document.querySelectorAll('[data-bracketry-host]'));
-                if (!hosts.length) {
-                    window.__BRACKET_PDF_READY = true;
-                    return true;
-                }
 
-                const rendered = hosts.every((host) => host.querySelector('.bt-match'));
-                if (rendered) {
-                    window.__BRACKET_PDF_READY = true;
-                }
-
-                return rendered;
-            };
-
-            if (markReady()) {
-                return;
+        @media print {
+            html,
+            body {
+                background: #fff;
             }
 
-            const timer = window.setInterval(() => {
-                if (markReady()) {
-                    window.clearInterval(timer);
-                }
-            }, 120);
-        }, { once: true });
-    </script>
+            .print-toolbar {
+                display: none !important;
+            }
 
-    <div class="print-shell">
-        <header class="print-head">
-            <div>
-                <h1>Bagan Knockout</h1>
-                <p>Versi cetak bracket knockout dari dashboard laporan pertandingan.</p>
-            </div>
-            <div class="print-meta">
-                <span class="print-chip">{{ $selectedAgeGroup?->name ?: 'Semua kelompok usia' }}</span>
-                <span>Digenerate: {{ $generatedAt->format('d M Y H:i') }} WIB</span>
-                <span>Sumber: Dashboard Laporan Pertandingan</span>
-            </div>
-        </header>
+            .report-bracket-document {
+                padding: 0;
+            }
 
-        @forelse ($bracketryBrackets as $bracket)
-            <section class="print-group">
-                <div class="print-group-head">
-                    <h2>{{ $bracket['age_group']?->name ?: '-' }}</h2>
-                    <span class="print-group-badge">{{ $bracket['match_count'] }} Match</span>
-                </div>
+            .report-bracket-group + .report-bracket-group {
+                margin-top: 0;
+                break-before: page;
+                page-break-before: always;
+            }
 
-                <div
-                    class="report-bracket-shell"
-                    style="--report-bracket-height: {{ $bracket['layout']['desktop_height'] ?? 720 }}px;"
-                >
-                    <div class="lap-bracket-host" data-bracketry-host data-bracket-readonly="true">
-                        <script type="application/json" data-bracketry-data>
-                            @json($bracket['data'])
-                        </script>
+            .report-bracket-sheet {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+                background: #fff;
+                zoom: var(--group-print-scale, 1);
+            }
+
+            .report-bracket-shell {
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .report-bracket-group,
+            .report-bracket-group-head,
+            .report-bracket-shell,
+            .lap-bracket-host,
+            .bt-match,
+            .match-wrapper,
+            .round-wrapper {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <div>
+            <strong>Bagan Knockout</strong>
+            <p>Halaman ini khusus print browser dan tetap merender bracket asli dari bracketry. Rekomendasi: pilih A4 landscape dari dialog print.</p>
+        </div>
+        <div class="print-toolbar-actions">
+            <button type="button" data-print-trigger>Cetak</button>
+            <button type="button" onclick="window.close()">Tutup</button>
+        </div>
+    </div>
+
+    <main class="report-bracket-document">
+        @forelse ($reportBrackets as $bracket)
+            <section class="report-bracket-group">
+                <div class="report-bracket-sheet" data-print-sheet>
+                    <div class="report-bracket-group-head">
+                        <div>
+                            <h1>{{ $bracket['age_group']?->name ?: '-' }}</h1>
+                            <p>Jalur knockout berdasarkan ronde, slot bracket, dan hasil pertandingan yang tersimpan.</p>
+                        </div>
+                        <span class="report-bracket-badge">{{ $bracket['match_count'] }} match</span>
+                    </div>
+
+                    <div
+                        class="report-bracket-shell"
+                        style="--report-bracket-height: {{ max(460, min(640, (int) round(($bracket['layout']['desktop_height'] ?? 720) * 0.72))) }}px;"
+                    >
+                        <div class="lap-bracket-host" data-bracketry-host data-bracket-readonly="true" data-bracket-profile="print">
+                            <script type="application/json" data-bracketry-data>
+                                @json($bracket['data'])
+                            </script>
+                        </div>
                     </div>
                 </div>
             </section>
         @empty
-            <div class="print-empty">Belum ada bracket knockout yang bisa ditampilkan untuk filter ini.</div>
+            <div class="report-bracket-empty">Belum ada bracket knockout yang bisa ditampilkan untuk filter ini.</div>
         @endforelse
-    </div>
+    </main>
+
+    <script>
+        (() => {
+            const sheets = Array.from(document.querySelectorAll('[data-print-sheet]'));
+            const trigger = document.querySelector('[data-print-trigger]');
+            const mmToPx = (mm) => (mm * 96) / 25.4;
+            const printableWidth = mmToPx(297 - 12);
+            const printableHeight = mmToPx(210 - 12);
+
+            const applyPrintScale = () => {
+                sheets.forEach((sheet) => {
+                    sheet.style.removeProperty('--group-print-scale');
+
+                    const width = sheet.scrollWidth || sheet.offsetWidth;
+                    const height = sheet.scrollHeight || sheet.offsetHeight;
+
+                    if (!width || !height) {
+                        sheet.style.setProperty('--group-print-scale', '1');
+                        return;
+                    }
+
+                    const widthScale = printableWidth / width;
+                    const heightScale = printableHeight / height;
+                    const scale = Math.max(0.42, Math.min(1, widthScale, heightScale));
+
+                    sheet.style.setProperty('--group-print-scale', String(scale));
+                });
+            };
+
+            const queuePrint = () => {
+                applyPrintScale();
+                window.requestAnimationFrame(() => {
+                    window.requestAnimationFrame(() => {
+                        window.setTimeout(() => window.print(), 180);
+                    });
+                });
+            };
+
+            window.addEventListener('beforeprint', applyPrintScale);
+            window.addEventListener('resize', applyPrintScale, { passive: true });
+            window.addEventListener('load', queuePrint, { once: true });
+
+            trigger?.addEventListener('click', () => {
+                applyPrintScale();
+                window.print();
+            });
+        })();
+    </script>
 </body>
 </html>

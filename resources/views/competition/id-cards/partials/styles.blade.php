@@ -247,8 +247,8 @@
         position: relative;
         z-index: 1;
         display: grid;
-        grid-template-columns: 1fr 29.8mm;
-        gap: 3.2mm;
+        grid-template-columns: 1fr 19.2mm;
+        gap: 2.2mm;
         padding: 7.4mm 4.2mm 4.8mm;
     }
 
@@ -269,6 +269,7 @@
     .idc-compact-value {
         font-size: 2.75mm;
         line-height: 1.08;
+        display: block;
     }
 
     .idc-compact-label,
@@ -292,14 +293,29 @@
         word-break: break-word;
     }
 
+    .idc-compact-value--multiline {
+        word-break: normal;
+        white-space: normal;
+        line-height: 1.12;
+    }
+
+    .idc-compact-value-line {
+        display: block;
+    }
+
+    .idc-compact-value--multiline .idc-compact-value-line {
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     .idc-compact-right {
-        display: grid;
-        grid-template-columns: 16.6mm 11.8mm;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: end;
-        column-gap: 0.9mm;
-        padding-top: 1.8mm;
-        transform: translateX(-0.6mm);
+        justify-content: flex-start;
+        padding-top: 0.4mm;
     }
 
     .idc-compact-photo-card,
@@ -308,7 +324,7 @@
     }
 
     .idc-compact-photo-card {
-        width: 100%;
+        width: 19.2mm;
         padding: 0.45mm;
         background: rgba(255, 255, 255, 0.86);
         border: 0.12mm solid rgba(255, 255, 255, 0.9);
@@ -316,15 +332,14 @@
     }
 
     .idc-compact-qr-card {
-        width: 100%;
-        padding: 0.7mm;
+        width: 11.4mm;
+        height: 11.4mm;
+        padding: 0.9mm;
         text-align: center;
-        background: #f4f6f8;
+        background: #ffffff;
         border: 0.12mm solid rgba(100, 116, 139, 0.14);
-        box-shadow: 0 0.35mm 0.9mm rgba(15, 23, 42, 0.05), inset 0 0 0 0.08mm rgba(255, 255, 255, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        box-shadow: 0 0.35mm 0.9mm rgba(15, 23, 42, 0.05);
+        margin: 0 auto;
     }
 
     .idc-compact-photo,
@@ -337,7 +352,7 @@
 
     .idc-compact-photo {
         width: 100%;
-        height: 23.4mm;
+        height: 21.6mm;
         border: 0;
         border-radius: 0.7mm;
         box-shadow: none;
@@ -345,8 +360,7 @@
 
     .idc-compact-qr {
         width: 100%;
-        height: auto;
-        aspect-ratio: 1;
+        height: 100%;
         object-fit: contain;
         border: 0;
         padding: 0;
@@ -355,6 +369,24 @@
         image-rendering: pixelated;
         image-rendering: crisp-edges;
         image-rendering: -webkit-optimize-contrast;
+    }
+
+    .idc-compact-qr-block {
+        width: 19.2mm;
+        margin-top: 0.55mm;
+        text-align: center;
+    }
+
+    .idc-compact-qr-status {
+        font-size: 0.82mm;
+        line-height: 1.05;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-align: center;
+        color: var(--idc-primary-deep);
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: visible;
     }
 
     .idc-photo-placeholder {
@@ -382,14 +414,15 @@
     }
 
     .idc-compact-foot-site {
-        flex: 0 0 12.8mm;
+        flex: 0 0 21.2mm;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        padding: 0 1mm 0 0.6mm;
+        justify-content: flex-start;
+        padding: 0 0 0 1.2mm;
         background: transparent;
         color: var(--idc-primary-deep);
-        font-size: 1.35mm;
+        font-size: 1.05mm;
+        line-height: 1;
         font-weight: 600;
         white-space: nowrap;
     }

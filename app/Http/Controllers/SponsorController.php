@@ -83,7 +83,7 @@ class SponsorController extends Controller
             'tier' => ['required', 'string', 'max:100'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['nullable', 'boolean'],
-            'logo' => [$isUpdate ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
+            'logo' => [$isUpdate ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:512'],
         ]);
 
         $data['is_published'] = $request->boolean('is_published');

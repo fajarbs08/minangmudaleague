@@ -46,27 +46,16 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
 Project ini menggunakan Laravel sebagai framework, tetapi branding aplikasi yang ditampilkan ke pengguna adalah `Liga Anak Piaman Laweh`.
 
-## Browsershot
+## PDF dan Gambar
 
-Project ini memakai `spatie/browsershot` untuk render PDF kartu identitas dan beberapa dokumen cetak lain.
+Project ini memakai `barryvdh/laravel-dompdf` untuk render PDF laporan dan kartu identitas.
 
-Runtime yang perlu tersedia:
+Runtime yang tetap perlu tersedia:
 
-- `chromium`
-- `nodejs`
-- `npm`
-- `puppeteer`
-- `imagemagick`
 - ekstensi PHP `imagick`
+- `imagemagick`
 
-Contoh environment runtime:
-
-- `ID_CARDS_CHROME_PATH=/usr/bin/chromium`
-- `ID_CARDS_NODE_BINARY=/usr/bin/node`
-- `ID_CARDS_NODE_MODULES_PATH=/app/storage/app/id-card-node/node_modules`
-- `ID_CARDS_NO_SANDBOX=true`
-
-`Browsershot` adalah jalur utama untuk PDF. Pastikan Chrome/Chromium dan Node tersedia, karena jika runtime browser tidak ada maka render PDF akan gagal.
+`Imagick` dipakai sebagai fallback pemrosesan gambar agar upload dan normalisasi media tetap stabil.
 
 ## Credit
 

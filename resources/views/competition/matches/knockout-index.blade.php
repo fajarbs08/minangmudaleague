@@ -385,6 +385,89 @@
         }
     }
 
+    html[data-bs-theme="dark"] .knockout-admin-age-pill,
+    html[data-bs-theme="dark"] .knockout-admin-round-tab,
+    html[data-bs-theme="dark"] .knockout-admin-slot.is-occupied,
+    html[data-bs-theme="dark"] .knockout-admin-match {
+        background: var(--lap-admin-surface-card);
+        color: var(--lap-admin-text-strong);
+        border-color: var(--lap-admin-border-soft);
+        box-shadow: var(--lap-admin-shadow-card);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-age-pill:hover,
+    html[data-bs-theme="dark"] .knockout-admin-age-pill:focus-visible,
+    html[data-bs-theme="dark"] .knockout-admin-age-pill.is-active,
+    html[data-bs-theme="dark"] .knockout-admin-round-tab.is-active,
+    html[data-bs-theme="dark"] [data-knockout-board-root].is-dragging .knockout-admin-slot.slot-tone-empty {
+        border-color: rgba(var(--bs-primary-rgb), 0.34);
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.14), rgba(14, 165, 233, 0.12));
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-age-pill-count,
+    html[data-bs-theme="dark"] .knockout-admin-source-pill {
+        background: rgba(var(--bs-primary-rgb), 0.16);
+        color: #bfdbfe;
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-round-header {
+        border-color: rgba(var(--bs-primary-rgb), 0.22);
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.16), rgba(14, 165, 233, 0.12));
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot {
+        border-color: var(--lap-admin-border-strong);
+        background: var(--lap-admin-surface-soft);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot.slot-tone-winner {
+        border-color: rgba(34, 197, 94, 0.32);
+        background: linear-gradient(180deg, rgba(22, 163, 74, 0.16), rgba(22, 33, 51, 0.96) 68%);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot.slot-tone-occupied {
+        border-color: rgba(var(--bs-primary-rgb), 0.30);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot.has-connector::after {
+        background: rgba(125, 162, 220, 0.58);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot.has-connector::before {
+        background: rgba(125, 162, 220, 0.82);
+        box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.92);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-slot-label,
+    html[data-bs-theme="dark"] .knockout-admin-handle,
+    html[data-bs-theme="dark"] .knockout-admin-kicker,
+    html[data-bs-theme="dark"] .knockout-admin-meta {
+        color: var(--lap-admin-text-muted);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-result-chip,
+    html[data-bs-theme="dark"] .knockout-admin-team.is-winner {
+        background: rgba(34, 197, 94, 0.16);
+        color: #86efac;
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-score {
+        color: var(--lap-admin-text-strong);
+    }
+
+    html[data-bs-theme="dark"] .knockout-admin-empty {
+        background: rgba(148, 163, 184, 0.10);
+        color: var(--lap-admin-text-soft);
+    }
+
+    html[data-bs-theme="dark"] [data-knockout-board-root].is-dragging .knockout-admin-empty {
+        background: rgba(var(--bs-primary-rgb), 0.12);
+    }
+
+    html[data-bs-theme="dark"] [data-knockout-board-root].is-dragging .knockout-admin-empty-link {
+        color: #bfdbfe;
+    }
+
     @media (max-width: 991.98px) {
         .knockout-admin-slot.has-connector::after,
         .knockout-admin-slot.has-connector::before {

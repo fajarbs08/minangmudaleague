@@ -191,7 +191,7 @@
                         <div class="col-12">
                             <label class="form-label">Logo <span class="text-danger">*</span></label>
                             <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,.svg" required>
-                            <small class="text-muted d-block mt-2">Logo akan dinormalisasi ke format square transparan agar rapi di slider publik.</small>
+                            <small class="text-muted d-block mt-2">Logo maks. 512 KB dan akan dinormalisasi ke format square transparan agar rapi di slider publik.</small>
                         </div>
                         <div class="col-12">
                             <div class="form-check">

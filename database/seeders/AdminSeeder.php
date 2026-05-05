@@ -12,7 +12,11 @@ class AdminSeeder extends Seeder
         $password = trim((string) env('ADMIN_SEED_PASSWORD', ''));
 
         if ($password === '') {
-            throw new \RuntimeException('ADMIN_SEED_PASSWORD wajib diisi sebelum menjalankan AdminSeeder.');
+            if (app()->environment(['local', 'testing'])) {
+                $password = 'admin12345';
+            } else {
+                throw new \RuntimeException('ADMIN_SEED_PASSWORD wajib diisi sebelum menjalankan AdminSeeder.');
+            }
         }
 
         User::updateOrCreate(

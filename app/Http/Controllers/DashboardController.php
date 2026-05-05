@@ -11,7 +11,6 @@ use App\Models\Official;
 use App\Models\Player;
 use App\Models\Sponsor;
 use App\Models\User;
-use App\Services\HtmlPdfRenderer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -1003,13 +1002,13 @@ class DashboardController extends Controller
 
                     $contestants[$homeKey] = [
                         'players' => [[
-                            'title' => $match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A',
+                            'title' => $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A',
                         ]],
                     ];
 
                     $contestants[$awayKey] = [
                         'players' => [[
-                            'title' => $match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B',
+                            'title' => $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B',
                         ]],
                     ];
 
@@ -1059,7 +1058,7 @@ class DashboardController extends Controller
 
                 $winner = [
                     'name' => $winnerClub?->name ?: 'Juara belum tersedia',
-                    'short_name' => $winnerClub?->short_name ?: $winnerClub?->name ?: 'JUARA',
+                    'short_name' => $winnerClub?->name ?: $winnerClub?->short_name ?: 'JUARA',
                     'logo_url' => $winnerClub?->logo_file_url,
                     'score_label' => $finalMatch->score_label,
                     'opponent_name' => $loserClub?->name ?: 'Lawan',
@@ -1419,225 +1418,6 @@ class DashboardController extends Controller
                 'website_url' => $sponsor->website_url,
                 'tier' => $sponsor->tier,
             ]);
-    }
-
-    public function workflowPdf(Request $request)
-    {
-        abort_unless($request->user()?->isClubUser(), 403);
-
-        $pdf = app(HtmlPdfRenderer::class)->renderView('pdf.club-workflow', [
-            'generatedAt' => now(),
-            'steps' => [
-                [
-                    'number' => '1',
-                    'title' => 'Terima Akun dan Login',
-                    'description' => 'Tahap awal untuk akun club adalah menerima akses login dan masuk ke dashboard registrasi.',
-                    'screenshot' => [
-                        'title' => 'Tampilan dashboard akun club',
-                        'caption' => 'Penanda pada sidebar menunjukkan urutan menu utama yang dipakai akun club: 1) Klub, 2) Ofisial, 3) Pemain, dan 4) DSP.',
-                        'path' => public_path('workflow-screens/dashboard-annotated.png'),
-                    ],
-                    'details' => [
-                        'Gunakan email akun club dan password awal yang diberikan panitia atau admin.',
-                        'Login ke sistem registrasi sampai berhasil masuk ke dashboard akun club.',
-                        'Pastikan menu utama untuk registrasi seperti Klub, Ofisial, Pemain, dan DSP dapat diakses dengan benar.',
-                    ],
-                    'result' => 'Akun club berhasil masuk ke dashboard dan siap mulai mengerjakan registrasi.',
-                    'accent' => '#ef6b2e',
-                    'icon' => 'LOGIN',
-                ],
-                [
-                    'number' => '2',
-                    'title' => 'Lengkapi Data Klub',
-                    'description' => 'Akun club membuka menu Klub untuk mengisi identitas utama peserta sebelum melanjutkan ke modul lain.',
-                    'screenshot' => [
-                        'title' => 'Form edit data klub',
-                        'caption' => 'Isi identitas klub, unggah dokumen wajib, simpan perubahan, lalu submit verifikasi hanya setelah seluruh data benar.',
-                        'path' => public_path('workflow-screens/club-edit-annotated.png'),
-                    ],
-                    'details' => [
-                        'Isi nama klub, nama singkat, nama manajer, zona, kota, tahun berdiri, dan alamat.',
-                        'Unduh template surat pernyataan, isi data klub, tanda tangan, lalu unggah kembali bersama logo klub.',
-                        'Periksa ulang apakah seluruh identitas klub sudah benar dan sama dengan dokumen pendukung yang diunggah.',
-                    ],
-                    'result' => 'Profil klub lengkap dan siap diajukan ke verifikasi atau dilanjutkan ke input ofisial dan pemain.',
-                    'accent' => '#ff9f43',
-                    'icon' => 'KLUB',
-                ],
-                [
-                    'number' => '3',
-                    'title' => 'Input Data Ofisial',
-                    'description' => 'Akun club mendaftarkan setiap ofisial secara terpisah lengkap dengan identitas, dokumen, dan penugasan.',
-                    'screenshot' => [
-                        'title' => 'Form input ofisial',
-                        'caption' => 'Pilih klub, isi identitas ofisial, unggah lisensi dan dokumen pendukung, lalu simpan data ofisial.',
-                        'path' => public_path('workflow-screens/official-create-annotated.png'),
-                    ],
-                    'details' => [
-                        'Isi klub, peran ofisial, nama, nomor lisensi, telepon, email, tempat lahir, tanggal lahir, dan kewarganegaraan.',
-                        'Unggah pas foto 3x4, bukti lisensi, serta KTP atau identitas lain yang diminta.',
-                        'Tambahkan kelompok usia yang diikuti, jabatan per kelompok usia, level lisensi, dan catatan bila diperlukan.',
-                    ],
-                    'result' => 'Data ofisial tersimpan sebagai draft dan dapat diedit, diajukan, atau direview kemudian.',
-                    'accent' => '#43aa8b',
-                    'icon' => 'OFC',
-                ],
-                [
-                    'number' => '4',
-                    'title' => 'Input Data Pemain',
-                    'description' => 'Akun club mengisi data pemain satu per satu lengkap dengan dokumen administrasi dan kelompok usia.',
-                    'screenshot' => [
-                        'title' => 'Form input pemain',
-                        'caption' => 'Isi identitas pemain, unggah dokumen administrasi, lalu atur kelompok usia, posisi, dan detail registrasi sebelum menyimpan.',
-                        'path' => public_path('workflow-screens/player-create-annotated.png'),
-                    ],
-                    'details' => [
-                        'Isi identitas pemain seperti nama, nama ibu kandung, sekolah, nomor registrasi, tinggi, berat, tempat lahir, tanggal lahir, dan dominant foot.',
-                        'Unggah pas foto 3x4, file KK, ijazah, rapor, dan akta kelahiran sesuai kebutuhan verifikasi.',
-                        'Tetapkan kelompok usia, musim, nomor punggung, posisi, serta catatan per kelompok usia. Satu pemain dapat tercatat di lebih dari satu kelompok usia.',
-                    ],
-                    'result' => 'Data pemain masuk ke daftar registrasi dan siap dilanjutkan ke penyusunan roster pertandingan.',
-                    'accent' => '#5f6df8',
-                    'icon' => 'PLY',
-                ],
-                [
-                    'number' => '5',
-                    'title' => 'Susun DSP per Pertandingan',
-                    'description' => 'Setelah data pemain tersedia, akun club membuat DSP untuk pertandingan yang akan dijalani.',
-                    'screenshot' => [
-                        'title' => 'Form penyusunan DSP',
-                        'caption' => 'Pilih klub dan kelompok usia, tentukan starter serta cadangan, lalu simpan DSP setelah roster sesuai aturan.',
-                        'path' => public_path('workflow-screens/lineup-create-annotated.png'),
-                    ],
-                    'details' => [
-                        'Pilih klub dan kelompok usia, lalu isi judul DSP, match day, tanggal pertandingan, nama pelatih, warna jersey, venue, jam main, dan catatan.',
-                        'Pilih pemain yang tersedia ke dalam daftar starter dan cadangan sesuai filter klub dan kelompok usia.',
-                        'Isi urutan tampil pemain pada roster DSP. Sistem menampilkan panduan jumlah starter dan batas maksimal cadangan.',
-                    ],
-                    'result' => 'DSP tersimpan dan dapat diperiksa ulang sebelum diajukan ke verifikasi.',
-                    'accent' => '#e65252',
-                    'icon' => 'DSP',
-                ],
-                [
-                    'number' => '6',
-                    'title' => 'Ajukan Verifikasi',
-                    'description' => 'Setelah data dianggap siap, akun club harus mengajukan item terkait ke proses verifikasi.',
-                    'screenshot' => [
-                        'title' => 'Panel submit verifikasi',
-                        'caption' => 'Tombol submit hanya dipakai setelah data lengkap. Area bertanda menunjukkan aksi akhir untuk mengirim item ke proses review.',
-                        'path' => public_path('workflow-screens/submit-annotated.png'),
-                    ],
-                    'details' => [
-                        'Pada data klub, ofisial, pemain, dan DSP, club menekan tombol Submit Verifikasi ketika data sudah lengkap.',
-                        'Setelah dikirim, status berubah menjadi Dalam Proses atau submitted dan waktu pengajuan tercatat di sistem.',
-                        'Data dianggap lengkap bila semua field penting terisi, dokumen wajib sudah diunggah, identitas sesuai, kelompok usia sudah ditetapkan, dan tidak ada bagian data yang masih kosong atau bertentangan.',
-                        'Untuk klub, lengkap berarti profil klub, manajer, alamat, logo, dan surat pernyataan sudah siap diperiksa.',
-                        'Untuk ofisial, lengkap berarti identitas, peran, lisensi, dokumen pendukung, dan kelompok usia sudah sesuai kebutuhan kompetisi.',
-                        'Untuk pemain, lengkap berarti identitas pemain, dokumen administrasi, kelompok usia, posisi, dan nomor punggung sudah benar.',
-                        'Untuk DSP, lengkap berarti pertandingan, pelatih, kelompok usia, starter, cadangan, dan urutan roster sudah sesuai aturan sistem.',
-                        'Sebelum submit, akun club wajib membuka ulang item terkait dan memastikan tidak ada file salah, file kosong, atau data yang belum diperbarui.',
-                    ],
-                    'result' => 'Item yang diajukan masuk ke antrian review admin.',
-                    'accent' => '#1f7a8c',
-                    'icon' => 'SUBMIT',
-                ],
-                [
-                    'number' => '7',
-                    'title' => 'Tindak Lanjut Hasil Review',
-                    'description' => 'Akun club wajib memantau hasil review dan menindaklanjuti setiap status dengan benar.',
-                    'details' => [
-                        'Jika status Approved atau Diterima, artinya data dinilai sesuai oleh admin. Akun club tidak perlu submit ulang untuk item tersebut, tetapi harus memastikan data yang sudah disetujui dipakai secara konsisten pada proses berikutnya.',
-                        'Sesudah approved, club dapat melanjutkan ke tahapan lanjutan seperti melengkapi modul lain, menyiapkan DSP, atau mengunduh keluaran seperti ID Card bila fitur itu tersedia pada modul terkait.',
-                        'Jika status Revision atau Perlu Revisi, artinya data masih bisa diperbaiki oleh club. Akun club harus membuka item yang direvisi, membaca catatan admin secara teliti, memperbaiki bagian yang diminta, memeriksa ulang dokumen, lalu menekan Submit Verifikasi kembali.',
-                        'Jika status Rejected atau Ditolak, artinya data tidak diterima dalam kondisi saat ini. Akun club harus menganggap item tersebut belum lolos verifikasi dan wajib meninjau penyebab penolakan sebelum melanjutkan.',
-                        'Tindakan saat rejected: baca catatan admin, cocokan dengan field dan dokumen yang ada, perbaiki semua data yang tidak valid atau tidak sesuai, lalu pastikan ke admin atau panitia apakah item boleh diedit langsung atau perlu dibuka ulang secara administratif.',
-                        'Bila item rejected masih bisa diedit oleh sistem atau oleh arahan admin, club harus memperbaiki seluruh kekurangan, bukan hanya satu bagian yang paling terlihat, lalu ajukan ulang hanya setelah seluruh syarat benar-benar terpenuhi.',
-                        'Jika penolakan terjadi karena dokumen tidak jelas, dokumen salah, data identitas tidak cocok, kelompok usia tidak sesuai, roster DSP tidak memenuhi aturan, atau data penting masih kosong, maka semua sumber masalah itu harus dibereskan sebelum mencoba mengajukan ulang.',
-                        'Club tidak boleh menganggap approved berarti pekerjaan selesai total. Semua modul yang masih draft, submitted, revision, atau rejected tetap harus dipantau sampai seluruh kebutuhan kompetisi berstatus diterima.',
-                        'Club juga dapat membuka atau mengunduh PDF ini sebagai referensi selama proses verifikasi dan administrasi pertandingan.',
-                    ],
-                    'result' => 'Workflow dianggap selesai saat seluruh data yang diperlukan berstatus Diterima.',
-                    'accent' => '#b5179e',
-                    'icon' => 'FINAL',
-                ],
-            ],
-            'completionChecks' => [
-                'Semua field utama pada modul yang sedang dikerjakan sudah terisi dan tidak ada data penting yang kosong.',
-                'Nama, tanggal lahir, identitas, kelompok usia, jabatan, posisi, dan nomor punggung sudah sesuai dokumen pendukung.',
-                'Dokumen wajib sudah diunggah, dapat dibuka, tidak buram, tidak terpotong, dan milik orang atau klub yang benar.',
-                'Tidak ada pertentangan data antar field, antar dokumen, atau antar modul yang diinput oleh akun club.',
-                'Roster DSP sudah mengikuti aturan jumlah starter, cadangan, urutan pemain, dan filter klub atau kelompok usia.',
-                'Semua catatan review sebelumnya sudah diperbaiki seluruhnya sebelum submit ulang.',
-            ],
-            'statusGuides' => [
-                [
-                    'label' => 'Approved / Diterima',
-                    'color' => '#0f9d58',
-                    'body' => 'Item dinyatakan lolos verifikasi. Akun club tidak perlu submit ulang untuk item itu. Yang harus dilakukan adalah melanjutkan pekerjaan ke modul lain yang belum selesai, menjaga konsistensi data yang sudah diterima, dan memakai hasil approved sebagai dasar proses berikutnya.',
-                ],
-                [
-                    'label' => 'Revision / Perlu Revisi',
-                    'color' => '#d97706',
-                    'body' => 'Item masih bisa diperbaiki. Akun club harus membuka detail data, membaca catatan review, memperbaiki semua bagian yang diminta, mengganti dokumen jika perlu, lalu memeriksa ulang kelengkapan sebelum menekan Submit Verifikasi kembali.',
-                ],
-                [
-                    'label' => 'Rejected / Ditolak',
-                    'color' => '#dc2626',
-                    'body' => 'Item belum diterima dan tidak boleh dianggap selesai. Akun club harus menelusuri sebab penolakan, memperbaiki seluruh sumber masalah, memastikan apakah item masih dapat diedit langsung atau perlu dibuka ulang, lalu baru mengajukan kembali setelah syarat benar-benar terpenuhi.',
-                ],
-            ],
-            'rejectedActions' => [
-                'Baca catatan review sampai jelas field atau dokumen mana yang menjadi penyebab penolakan.',
-                'Bandingkan data di sistem dengan dokumen fisik atau dokumen sumber untuk memastikan tidak ada salah identitas atau salah unggah.',
-                'Perbaiki seluruh bagian yang tidak valid: data kosong, dokumen salah, dokumen tidak terbaca, kelompok usia tidak cocok, posisi atau jabatan keliru, atau roster DSP tidak sesuai aturan.',
-                'Lakukan pengecekan ulang menyeluruh pada item yang ditolak agar masalah yang sama tidak berulang pada submit berikutnya.',
-                'Hubungi panitia atau pihak verifikator jika status reject membuat item perlu dibuka ulang atau jika catatan review belum cukup jelas untuk ditindaklanjuti.',
-            ],
-        ], 'a4', 'portrait');
-
-        $fileName = 'tahapan-workflow-dashboard-club.pdf';
-
-        return $this->pdfBinaryResponse($request, $pdf, $fileName);
-    }
-
-    public function adminManualPdf(Request $request)
-    {
-        abort_unless($request->user()?->isAdmin(), 403);
-
-        $pdf = app(HtmlPdfRenderer::class)->renderView('manuals.admin', [
-            'generatedAt' => now(),
-        ], 'a4', 'portrait');
-
-        $fileName = 'manual-admin-liga-anak-piaman-laweh.pdf';
-
-        return $this->pdfBinaryResponse($request, $pdf, $fileName);
-    }
-
-    public function clubManualPdf(Request $request)
-    {
-        abort_unless($request->user()?->isClubUser(), 403);
-
-        $pdf = app(HtmlPdfRenderer::class)->renderView('manuals.club', [
-            'generatedAt' => now(),
-        ], 'a4', 'portrait');
-
-        $fileName = 'manual-club-liga-anak-piaman-laweh.pdf';
-
-        return $this->pdfBinaryResponse($request, $pdf, $fileName);
-    }
-
-    private function pdfBinaryResponse(Request $request, string $pdf, string $fileName)
-    {
-        $response = response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => ($request->boolean('download') ? 'attachment' : 'inline').'; filename="'.$fileName.'"',
-        ]);
-
-        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('Expires', 'Fri, 01 Jan 1990 00:00:00 GMT');
-
-        return $response;
     }
 
     private function adminReviewStats(): array

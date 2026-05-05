@@ -6,17 +6,48 @@ use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Official;
 use App\Models\Player;
+use BaconQrCode\Renderer\GDLibRenderer;
+use BaconQrCode\Writer;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\Response;
-use RuntimeException;
 
 class IdentityCardService
 {
-    private const PDF_TEMPLATE_VERSION = 'idc-template-v4';
+    public const DEFAULT_BATCH_EXPORT_LIMIT = 64;
+
+    private const PDF_TEMPLATE_VERSION = 'idc-template-v31';
+
+    private const PDF_RENDER_TIMEOUT_SECONDS = 180;
+
+    private const MAX_BATCH_EXPORT_LIMIT = 160;
+
+    private const QR_IMAGE_SIZE = 420;
+
+    private const EMBED_PROFILE_BRAND_LOGO = [
+        'max_width' => 96,
+        'max_height' => 96,
+        'format' => 'png',
+    ];
+
+    private const EMBED_PROFILE_WATERMARK = [
+        'max_width' => 240,
+        'max_height' => 240,
+        'format' => 'png',
+    ];
+
+    private const EMBED_PROFILE_PERSON_PHOTO = [
+        'max_width' => 260,
+        'max_height' => 320,
+        'format' => 'jpeg',
+        'quality' => 82,
+    ];
+
+    private array $imageSourceCache = [];
+
+    private array $qrSourceCache = [];
 
     public function buildOfficialDocument(Club $club, AgeGroup $ageGroup, iterable $officials): array
     {
@@ -46,10 +77,7 @@ class IdentityCardService
     {
         $pdf = $this->renderPdf($document);
 
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$filename.'"',
-        ]);
+        return response($pdf, 200, $this->pdfHeaders($filename, $download));
     }
 
     public function pdfResponseCached(array $document, string $filename, string $cacheKey, bool $download = false): Response
@@ -60,81 +88,80 @@ class IdentityCardService
         $cacheFile = $cacheDir.'/'.sha1($versionedCacheKey).'.pdf';
 
         if ($disk->exists($cacheFile)) {
-            return response()->file($disk->path($cacheFile), [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$filename.'"',
-            ]);
+            return response()->file($disk->path($cacheFile), $this->pdfHeaders($filename, $download));
         }
 
         $pdf = $this->renderPdf($document);
         $disk->put($cacheFile, $pdf);
 
-        return response($pdf, 200, [
+        return response($pdf, 200, $this->pdfHeaders($filename, $download));
+    }
+
+    private function pdfHeaders(string $filename, bool $download): array
+    {
+        return [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+    }
+
+    public function normalizeBatchExportLimit(mixed $value): int
+    {
+        $limit = filter_var($value, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
         ]);
+
+        if ($limit === false) {
+            return self::DEFAULT_BATCH_EXPORT_LIMIT;
+        }
+
+        return min($limit, self::MAX_BATCH_EXPORT_LIMIT);
     }
 
     private function renderPdf(array $document): string
     {
-        $html = view('competition.id-cards.print', [
+        $this->extendPdfRenderTimeout();
+
+        $html = view('competition.id-cards.pdf', [
             'document' => $document,
         ])->render();
 
-        $chromePath = $this->detectExecutable((string) config('id-cards.chrome_path'));
-        $nodeBinary = $this->detectExecutable((string) config('id-cards.node_binary'));
-
-        if ($chromePath === null || $nodeBinary === null) {
-            throw new RuntimeException('Browsershot membutuhkan Chrome/Chromium dan Node yang valid. Set ID_CARDS_CHROME_PATH dan ID_CARDS_NODE_BINARY ke path executable yang benar.');
-        }
-
-        $browsershot = Browsershot::html($html)
-            ->showBackground()
-            ->emulateMedia('screen')
-            ->margins(0, 0, 0, 0)
-            ->paperSize(
-                (float) config('id-cards.page.width_mm'),
-                (float) config('id-cards.page.height_mm'),
-                'mm'
-            )
-            ->setOption('preferCSSPageSize', true)
-            ->setOption('printBackground', true)
-            ->setOption('displayHeaderFooter', false)
-            ->setOption('waitUntil', (string) config('id-cards.wait_until', 'load'))
-            ->timeout((int) config('id-cards.timeout'))
-            ->addChromiumArguments([
-                'disable-dev-shm-usage',
-                'font-render-hinting=medium',
-            ]);
-
-        $browsershot->setChromePath($chromePath);
-        $browsershot->setNodeBinary($nodeBinary);
-
-        $nodeModulesPath = (string) config('id-cards.node_modules_path');
-        if ($nodeModulesPath !== '' && is_dir($nodeModulesPath)) {
-            $browsershot->setNodeModulePath($nodeModulesPath);
-        }
-
-        if (config('id-cards.no_sandbox')) {
-            $browsershot->noSandbox();
-        }
-
-        return $browsershot->pdf();
+        return Pdf::setOption([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'dpi' => 96,
+        ])
+            ->loadHTML($html)
+            ->setPaper($this->pagePaperSize($document), 'portrait')
+            ->output();
     }
 
-    private function detectExecutable(string $candidate): ?string
+    private function extendPdfRenderTimeout(): void
     {
-        $candidate = trim($candidate);
-
-        if ($candidate === '') {
-            return null;
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(self::PDF_RENDER_TIMEOUT_SECONDS);
         }
 
-        if (is_executable($candidate)) {
-            return $candidate;
+        if (function_exists('ini_set')) {
+            @ini_set('max_execution_time', (string) self::PDF_RENDER_TIMEOUT_SECONDS);
         }
+    }
 
-        return null;
+    private function pagePaperSize(array $document): array
+    {
+        $widthMm = (float) ($document['pageSize']['widthMm'] ?? config('id-cards.page.width_mm'));
+        $heightMm = (float) ($document['pageSize']['heightMm'] ?? config('id-cards.page.height_mm'));
+
+        return [0, 0, $this->mmToPoints($widthMm), $this->mmToPoints($heightMm)];
+    }
+
+    private function mmToPoints(float $millimeters): float
+    {
+        return $millimeters * 72 / 25.4;
     }
 
     private function buildDocument(
@@ -176,9 +203,9 @@ class IdentityCardService
             'cards' => $items->map($cardBuilder)->all(),
             'count' => $items->count(),
             'assets' => [
-                'leagueLogoLight' => $this->imageSource(null, config('id-cards.assets.league_logo_light')),
-                'leagueLogoDark' => $this->imageSource(null, config('id-cards.assets.league_logo_dark')),
-                'leagueWatermark' => $this->imageSource(null, config('id-cards.assets.league_watermark')),
+                'leagueLogoLight' => $this->imageSource(null, config('id-cards.assets.league_logo_light'), self::EMBED_PROFILE_BRAND_LOGO),
+                'leagueLogoDark' => $this->imageSource(null, config('id-cards.assets.league_logo_dark'), self::EMBED_PROFILE_BRAND_LOGO),
+                'leagueWatermark' => $this->imageSource(null, config('id-cards.assets.league_watermark'), self::EMBED_PROFILE_WATERMARK),
             ],
         ];
     }
@@ -206,18 +233,19 @@ class IdentityCardService
                 'identifierValue' => $identifier,
                 'secondaryLabel' => 'License',
                 'secondaryValue' => $license,
-                'rows' => [
+                'rows' => $this->compactRows([
                     ['label' => 'Nama', 'value' => $official->name],
                     ['label' => 'Peran', 'value' => $role],
                     ['label' => 'Klub', 'value' => $club->name],
                     ['label' => 'TTL', 'value' => $this->birthText($official->birth_place, $official->birth_date?->format('d M Y'))],
                     ['label' => 'Lisensi', 'value' => $license],
                     ['label' => 'ID', 'value' => $identifier],
-                ],
+                ]),
                 'meta' => [
                     ['label' => 'TTL', 'value' => $this->birthText($official->birth_place, $official->birth_date?->format('d M Y'))],
                     ['label' => 'Affiliation', 'value' => $club->short_name ?: $club->name],
                 ],
+                'verificationText' => $official->verification_status === Official::STATUS_APPROVED ? 'OFFICIAL VERIFIED' : null,
                 'photoSrc' => $this->personPhotoSource($official->photo_path, $official->name, 'Official'),
                 'photoMissing' => blank($official->photo_path),
             ],
@@ -267,13 +295,13 @@ class IdentityCardService
                 'identifierValue' => $identifier,
                 'secondaryLabel' => 'Jersey',
                 'secondaryValue' => $jersey ? '#'.$jersey : '-',
-                'rows' => [
+                'rows' => $this->compactRows([
                     ['label' => 'Nama', 'value' => $player->name],
                     ['label' => 'TTL', 'value' => $this->birthText($player->birth_place, $player->birth_date?->format('d M Y'))],
                     ['label' => 'KU', 'value' => $ageGroup->name],
                     ['label' => 'NP', 'value' => $jersey ? (string) $jersey : '-'],
                     ['label' => 'Klub', 'value' => $club->name],
-                ],
+                ]),
                 'meta' => [
                     ['label' => 'TTL', 'value' => $this->birthText($player->birth_place, $player->birth_date?->format('d M Y'))],
                     ['label' => 'KU', 'value' => $ageGroup->name],
@@ -281,6 +309,7 @@ class IdentityCardService
                     ['label' => 'Posisi', 'value' => $position],
                     ['label' => 'School', 'value' => $player->school_name ?: '-'],
                 ],
+                'verificationText' => $player->verification_status === Player::STATUS_APPROVED ? 'PLAYER VERIFIED' : null,
                 'photoSrc' => $this->personPhotoSource($player->photo_path, $player->name, 'Player'),
                 'photoMissing' => blank($player->photo_path),
             ],
@@ -309,12 +338,28 @@ class IdentityCardService
 
     private function qrSource(string $payload): string
     {
-        return 'data:image/svg+xml;base64,'.base64_encode(
-            QrCode::format('svg')
-                ->size(320)
-                ->margin(1)
-                ->generate($payload)
-        );
+        $cacheKey = sha1($payload);
+
+        if (isset($this->qrSourceCache[$cacheKey])) {
+            return $this->qrSourceCache[$cacheKey];
+        }
+
+        try {
+            $renderer = new GDLibRenderer(size: self::QR_IMAGE_SIZE, margin: 2, imageFormat: 'png');
+            $writer = new Writer($renderer);
+
+            return $this->qrSourceCache[$cacheKey] = 'data:image/png;base64,'.base64_encode($writer->writeString($payload));
+        } catch (\Throwable) {
+            $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <rect width="320" height="320" fill="#ffffff"/>
+  <rect x="12" y="12" width="296" height="296" fill="none" stroke="#1f2937" stroke-width="8"/>
+  <text x="160" y="168" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#1f2937">QR ERROR</text>
+</svg>
+SVG;
+
+            return $this->qrSourceCache[$cacheKey] = 'data:image/svg+xml;base64,'.base64_encode($svg);
+        }
     }
 
     private function absoluteRoute(string $name, mixed $parameters): string
@@ -325,42 +370,48 @@ class IdentityCardService
         return $root.$path;
     }
 
-    private function imageSource(?string $path, ?string $fallbackPath = null): ?string
+    private function imageSource(?string $path, ?string $fallbackPath = null, ?array $profile = null): ?string
     {
+        $cacheKey = sha1(json_encode([$path, $fallbackPath, $profile]));
+
+        if (array_key_exists($cacheKey, $this->imageSourceCache)) {
+            return $this->imageSourceCache[$cacheKey];
+        }
+
         if ($path) {
-            $source = $this->resolveImageSource($path);
+            $source = $this->resolveImageSource($path, $profile);
 
             if ($source) {
-                return $source;
+                return $this->imageSourceCache[$cacheKey] = $source;
             }
         }
 
         if ($fallbackPath && is_file($fallbackPath)) {
-            return $this->fileToDataUri($fallbackPath);
+            return $this->imageSourceCache[$cacheKey] = $this->fileToDataUri($fallbackPath, $profile);
         }
 
-        return null;
+        return $this->imageSourceCache[$cacheKey] = null;
     }
 
     private function clubLogoSource(Club $club): string
     {
-        return $this->imageSource($club->logo_url, config('id-cards.assets.club_fallback'))
+        return $this->imageSource($club->logo_url, config('id-cards.assets.club_fallback'), self::EMBED_PROFILE_BRAND_LOGO)
             ?? $this->placeholderLogoSvg($this->initials($club->short_name ?: $club->name), '#0d2f57', '#1e5aa5');
     }
 
     private function personPhotoSource(?string $path, string $name, string $label): string
     {
-        return $this->imageSource($path)
+        return $this->imageSource($path, null, self::EMBED_PROFILE_PERSON_PHOTO)
             ?? $this->placeholderPhotoSvg($this->initials($name), $label);
     }
 
-    private function resolveImageSource(string $path): ?string
+    private function resolveImageSource(string $path, ?array $profile = null): ?string
     {
         if (Str::startsWith($path, ['http://', 'https://'])) {
             $content = @file_get_contents($path);
 
             if ($content !== false) {
-                return $this->binaryToDataUri($content, $path);
+                return $this->binaryToDataUri($content, $path, $profile);
             }
 
             return $path;
@@ -376,24 +427,130 @@ class IdentityCardService
 
         foreach ($paths as $localPath) {
             if (is_file($localPath)) {
-                return $this->fileToDataUri($localPath);
+                return $this->fileToDataUri($localPath, $profile);
             }
         }
 
         return null;
     }
 
-    private function fileToDataUri(string $path): string
+    private function fileToDataUri(string $path, ?array $profile = null): string
     {
-        return $this->binaryToDataUri((string) file_get_contents($path), $path);
+        return $this->binaryToDataUri((string) file_get_contents($path), $path, $profile);
     }
 
-    private function binaryToDataUri(string $binary, string $path): string
+    private function binaryToDataUri(string $binary, string $path, ?array $profile = null): string
     {
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->buffer($binary) ?: (mime_content_type($path) ?: 'image/png');
 
+        if (str_contains((string) $mime, 'image/svg') && class_exists(\Imagick::class)) {
+            try {
+                $imagick = new \Imagick();
+                $imagick->setBackgroundColor(new \ImagickPixel('transparent'));
+                $imagick->readImageBlob($binary);
+                $imagick->setImageFormat('png32');
+                $binary = $imagick->getImagesBlob();
+                $imagick->clear();
+                $imagick->destroy();
+                $mime = 'image/png';
+            } catch (\Throwable) {
+            }
+        }
+
+        if ($profile !== null) {
+            [$binary, $mime] = $this->optimizeEmbeddedImageBinary($binary, (string) $mime, $profile);
+        }
+
         return 'data:'.$mime.';base64,'.base64_encode($binary);
+    }
+
+    private function optimizeEmbeddedImageBinary(string $binary, string $mime, array $profile): array
+    {
+        if (! str_starts_with($mime, 'image/')) {
+            return [$binary, $mime];
+        }
+
+        $source = @imagecreatefromstring($binary);
+
+        if ($source === false) {
+            return [$binary, $mime];
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $maxWidth = max(1, (int) ($profile['max_width'] ?? $sourceWidth));
+        $maxHeight = max(1, (int) ($profile['max_height'] ?? $sourceHeight));
+        $scale = min($maxWidth / max(1, $sourceWidth), $maxHeight / max(1, $sourceHeight), 1);
+        $targetWidth = max(1, (int) round($sourceWidth * $scale));
+        $targetHeight = max(1, (int) round($sourceHeight * $scale));
+        $format = strtolower((string) ($profile['format'] ?? ''));
+
+        if ($format === '') {
+            $format = $mime === 'image/jpeg' ? 'jpeg' : 'png';
+        }
+
+        $formatMatchesSource = ($format === 'jpeg' && $mime === 'image/jpeg')
+            || ($format === 'png' && $mime === 'image/png');
+
+        if ($targetWidth === $sourceWidth && $targetHeight === $sourceHeight && $formatMatchesSource) {
+            imagedestroy($source);
+
+            return [$binary, $mime];
+        }
+
+        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+
+        if ($canvas === false) {
+            imagedestroy($source);
+
+            return [$binary, $mime];
+        }
+
+        if ($format === 'jpeg') {
+            $background = imagecolorallocate($canvas, 255, 255, 255);
+            imagefilledrectangle($canvas, 0, 0, $targetWidth, $targetHeight, $background);
+        } else {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            $transparent = imagecolorallocatealpha($canvas, 255, 255, 255, 127);
+            imagefilledrectangle($canvas, 0, 0, $targetWidth, $targetHeight, $transparent);
+            imagealphablending($canvas, true);
+        }
+
+        imagecopyresampled(
+            $canvas,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $targetWidth,
+            $targetHeight,
+            $sourceWidth,
+            $sourceHeight
+        );
+
+        ob_start();
+
+        if ($format === 'jpeg') {
+            imagejpeg($canvas, null, (int) ($profile['quality'] ?? 82));
+            $optimizedMime = 'image/jpeg';
+        } else {
+            imagepng($canvas, null, 6);
+            $optimizedMime = 'image/png';
+        }
+
+        $optimizedBinary = ob_get_clean();
+
+        imagedestroy($source);
+        imagedestroy($canvas);
+
+        if ($optimizedBinary === false || $optimizedBinary === '') {
+            return [$binary, $mime];
+        }
+
+        return [$optimizedBinary, $optimizedMime];
     }
 
     private function initials(string $value): string
@@ -458,5 +615,39 @@ SVG;
             ->implode(', ');
 
         return $text !== '' ? $text : '-';
+    }
+
+    private function compactRows(array $rows): array
+    {
+        return collect($rows)
+            ->map(function (array $row): array {
+                $label = (string) ($row['label'] ?? '');
+                $value = preg_replace('/\s+/', ' ', trim((string) ($row['value'] ?? '-'))) ?: '-';
+                $multiline = false;
+                $lines = null;
+
+                if ($label === 'TTL') {
+                    [$place, $date] = array_pad(array_map('trim', explode(',', $value, 2)), 2, '');
+
+                    if ($date !== '') {
+                        $lines = [
+                            Str::limit(trim($place), 18, '...'),
+                            Str::limit(trim($date), 16, '...'),
+                        ];
+                        $value = implode(' ', $lines);
+                        $multiline = true;
+                    } else {
+                        $value = Str::limit($value, 28, '...');
+                    }
+                }
+
+                return [
+                    'label' => $label,
+                    'value' => $multiline ? $value : Str::limit($value, 28, '...'),
+                    'multiline' => $multiline,
+                    'lines' => $lines,
+                ];
+            })
+            ->all();
     }
 }

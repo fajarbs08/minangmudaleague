@@ -18,7 +18,7 @@
 
 @php
     $selectedClubId = old('club_id', $official->club_id ?: $clubs->first()?->id);
-    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 3 MB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
+    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 512 KB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
     $requiresPhotoUpload = blank($official->photo_path);
     $requiresIdentityUpload = blank($official->identity_file_path);
 @endphp

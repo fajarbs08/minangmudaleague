@@ -18,7 +18,7 @@
             'is_starter' => false,
             'is_substitute' => false,
         ]]);
-    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 3 MB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
+    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 512 KB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
     $requiresPhotoUpload = blank($player->photo_path);
     $requiresBirthCertificateUpload = blank($player->birth_certificate_file_path);
     $requiresFamilyCardUpload = blank($player->family_card_file_path);
