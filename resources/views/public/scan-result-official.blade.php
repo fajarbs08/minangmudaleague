@@ -78,7 +78,9 @@
     </style>
 </head>
 <body>
-    @php($clubModel = method_exists($official, 'seasonClub') && $official->seasonClub ? $official->seasonClub : $official->club)
+    @php
+        $clubModel = method_exists($official, 'seasonClub') && $official->seasonClub ? $official->seasonClub : $official->club;
+    @endphp
     <div class="wrap">
         <div class="card">
             <div class="head">
@@ -90,7 +92,9 @@
                     @if ($official->photo_file_url)
                         <img src="{{ $official->photo_file_url }}" alt="{{ $official->name }}" class="photo">
                     @else
-                        @php($officialInitial = \Illuminate\Support\Str::of($official->name)->trim()->substr(0, 1)->upper())
+                        @php
+                            $officialInitial = \Illuminate\Support\Str::of($official->name)->trim()->substr(0, 1)->upper();
+                        @endphp
                         <div class="photo-fallback" aria-hidden="true">{{ $officialInitial ?: 'O' }}</div>
                     @endif
                 </div>

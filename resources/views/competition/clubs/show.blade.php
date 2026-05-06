@@ -1,6 +1,8 @@
 @extends('layouts.vertical', ['title' => $title])
 
-@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+@php
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
+@endphp
 
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">

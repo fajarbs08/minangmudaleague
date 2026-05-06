@@ -133,7 +133,9 @@
                 <select class="form-select" data-kickoff-hour required>
                     <option value="">Jam</option>
                     @foreach (range(0, 23) as $hour)
-                        @php($hourValue = str_pad((string) $hour, 2, '0', STR_PAD_LEFT))
+                        @php
+                            $hourValue = str_pad((string) $hour, 2, '0', STR_PAD_LEFT);
+                        @endphp
                         <option value="{{ $hourValue }}" @selected($kickoffHour === $hourValue)>{{ $hourValue }}</option>
                     @endforeach
                 </select>
@@ -142,7 +144,9 @@
                 <select class="form-select" data-kickoff-minute required>
                     <option value="">Menit</option>
                     @foreach (range(0, 55, 5) as $minute)
-                        @php($minuteValue = str_pad((string) $minute, 2, '0', STR_PAD_LEFT))
+                        @php
+                            $minuteValue = str_pad((string) $minute, 2, '0', STR_PAD_LEFT);
+                        @endphp
                         <option value="{{ $minuteValue }}" @selected($kickoffMinute === $minuteValue)>{{ $minuteValue }}</option>
                     @endforeach
                 </select>

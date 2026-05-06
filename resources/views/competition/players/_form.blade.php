@@ -127,7 +127,9 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Dominant Foot</label>
         <select name="dominant_foot" class="form-select">
-            @php($dominantFoot = old('dominant_foot', $player->dominant_foot))
+            @php
+                $dominantFoot = old('dominant_foot', $player->dominant_foot);
+            @endphp
             <option value="">Pilih</option>
             <option value="Kanan" @selected($dominantFoot === 'Kanan')>Kanan</option>
             <option value="Kiri" @selected($dominantFoot === 'Kiri')>Kiri</option>
@@ -182,7 +184,9 @@
                         </div>
                         <div class="col-lg-2">
                             <label class="form-label">Posisi</label>
-                            @php($positionValue = $registration['position'] ?? '')
+                            @php
+                                $positionValue = $registration['position'] ?? '';
+                            @endphp
                             <select name="age_registrations[{{ $index }}][position]" class="form-select">
                                 <option value="">Pilih posisi</option>
                                 <option value="GK" @selected($positionValue === 'GK')>GK</option>

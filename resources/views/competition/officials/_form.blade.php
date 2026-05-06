@@ -42,7 +42,9 @@
     </div>
     <div class="col-lg-6 mb-3">
         <label class="form-label">Peran <span class="text-danger">*</span></label>
-        @php($roleValue = old('role', $official->role))
+        @php
+            $roleValue = old('role', $official->role);
+        @endphp
         <select name="role" class="form-select" required>
             <option value="">Pilih peran</option>
             <option value="Head Coach" @selected($roleValue === 'Head Coach')>Head Coach</option>
@@ -132,7 +134,9 @@
     </div>
     <div class="col-lg-4 mb-3">
         <label class="form-label">Level Lisensi</label>
-        @php($licenseValue = old('license_levels', $official->license_levels))
+        @php
+            $licenseValue = old('license_levels', $official->license_levels);
+        @endphp
         <select name="license_levels" class="form-select">
             <option value="">Pilih level</option>
             <option value="A" @selected($licenseValue === 'A')>A</option>
@@ -203,7 +207,9 @@
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label">Jabatan</label>
-                            @php($ageRoleValue = $registration['role'] ?? '')
+                            @php
+                                $ageRoleValue = $registration['role'] ?? '';
+                            @endphp
                             <select name="age_registrations[{{ $index }}][role]" class="form-select">
                                 <option value="">Pilih peran</option>
                                 <option value="Head Coach" @selected($ageRoleValue === 'Head Coach')>Head Coach</option>
@@ -217,7 +223,9 @@
                         </div>
                         <div class="col-lg-2">
                             <label class="form-label">Lisensi</label>
-                            @php($ageLicenseValue = $registration['license_levels'] ?? '')
+                            @php
+                                $ageLicenseValue = $registration['license_levels'] ?? '';
+                            @endphp
                             <select name="age_registrations[{{ $index }}][license_levels]" class="form-select">
                                 <option value="">Pilih level</option>
                                 <option value="A" @selected($ageLicenseValue === 'A')>A</option>

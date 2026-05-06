@@ -1,8 +1,10 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @section('content')
-@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
-@php($canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $official->canBeEditedByClub()))
+@php
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
+    $canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $official->canBeEditedByClub());
+@endphp
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 lap-detail-head">
     <div>
         <h4 class="mb-1">Detail Ofisial</h4>

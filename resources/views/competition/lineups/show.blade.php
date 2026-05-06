@@ -20,7 +20,9 @@
 @endphp
 
 @section('content')
-@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+@php
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
+@endphp
 <style>
     .dsp-page {
         background: #fff;
