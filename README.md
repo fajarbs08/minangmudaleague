@@ -44,6 +44,7 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
 ## Dokumen Operasional
 
+- `CHANGELOG.md`
 - `docs/season-admin-checklist.md`
 - `docs/season-production-runbook.md`
 - `scripts/season-post-migration-audit.sql`
