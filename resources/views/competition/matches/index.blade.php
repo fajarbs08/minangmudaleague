@@ -85,7 +85,7 @@
                         @include('competition.partials.sortable-th', ['key' => 'match_date', 'label' => 'Tanggal', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         @include('competition.partials.sortable-th', ['key' => 'kickoff_time', 'label' => 'Jam', 'defaultSort' => 'match_date', 'defaultDirection' => 'asc'])
                         <th>Status DSP</th>
-                        <th class="text-end">Tindakan</th>
+                        <th class="text-end competition-table-actions">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -142,7 +142,7 @@
                             <td class="text-end competition-table-actions">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span>Tindakan</span>
+                                        <span>Aksi</span>
                                         <svg class="competition-action-toggle-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <path d="M4 6.5L8 10L12 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>

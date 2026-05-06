@@ -1,6 +1,8 @@
 @extends('layouts.vertical', ['title' => $title])
 
-@php($isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory())
+@php
+    $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
+@endphp
 
 @section('content')
 <style>

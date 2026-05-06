@@ -42,6 +42,12 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 - Jika perlu rollback cache saat troubleshooting atau deploy ulang, jalankan `composer run production:clear`.
 - Jalankan worker queue terpisah di production, misalnya `php artisan queue:work database --queue=default --tries=1` lewat `systemd` atau `supervisor`.
 
+## Dokumen Operasional
+
+- `docs/season-admin-checklist.md`
+- `docs/season-production-runbook.md`
+- `scripts/season-post-migration-audit.sql`
+
 ## Catatan
 
 Project ini menggunakan Laravel sebagai framework, tetapi branding aplikasi yang ditampilkan ke pengguna adalah `Liga Anak Piaman Laweh`.
