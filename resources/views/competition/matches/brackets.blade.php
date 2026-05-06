@@ -153,6 +153,11 @@
         transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
     }
 
+    .lap-bracket-host .bt-match.is-club-focus {
+        border-color: rgba(249, 115, 22, .42);
+        box-shadow: 0 0 0 3px rgba(249, 115, 22, .14), 0 14px 28px rgba(249, 115, 22, .12);
+    }
+
     .lap-bracket-host .bt-match.is-final {
         grid-template-columns: 1fr;
         justify-items: center;
@@ -204,6 +209,26 @@
     .lap-bracket-host .bt-side + .bt-side {
         padding-top: .45rem;
         border-top: 1px solid #edf1f6;
+    }
+
+    .lap-bracket-host .bt-side.is-club-focus {
+        margin: 0 -.2rem;
+        padding: .18rem .2rem;
+        border-radius: .6rem;
+        background: rgba(249, 115, 22, .08);
+    }
+
+    .lap-bracket-host .bt-side.is-club-focus + .bt-side {
+        margin-top: .1rem;
+    }
+
+    .lap-bracket-host .bt-side.is-club-focus .bt-side-name,
+    .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+        color: #c2410c;
+    }
+
+    .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+        background: rgba(249, 115, 22, .14);
     }
 
     .lap-bracket-host .bt-side-name {
@@ -327,6 +352,11 @@
         box-shadow: var(--lap-admin-shadow-card);
     }
 
+    html[data-bs-theme="dark"] .lap-bracket-host .bt-match.is-club-focus {
+        border-color: rgba(251, 146, 60, .55);
+        box-shadow: 0 0 0 3px rgba(249, 115, 22, .16), 0 14px 28px rgba(0, 0, 0, .22);
+    }
+
     html[data-bs-theme="dark"] .lap-bracket-host .bt-match-status {
         color: var(--lap-admin-text-muted);
     }
@@ -338,6 +368,19 @@
     html[data-bs-theme="dark"] .lap-bracket-host .bt-side-score {
         background: var(--lap-admin-surface-soft);
         color: #dbeafe;
+    }
+
+    html[data-bs-theme="dark"] .lap-bracket-host .bt-side.is-club-focus {
+        background: rgba(249, 115, 22, .16);
+    }
+
+    html[data-bs-theme="dark"] .lap-bracket-host .bt-side.is-club-focus .bt-side-name,
+    html[data-bs-theme="dark"] .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+        color: #fed7aa;
+    }
+
+    html[data-bs-theme="dark"] .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+        background: rgba(249, 115, 22, .22);
     }
 
     html[data-bs-theme="dark"] .lap-bracket-host .match-lines-area .line-wrapper,

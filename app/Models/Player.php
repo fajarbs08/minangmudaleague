@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -105,6 +106,19 @@ class Player extends Model
     public function assistedGoals(): HasMany
     {
         return $this->hasMany(MatchGoal::class, 'assist_player_id');
+    }
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('verification_status', self::STATUS_APPROVED);
+    }
+
+    public function scopeVisibleInActiveContext(Builder $query): Builder
+    {
+        return $query->approved()->whereHas('club', function (Builder $builder) {
+            $builder->whereNull('user_id')
+                ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->active());
+        });
     }
 
     public function canBeEditedByClub(): bool

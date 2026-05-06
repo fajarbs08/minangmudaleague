@@ -81,8 +81,8 @@
             <form method="GET" action="{{ route('public.standings') }}" data-standings-filter-form>
                 <div class="row g-4 align-items-center">
                     <div class="col-12">
-                        <div class="row g-4">
-                            <div class="col-xl-3 col-lg-4 col-md-6">
+                        <div class="ranking-category-grid">
+                            <div class="ranking-category-field">
                                 <div class="form-clt">
                                     <div class="form">
                                         <select class="single-select w-100" name="season" onchange="window.loadStandingsFilter(this)">
@@ -93,7 +93,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="ranking-category-field">
                                 <div class="form-clt">
                                     <div class="form">
                                         <select class="single-select w-100" name="age_group_id" onchange="window.loadStandingsFilter(this)">
@@ -105,7 +105,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="ranking-category-field">
                                 <div class="form-clt">
                                     <div class="form">
                                         <select class="single-select w-100" name="year" onchange="window.loadStandingsFilter(this)">
@@ -117,7 +117,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="ranking-category-field">
                                 <div class="form-clt">
                                     <div class="form">
                                         <select class="single-select w-100" name="date" onchange="window.loadStandingsFilter(this)">
@@ -129,7 +129,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-4 col-lg-4 col-md-6">
+                            <div class="ranking-category-field">
                                 <div class="form-clt">
                                     <div class="form">
                                         <select class="single-select w-100" name="club_id" onchange="window.loadStandingsFilter(this)">

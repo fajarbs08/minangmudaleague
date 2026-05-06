@@ -179,6 +179,11 @@
             transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
         }
 
+        .lap-bracket-host .bt-match.is-club-focus {
+            border-color: rgba(249, 115, 22, .45);
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, .14), 0 10px 22px rgba(249, 115, 22, .10);
+        }
+
         .lap-bracket-host .bt-match.is-final {
             grid-template-columns: 1fr;
             justify-items: center;
@@ -232,6 +237,17 @@
             border-top: 1px solid #edf1f6;
         }
 
+        .lap-bracket-host .bt-side.is-club-focus {
+            margin: 0 -.18rem;
+            padding: .14rem .18rem;
+            border-radius: .55rem;
+            background: rgba(249, 115, 22, .08);
+        }
+
+        .lap-bracket-host .bt-side.is-club-focus + .bt-side {
+            margin-top: .08rem;
+        }
+
         .lap-bracket-host .bt-side-name {
             color: #0f172a;
             font-size: .78rem;
@@ -239,6 +255,11 @@
             letter-spacing: -.01em;
             line-height: 1.15;
             word-break: break-word;
+        }
+
+        .lap-bracket-host .bt-side.is-club-focus .bt-side-name,
+        .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+            color: #c2410c;
         }
 
         .lap-bracket-host .bt-side-score {
@@ -250,6 +271,10 @@
             text-align: center;
             font-size: .74rem;
             font-weight: 900;
+        }
+
+        .lap-bracket-host .bt-side.is-club-focus .bt-side-score {
+            background: rgba(249, 115, 22, .14);
         }
 
         .lap-bracket-host .bt-vs {
@@ -328,6 +353,26 @@
             color: #64748b;
         }
 
+        .report-bracket-focus-note {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            margin-top: .45rem;
+            color: #92400e;
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
+        .report-bracket-focus-note::before {
+            content: '';
+            width: .82rem;
+            height: .82rem;
+            border-radius: 999px;
+            background: rgba(249, 115, 22, .16);
+            border: 1px solid rgba(249, 115, 22, .42);
+            flex: 0 0 auto;
+        }
+
         @media print {
             html,
             body {
@@ -398,6 +443,9 @@
                         <div>
                             <h1>{{ $bracket['age_group']?->name ?: '-' }}</h1>
                             <p>Jalur knockout berdasarkan ronde, slot bracket, dan hasil pertandingan yang tersimpan.</p>
+                            @if (auth()->user()?->isClubUser())
+                                <div class="report-bracket-focus-note">Penanda oranye menunjukkan klub Anda.</div>
+                            @endif
                         </div>
                         <span class="report-bracket-badge">{{ $bracket['match_count'] }} match</span>
                     </div>

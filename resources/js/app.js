@@ -443,6 +443,7 @@ const initFormDraftAutosave = () => {
   const skippedNames = new Set(['_token', '_method'])
 
   const shouldAutosaveForm = (form) => {
+    if (form.matches('[data-autosave-ignore]')) return false
     if (form.dataset.autosave === 'off') return false
     if (form.matches('.authentication-form, .review-actions-form')) return false
     if (form.closest('.modal')) return false
@@ -457,6 +458,7 @@ const initFormDraftAutosave = () => {
     const action = form.getAttribute('action') || ''
     if (action.includes('/logout') || action.includes('/login')) return false
     if (action.includes('bulk-review')) return false
+    if (action.includes('/dashboard/season-context')) return false
 
     return true
   }

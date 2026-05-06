@@ -565,18 +565,32 @@ class MatchScheduleController extends Controller
     {
         $user = $request->user();
         $clubIds = $this->visibleClubIds($user);
-        $ageGroupId = $request->integer('age_group_id') ?: null;
+        $highlightedClubIds = $user->isAdmin() ? collect() : $clubIds->map(fn ($id) => (int) $id)->values();
+        $visibleBracketAgeGroupIds = $user->isAdmin() ? collect() : $this->visibleBracketAgeGroupIds($clubIds);
+        $requestedAgeGroupId = $request->integer('age_group_id') ?: null;
+        $ageGroupId = $user->isAdmin() || ! $requestedAgeGroupId || $visibleBracketAgeGroupIds->contains($requestedAgeGroupId)
+            ? $requestedAgeGroupId
+            : null;
         $allBrackets = $this->buildKnockoutBrackets(
             user: $user,
             clubIds: $clubIds,
+            restrictToVisibleClubs: false,
         );
+        if (! $user->isAdmin()) {
+            $allBrackets = $allBrackets
+                ->filter(fn (array $bracket) => $visibleBracketAgeGroupIds->contains((int) ($bracket['age_group']?->id ?? 0)))
+                ->values();
+        }
+
         $brackets = $ageGroupId
             ? $allBrackets->filter(fn (array $bracket) => (int) ($bracket['age_group']?->id ?? 0) === $ageGroupId)->values()
             : $allBrackets;
 
         return [
             'title' => 'Bagan Knockout',
-            'ageGroups' => AgeGroup::competition()->get(),
+            'ageGroups' => $user->isAdmin()
+                ? AgeGroup::competition()->get()
+                : AgeGroup::competition()->whereIn('id', $visibleBracketAgeGroupIds)->get(),
             'ageGroupSummaries' => $allBrackets->map(fn (array $bracket) => [
                 'id' => $bracket['age_group']?->id,
                 'name' => $bracket['age_group']?->name ?: '-',
@@ -585,7 +599,7 @@ class MatchScheduleController extends Controller
             'selectedAgeGroupId' => $ageGroupId,
             'selectedAgeGroup' => $this->selectedReportAgeGroup($ageGroupId),
             'brackets' => $brackets,
-            'bracketryBrackets' => $this->buildReportBracketryBrackets($brackets),
+            'bracketryBrackets' => $this->buildReportBracketryBrackets($brackets, $highlightedClubIds),
         ];
     }
 
@@ -1174,6 +1188,29 @@ class MatchScheduleController extends Controller
             : $user->clubs()->pluck('id');
     }
 
+    private function visibleBracketAgeGroupIds(Collection $clubIds): Collection
+    {
+        if ($clubIds->isEmpty()) {
+            return collect();
+        }
+
+        return MatchSchedule::query()->forActiveSeason()
+            ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->where(function ($query) use ($clubIds) {
+                $query->whereIn('club_a_id', $clubIds)
+                    ->orWhereIn('club_b_id', $clubIds);
+            })
+            ->orderBy('age_group_id')
+            ->pluck('age_group_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
     private function selectedReportAgeGroup(?int $ageGroupId): ?AgeGroup
     {
         if (! $ageGroupId) {
@@ -1359,7 +1396,7 @@ class MatchScheduleController extends Controller
             ->values();
     }
 
-    private function buildKnockoutBrackets($user, Collection $clubIds, ?int $ageGroupId = null, ?string $competitionFormat = null): Collection
+    private function buildKnockoutBrackets($user, Collection $clubIds, ?int $ageGroupId = null, ?string $competitionFormat = null, bool $restrictToVisibleClubs = true): Collection
     {
         if ($competitionFormat === MatchSchedule::FORMAT_LEAGUE) {
             return collect();
@@ -1370,7 +1407,7 @@ class MatchScheduleController extends Controller
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->when($ageGroupId, fn ($builder) => $builder->where('age_group_id', $ageGroupId));
 
-        if (! $user->isAdmin()) {
+        if (! $user->isAdmin() && $restrictToVisibleClubs) {
             $query->where(function ($builder) use ($clubIds) {
                 $builder->whereIn('club_a_id', $clubIds)
                     ->orWhereIn('club_b_id', $clubIds);
@@ -1455,9 +1492,14 @@ class MatchScheduleController extends Controller
         return in_array($normalized, ['final', 'babak final', 'grand final', 'finale'], true);
     }
 
-    private function buildReportBracketryBrackets(Collection $brackets): Collection
+    private function buildReportBracketryBrackets(Collection $brackets, Collection $highlightedClubIds): Collection
     {
-        return $brackets->map(function (array $bracket): array {
+        $highlightedLookup = $highlightedClubIds
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->flip();
+
+        return $brackets->map(function (array $bracket) use ($highlightedLookup): array {
             $allRounds = collect($bracket['rounds'])->values();
             $displayRounds = $allRounds;
 
@@ -1473,12 +1515,14 @@ class MatchScheduleController extends Controller
                         'players' => [[
                             'title' => $match->clubA?->name ?: $match->clubA?->short_name ?: 'Klub A',
                         ]],
+                        'isHighlighted' => $highlightedLookup->has((int) $match->club_a_id),
                     ];
 
                     $contestants[$awayKey] = [
                         'players' => [[
                             'title' => $match->clubB?->name ?: $match->clubB?->short_name ?: 'Klub B',
                         ]],
+                        'isHighlighted' => $highlightedLookup->has((int) $match->club_b_id),
                     ];
 
                     $matches[] = [

@@ -479,8 +479,26 @@ return new class extends Migration
 
     private function hasIndex(string $table, string $indexName): bool
     {
-        $result = DB::select('SHOW INDEX FROM `'.$table.'` WHERE Key_name = ?', [$indexName]);
+        $schemaBuilder = Schema::getConnection()->getSchemaBuilder();
 
-        return ! empty($result);
+        if (method_exists($schemaBuilder, 'getIndexes')) {
+            return collect($schemaBuilder->getIndexes($table))
+                ->contains(fn (array $index) => ($index['name'] ?? null) === $indexName);
+        }
+
+        $driver = Schema::getConnection()->getConfig('driver') ?: Schema::getConnection()->getDriverName();
+
+        $result = match ($driver) {
+            'sqlite' => DB::select("PRAGMA index_list('{$table}')"),
+            'mysql', 'mariadb' => DB::select('SHOW INDEX FROM `'.$table.'` WHERE Key_name = ?', [$indexName]),
+            default => DB::select(
+                'SELECT indexname FROM pg_indexes WHERE schemaname = current_schema() AND tablename = ? AND indexname = ?',
+                [$table, $indexName],
+            ),
+        };
+
+        return $driver === 'sqlite'
+            ? collect($result)->contains(fn ($index) => ($index->name ?? null) === $indexName)
+            : ! empty($result);
     }
 };

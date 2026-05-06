@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -87,6 +88,24 @@ class Club extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('verification_status', self::STATUS_APPROVED);
+    }
+
+    public function scopeOwnedByActiveUsers(Builder $query): Builder
+    {
+        return $query->where(function (Builder $builder) {
+            $builder->whereNull('user_id')
+                ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->active());
+        });
+    }
+
+    public function scopeVisibleInActiveContext(Builder $query): Builder
+    {
+        return $query->approved()->ownedByActiveUsers();
     }
 
     public function canBeEditedByClub(): bool

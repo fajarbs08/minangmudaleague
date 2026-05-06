@@ -66,9 +66,8 @@ class DashboardController extends Controller
             $this->sitemapEntry(route('public.clubs'), priority: '0.8', changefreq: 'daily'),
         ])
             ->merge(
-                Club::query()
+                $this->activePublicClubsQuery()
                     ->select(['id', 'name', 'short_name', 'updated_at'])
-                    ->where('verification_status', Club::STATUS_APPROVED)
                     ->orderBy('name')
                     ->get()
                     ->map(fn (Club $club) => $this->sitemapEntry(
@@ -79,9 +78,8 @@ class DashboardController extends Controller
                     ))
             )
             ->merge(
-                Player::query()
+                $this->activePublicPlayersQuery()
                     ->select(['id', 'name', 'updated_at'])
-                    ->where('verification_status', Player::STATUS_APPROVED)
                     ->orderBy('name')
                     ->get()
                     ->map(fn (Player $player) => $this->sitemapEntry(
@@ -92,9 +90,8 @@ class DashboardController extends Controller
                     ))
             )
             ->merge(
-                Official::query()
+                $this->activePublicOfficialsQuery()
                     ->select(['id', 'name', 'updated_at'])
-                    ->where('verification_status', Official::STATUS_APPROVED)
                     ->orderBy('name')
                     ->get()
                     ->map(fn (Official $official) => $this->sitemapEntry(
@@ -118,6 +115,13 @@ class DashboardController extends Controller
                         'is_finished',
                         'updated_at',
                     ])
+                    ->where(function (Builder $query) {
+                        $query->where('is_finished', true)
+                            ->orWhere(function (Builder $inner) {
+                                $inner->whereHas('clubA', fn (Builder $clubQuery) => $clubQuery->visibleInActiveContext())
+                                    ->whereHas('clubB', fn (Builder $clubQuery) => $clubQuery->visibleInActiveContext());
+                            });
+                    })
                     ->whereNotNull('match_date')
                     ->orderByDesc('match_date')
                     ->get()
@@ -324,10 +328,8 @@ class DashboardController extends Controller
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $scheduledMatchesQuery = MatchSchedule::query()->forSeason($season?->id)
+        $scheduledMatchesQuery = $this->publicUpcomingMatchesQuery($season)
             ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
-            ->whereDate('match_date', '>=', now()->toDateString())
-            ->where('is_finished', false)
             ->orderBy('match_date')
             ->orderBy('kickoff_time');
 
@@ -745,8 +747,7 @@ class DashboardController extends Controller
                 ->where('verification_status', Club::STATUS_APPROVED)
                 ->orderBy('name')
                 ->get()
-            : Club::query()
-                ->where('verification_status', Club::STATUS_APPROVED)
+            : $this->activePublicClubsQuery()
                 ->latest('updated_at')
                 ->limit(12)
                 ->get();
@@ -818,19 +819,17 @@ class DashboardController extends Controller
                 ->limit(6)
                 ->get();
         } else {
-            $club = Club::query()->findOrFail($clubId);
-
-            abort_unless($club->verification_status === Club::STATUS_APPROVED, 404);
+            $club = $this->activePublicClubsQuery()->findOrFail($clubId);
 
             $club->load([
                 'players' => fn ($query) => $query
                     ->with('primaryAgeGroup')
-                    ->where('verification_status', Player::STATUS_APPROVED)
+                    ->visibleInActiveContext()
                     ->orderByDesc('is_captain')
                     ->orderBy('name'),
                 'officials' => fn ($query) => $query
                     ->with('ageGroup')
-                    ->where('verification_status', Official::STATUS_APPROVED)
+                    ->visibleInActiveContext()
                     ->where('is_active', true)
                     ->orderBy('role')
                     ->orderBy('name'),
@@ -838,8 +837,10 @@ class DashboardController extends Controller
 
             $clubPlayers = $club->players;
             $clubOfficials = $club->officials;
-            $clubMatches = MatchSchedule::query()->forActiveSeason()
+            $clubMatches = MatchSchedule::query()->forSeason($season?->id)
                 ->with(['ageGroup', 'clubA', 'clubB'])
+                ->whereHas('clubA', fn (Builder $query) => $query->visibleInActiveContext())
+                ->whereHas('clubB', fn (Builder $query) => $query->visibleInActiveContext())
                 ->where(function ($query) use ($club) {
                     $query->where('club_a_id', $club->id)
                         ->orWhere('club_b_id', $club->id);
@@ -1083,7 +1084,15 @@ class DashboardController extends Controller
         $season ??= $this->seasonContext->active();
 
         return MatchSchedule::query()->forSeason($season?->id)
-            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+            ->with([
+                'ageGroup',
+                'clubA.user',
+                'clubB.user',
+                'clubASeason',
+                'clubBSeason',
+                'goalEvents.scorer',
+                'goalEvents.assistPlayer',
+            ])
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->whereHas('ageGroup', fn (Builder $query) => $query->competition())
             ->orderBy('age_group_id')
@@ -1092,6 +1101,7 @@ class DashboardController extends Controller
             ->orderBy('match_date')
             ->get()
             ->groupBy('age_group_id')
+            ->filter(fn (Collection $matches) => $this->shouldShowPublicKnockoutAgeGroup($matches, $season))
             ->map(function (Collection $matches) {
                 $rounds = $matches
                     ->groupBy(fn (MatchSchedule $match) => $match->round_order ?: 1)
@@ -1312,11 +1322,8 @@ class DashboardController extends Controller
 
     private function publicPageData(array $overrides = []): array
     {
-        $upcomingMatches = MatchSchedule::query()->forActiveSeason()
+        $upcomingMatches = $this->publicUpcomingMatchesQuery()
             ->with(['ageGroup', 'clubA', 'clubB'])
-            ->whereDate('match_date', '>=', now()->toDateString())
-            ->orderBy('match_date')
-            ->orderBy('kickoff_time')
             ->limit(12)
             ->get();
 
@@ -1324,15 +1331,13 @@ class DashboardController extends Controller
             ->limit(12)
             ->get();
 
-        $featuredClubs = Club::query()
-            ->where('verification_status', Club::STATUS_APPROVED)
+        $featuredClubs = $this->activePublicClubsQuery()
             ->latest('updated_at')
             ->limit(12)
             ->get();
 
-        $featuredPlayers = Player::query()
+        $featuredPlayers = $this->activePublicPlayersQuery()
             ->with(['club', 'primaryAgeGroup'])
-            ->where('verification_status', Player::STATUS_APPROVED)
             ->latest('updated_at')
             ->limit(12)
             ->get();
@@ -1343,10 +1348,10 @@ class DashboardController extends Controller
             'bannerTitle' => null,
             'bannerCurrent' => null,
             'publicStats' => [
-                'clubs' => Club::query()->count(),
-                'officials' => Official::query()->count(),
-                'players' => Player::query()->count(),
-                'lineups' => LineupList::query()->forActiveSeason()->count(),
+                'clubs' => $this->activePublicClubsQuery()->count(),
+                'officials' => $this->activePublicOfficialsQuery()->count(),
+                'players' => $this->activePublicPlayersQuery()->count(),
+                'lineups' => LineupList::query()->forActiveSeason()->whereHas('club.user', fn (Builder $query) => $query->active())->count(),
             ],
             'featuredClubs' => $featuredClubs,
             'featuredPlayers' => $featuredPlayers,
@@ -1402,6 +1407,64 @@ class DashboardController extends Controller
             ->orderByDesc('kickoff_time');
     }
 
+    private function activePublicClubsQuery(): Builder
+    {
+        return Club::query()->visibleInActiveContext();
+    }
+
+    private function activePublicPlayersQuery(): Builder
+    {
+        return Player::query()->visibleInActiveContext();
+    }
+
+    private function activePublicOfficialsQuery(): Builder
+    {
+        return Official::query()->visibleInActiveContext()->where('is_active', true);
+    }
+
+    private function publicUpcomingMatchesQuery(?Season $season = null): Builder
+    {
+        $season ??= $this->seasonContext->active();
+
+        return MatchSchedule::query()->forSeason($season?->id)
+            ->whereDate('match_date', '>=', now()->toDateString())
+            ->where('is_finished', false)
+            ->whereHas('clubA', fn (Builder $query) => $query->visibleInActiveContext())
+            ->whereHas('clubB', fn (Builder $query) => $query->visibleInActiveContext())
+            ->orderBy('match_date')
+            ->orderBy('kickoff_time');
+    }
+
+    private function clubVisibleInActiveContext(?Club $club): bool
+    {
+        return (bool) $club
+            && $club->verification_status === Club::STATUS_APPROVED
+            && $club->relationLoaded('user')
+            && $club->user?->isActive();
+    }
+
+    private function shouldShowPublicKnockoutAgeGroup(Collection $matches, ?Season $season): bool
+    {
+        if (! $this->seasonContext->isActiveSeason($season)) {
+            return true;
+        }
+
+        $hasInactiveClub = $matches->contains(function (MatchSchedule $match) {
+            return ! $this->clubVisibleInActiveContext($match->clubA)
+                || ! $this->clubVisibleInActiveContext($match->clubB);
+        });
+
+        if (! $hasInactiveClub) {
+            return true;
+        }
+
+        return $matches->contains(function (MatchSchedule $match) {
+            return $match->is_finished
+                && $match->score_club_a !== null
+                && $match->score_club_b !== null;
+        });
+    }
+
     private function normalizePublicDateFilter(mixed $value): ?string
     {
         if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
@@ -1446,7 +1509,7 @@ class DashboardController extends Controller
 
         abort_unless($matchId > 0, 404);
 
-        return MatchSchedule::query()->forSeason($season?->id)
+        return $this->publicUpcomingMatchesQuery($season)
             ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
             ->whereKey($matchId)
             ->firstOrFail();

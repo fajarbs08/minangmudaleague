@@ -34,6 +34,7 @@
                         <th>Nama Akun</th>
                         <th>Email Login</th>
                         <th>Password</th>
+                        <th style="width: 180px;">Status Akun</th>
                         <th style="width: 220px;">Aksi</th>
                     </tr>
                 </thead>
@@ -85,6 +86,17 @@
                                 <div class="competition-table-meta">Suffix 4 karakter dibuat acak, tidak berurutan.</div>
                             </td>
                             <td>
+                                <div class="d-md-none small text-muted mb-1">Status Akun</div>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check form-switch">
+                                        <input name="is_active" type="hidden" value="0">
+                                        <input class="form-check-input" id="account-is-active" name="is_active" type="checkbox" value="1" @checked(old('is_active', '1') === '1')>
+                                        <label class="form-check-label fw-semibold" for="account-is-active">Akun aktif</label>
+                                    </div>
+                                    <div class="competition-table-meta">Matikan jika akun dibuat dulu tetapi belum boleh login.</div>
+                                </div>
+                            </td>
+                            <td>
                                 <div class="d-md-none small text-muted mb-1">Aksi</div>
                                 <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
                                     <button type="button" class="btn btn-light w-100 w-sm-auto" id="generate-account-button">Generate</button>
@@ -111,8 +123,9 @@
                     <tr>
                         <th>Nama</th>
                         <th>Email</th>
+                        <th>Status</th>
                         <th>Dibuat</th>
-                        <th class="text-end">Aksi</th>
+                        <th class="text-end competition-table-actions">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -123,11 +136,16 @@
                                 <div class="competition-table-meta">{{ $account->clubs_count ? 'Sudah punya data club' : 'Belum punya data club' }}</div>
                             </td>
                             <td>{{ $account->email }}</td>
+                            <td>
+                                <span class="badge {{ $account->is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} border">
+                                    {{ $account->is_active ? 'Aktif' : 'Nonaktif' }}
+                                </span>
+                            </td>
                             <td>{{ $account->created_at?->format('d M Y H:i') ?: '-' }}</td>
-                            <td class="text-end">
+                            <td class="text-end competition-table-actions">
                                 <div class="dropdown">
-                                    <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span>Tindakan</span>
+                                    <button class="btn btn-sm btn-light competition-action-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                                        <span>Aksi</span>
                                         <svg class="competition-action-toggle-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <path d="M4 6.5L8 10L12 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
@@ -140,6 +158,15 @@
                                                 'icon' => 'square-pen',
                                                 'label' => 'Edit',
                                             ])
+                                            <form method="POST" action="{{ route('club-accounts.status', $account) }}" class="px-2 pt-2">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="is_active" value="{{ $account->is_active ? 0 : 1 }}">
+                                                <button type="submit" class="dropdown-item rounded {{ $account->is_active ? 'text-warning' : 'text-success' }}">
+                                                    <i data-lucide="{{ $account->is_active ? 'user-x' : 'user-check' }}" class="fs-16 align-middle me-2"></i>
+                                                    <span class="align-middle">{{ $account->is_active ? 'Deactivate' : 'Activate' }}</span>
+                                                </button>
+                                            </form>
                                         </div>
                                         <div class="dropdown-divider"></div>
                                         <div class="competition-action-section">
@@ -163,7 +190,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="competition-table-empty">Belum ada akun club.</td>
+                            <td colspan="5" class="competition-table-empty">Belum ada akun club.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -95,6 +95,34 @@
                 color: #bb2d3b;
            }
 
+           .main-nav .menu-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+           }
+
+           html.sidebar-dark .main-nav .menu-title,
+           html.sidebar-dark .main-nav .menu-title .menu-title-text,
+           html[data-bs-theme="dark"] .main-nav .menu-title,
+           html[data-bs-theme="dark"] .main-nav .menu-title .menu-title-text {
+                color: rgba(255, 255, 255, 0.82) !important;
+                font-weight: 800;
+           }
+
+           html.sidebar-dark .main-nav .menu-title .menu-title-line,
+           html[data-bs-theme="dark"] .main-nav .menu-title .menu-title-line {
+                background: rgba(255, 255, 255, 0.26) !important;
+           }
+
+           html.sidebar-light .main-nav .menu-title,
+           html.sidebar-light .main-nav .menu-title .menu-title-text {
+                color: rgba(70, 81, 105, 0.88) !important;
+                font-weight: 800;
+           }
+
+           html.sidebar-light .main-nav .menu-title .menu-title-line {
+                background: rgba(70, 81, 105, 0.22) !important;
+           }
+
            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout,
            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout {
                 display: flex;

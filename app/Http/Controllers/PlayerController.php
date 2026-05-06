@@ -1118,11 +1118,7 @@ class PlayerController extends Controller
         preg_match('/^(\d+)(?:-|$)/', $playerSlug, $matches);
         $playerId = isset($matches[1]) ? (int) $matches[1] : 0;
 
-        $player = Player::query()->findOrFail($playerId);
-
-        abort_unless($player->verification_status === Player::STATUS_APPROVED, 404);
-
-        return $player;
+        return Player::query()->visibleInActiveContext()->findOrFail($playerId);
     }
 
     private function syncAgeRegistrations(Player $player, $ageRegistrations): void

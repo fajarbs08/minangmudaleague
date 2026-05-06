@@ -1106,10 +1106,6 @@ class OfficialController extends Controller
         preg_match('/^(\d+)(?:-|$)/', $officialSlug, $matches);
         $officialId = isset($matches[1]) ? (int) $matches[1] : 0;
 
-        $official = Official::query()->findOrFail($officialId);
-
-        abort_unless($official->verification_status === Official::STATUS_APPROVED, 404);
-
-        return $official;
+        return Official::query()->visibleInActiveContext()->findOrFail($officialId);
     }
 }

@@ -21,7 +21,7 @@ class SettingsController extends Controller
             ->where('role', 'club')
             ->withCount('clubs')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'name', 'email', 'created_at']);
+            ->get(['id', 'name', 'email', 'is_active', 'created_at']);
 
         $nextSequence = $this->nextClubAccountSequence();
 
@@ -112,6 +112,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'account_name' => ['required', 'string', 'max:255'],
             'generated_password' => ['nullable', 'string', 'regex:/^LAPLplw\d{4}[A-Z0-9]{4}$/'],
+            'is_active' => ['required', 'boolean'],
         ]);
 
         $sequence = $this->nextClubAccountSequence();
@@ -122,6 +123,7 @@ class SettingsController extends Controller
             'name' => $validated['account_name'],
             'email' => $email,
             'role' => 'club',
+            'is_active' => $request->boolean('is_active'),
             'password' => $password,
         ]);
 
@@ -139,10 +141,12 @@ class SettingsController extends Controller
             'account_name' => ['required', 'string', 'max:255'],
             'account_email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($clubAccount->id)],
             'generated_password' => ['nullable', 'string', 'min:8', 'max:255'],
+            'is_active' => ['required', 'boolean'],
         ]);
 
         $clubAccount->name = $validated['account_name'];
         $clubAccount->email = $validated['account_email'];
+        $clubAccount->is_active = $request->boolean('is_active');
 
         if (!empty($validated['generated_password'])) {
             $clubAccount->password = $validated['generated_password'];
@@ -153,6 +157,26 @@ class SettingsController extends Controller
         return redirect()
             ->route('club-accounts.create')
             ->with('status', 'Akun club berhasil diperbarui.');
+    }
+
+    public function updateClubAccountStatus(Request $request, User $clubAccount): RedirectResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+        abort_unless($clubAccount->role === 'club', 404);
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $clubAccount->forceFill([
+            'is_active' => (bool) $validated['is_active'],
+        ])->save();
+
+        $statusLabel = $clubAccount->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        return redirect()
+            ->route('club-accounts.create')
+            ->with('status', "Akun club berhasil {$statusLabel}.");
     }
 
     public function destroyClubAccount(Request $request, User $clubAccount): RedirectResponse

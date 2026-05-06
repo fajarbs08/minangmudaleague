@@ -20,6 +20,11 @@
                 <span class="text-muted text-uppercase fs-12">Status</span>
                 <h3 class="mt-2 mb-1">{{ $clubAccount->clubs_count ? 'Sudah Terhubung' : 'Belum Terhubung' }}</h3>
                 <p class="text-muted mb-0">{{ $clubAccount->clubs_count ? 'Akun ini sudah punya data club.' : 'Akun ini belum punya data club.' }}</p>
+                <div class="mt-3">
+                    <span class="badge {{ $clubAccount->is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} border">
+                        {{ $clubAccount->is_active ? 'Akun Aktif' : 'Akun Nonaktif' }}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
@@ -44,6 +49,15 @@
                             <input class="form-control" id="account-email" name="account_email" type="email" value="{{ old('account_email', $clubAccount->email) }}">
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label d-block" for="account-is-active">Status Akun</label>
+                            <div class="form-check form-switch mt-2">
+                                <input name="is_active" type="hidden" value="0">
+                                <input class="form-check-input" id="account-is-active" name="is_active" type="checkbox" value="1" @checked(old('is_active', $clubAccount->is_active ? '1' : '0') === '1')>
+                                <label class="form-check-label fw-semibold" for="account-is-active">Akun aktif</label>
+                            </div>
+                            <div class="competition-table-meta">Nonaktifkan jika akun club sementara tidak boleh login ke dashboard.</div>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label" for="generated-password-preview">Password Baru</label>
                             <div class="input-group">
                                 <input class="form-control" id="generated-password-preview" name="generated_password" type="text" value="" placeholder="Kosongkan bila tidak diubah">
@@ -51,8 +65,10 @@
                             </div>
                             <div class="competition-table-meta">Isi manual atau klik generate untuk reset password.</div>
                         </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button type="button" class="btn btn-light" id="generate-password-button">Generate Password Baru</button>
+                        <div class="col-md-6">
+                            <label class="form-label" for="generate-password-button">Aksi Password</label>
+                            <button type="button" class="btn btn-light w-100" id="generate-password-button">Generate Password Baru</button>
+                            <div class="competition-table-meta">Buat password acak baru dengan format standar akun club.</div>
                         </div>
                         <div class="col-12 d-flex gap-2">
                             <button class="btn btn-primary" type="submit">Simpan Perubahan</button>

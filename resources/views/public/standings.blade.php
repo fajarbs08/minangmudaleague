@@ -295,6 +295,36 @@
             box-shadow: 0 12px 20px rgba(228, 27, 35, .12);
             outline: none;
         }
+
+        .lap-public .ranking-category-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 24px;
+        }
+
+        .lap-public .ranking-category-field {
+            min-width: 0;
+        }
+
+        @media (max-width: 1199px) {
+            .lap-public .ranking-category-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 991px) {
+            .lap-public .ranking-category-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .lap-public .ranking-category-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 16px;
+            }
+        }
     </style>
 @endpush
 

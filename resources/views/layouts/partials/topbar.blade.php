@@ -126,7 +126,7 @@
 
                 <div class="d-flex align-items-center gap-2 ms-auto">
                      @if ($availableSeasons->isNotEmpty())
-                          <form method="POST" action="{{ route('seasons.select') }}" class="topbar-season-switcher d-none d-md-flex align-items-center gap-2">
+                          <form method="POST" action="{{ route('seasons.select') }}" class="topbar-season-switcher d-none d-md-flex align-items-center gap-2" data-autosave-ignore>
                                @csrf
                                <input type="hidden" name="redirect_to" value="{{ route('dashboard.index', [], false) }}">
                                <select name="season_id" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Pilih season">

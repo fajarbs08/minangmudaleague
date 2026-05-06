@@ -46,7 +46,7 @@ Route::get('informasi/file/{informationResource}', [DashboardController::class, 
 Route::get('informasi/file/{informationResource}/unduh', [DashboardController::class, 'publicInformationFileRedirect']);
 Route::get('informasi/{resourceSlug}', [DashboardController::class, 'publicInformationShowRedirect'])->name('public.information.show');
 
-Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
+Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user']], function () {
     Route::get('home', [DashboardController::class, 'index'])->name('root');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.home');
     Route::get('dashboard/index', [DashboardController::class, 'index'])->name('dashboard.index');
@@ -143,6 +143,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('dashboard/akun-klub', [SettingsController::class, 'storeClubAccount'])->name('club-accounts.store');
         Route::get('dashboard/akun-klub/{clubAccount}/edit', [SettingsController::class, 'editClubAccount'])->name('club-accounts.edit');
         Route::put('dashboard/akun-klub/{clubAccount}', [SettingsController::class, 'updateClubAccount'])->name('club-accounts.update');
+        Route::patch('dashboard/akun-klub/{clubAccount}/status', [SettingsController::class, 'updateClubAccountStatus'])->name('club-accounts.status');
         Route::delete('dashboard/akun-klub/{clubAccount}', [SettingsController::class, 'destroyClubAccount'])->name('club-accounts.destroy');
         Route::get('dashboard/season', [SeasonController::class, 'index'])->name('seasons.index');
         Route::post('dashboard/season', [SeasonController::class, 'store'])->name('seasons.store');

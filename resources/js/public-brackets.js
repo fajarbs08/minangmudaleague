@@ -398,6 +398,9 @@ const renderBracket = (host, { force = false } = {}) => {
         const bottomTitle = bottomContestant?.players?.[0]?.title || bottomSide?.title || 'Menunggu';
         const topScore = topSide?.scores?.[0]?.mainScore;
         const bottomScore = bottomSide?.scores?.[0]?.mainScore;
+        const topHighlighted = topContestant?.isHighlighted === true;
+        const bottomHighlighted = bottomContestant?.isHighlighted === true;
+        const hasHighlightedClub = topHighlighted || bottomHighlighted;
         const isFinalRound = roundIndex === roundCount - 1;
         const winnerLine = topSide?.isWinner || bottomSide?.isWinner ? 'is-live' : '';
         const status = match.matchStatus ? `<div class="bt-match-status">${escapeHtml(match.matchStatus)}</div>` : '';
@@ -409,7 +412,7 @@ const renderBracket = (host, { force = false } = {}) => {
         } else if (!isReadOnly) {
             el.type = 'button';
         }
-        el.className = `bt-match ${winnerLine} ${isFinalRound ? 'is-final' : ''}`.trim();
+        el.className = `bt-match ${winnerLine} ${isFinalRound ? 'is-final' : ''} ${hasHighlightedClub ? 'is-club-focus' : ''}`.trim();
         el.setAttribute('aria-label', `${match.detail?.round_label || 'Bracket'}: ${topTitle} vs ${bottomTitle}`);
         el.innerHTML = isFinalRound
             ? `<div class="bt-match-main">
@@ -417,12 +420,12 @@ const renderBracket = (host, { force = false } = {}) => {
                     <div class="bt-match-ribbon">${escapeHtml(data.rounds?.[roundIndex]?.name || '')}</div>
                     ${status}
                 </div>
-                <div class="bt-side is-home">
+                <div class="bt-side is-home ${topHighlighted ? 'is-club-focus' : ''}">
                     <div class="bt-side-name">${escapeHtml(topTitle)}</div>
                     <div class="bt-side-score">${topScore ?? '–'}</div>
                 </div>
                 <div class="bt-vs">VS</div>
-                <div class="bt-side is-away">
+                <div class="bt-side is-away ${bottomHighlighted ? 'is-club-focus' : ''}">
                     <div class="bt-side-name">${escapeHtml(bottomTitle)}</div>
                     <div class="bt-side-score">${bottomScore ?? '–'}</div>
                 </div>
@@ -433,12 +436,12 @@ const renderBracket = (host, { force = false } = {}) => {
                     <div class="bt-match-ribbon">${escapeHtml(data.rounds?.[roundIndex]?.name || '')}</div>
                     ${status}
                 </div>
-                <div class="bt-side is-home">
+                <div class="bt-side is-home ${topHighlighted ? 'is-club-focus' : ''}">
                     <div class="bt-side-name">${escapeHtml(topTitle)}</div>
                     <div class="bt-side-score">${topScore ?? '–'}</div>
                 </div>
                 <div class="bt-vs">VS</div>
-                <div class="bt-side is-away">
+                <div class="bt-side is-away ${bottomHighlighted ? 'is-club-focus' : ''}">
                     <div class="bt-side-name">${escapeHtml(bottomTitle)}</div>
                     <div class="bt-side-score">${bottomScore ?? '–'}</div>
                 </div>
