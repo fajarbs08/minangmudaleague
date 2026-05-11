@@ -1,5 +1,17 @@
 @extends('layouts.vertical', ['title' => $title])
 
+@push('css')
+<style>
+    .lap-dashboard-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 960px;
+    }
+    .lap-dashboard-deferred.is-compact {
+        contain-intrinsic-size: 1px 560px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="row lap-admin-page-head">
     <div class="col-12">
@@ -60,7 +72,7 @@
 </div>
 
 @if (auth()->user()->isAdmin() && $showAdminWorkflow)
-    <div class="row">
+    <div class="row lap-dashboard-deferred is-compact">
         @foreach ($adminReviewStats as $item)
             <div class="col-md-6 col-xl-3">
                 <a href="{{ $item['href'] }}" class="text-decoration-none text-reset d-block">
@@ -76,7 +88,7 @@
         @endforeach
     </div>
 
-    <div class="row">
+    <div class="row lap-dashboard-deferred">
         <div class="col-xl-7">
             <div class="card h-100" id="queue-admin">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -126,7 +138,7 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row lap-dashboard-deferred">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
@@ -138,11 +150,11 @@
                         <table class="table competition-table align-middle">
                             <thead>
                                 <tr>
-                                    <th>Jenis</th>
-                                    <th>Nama</th>
-                                    <th>Klub</th>
-                                    <th>Diajukan</th>
-                                    <th>Lama Menunggu</th>
+                                    @include('competition.partials.sortable-th', ['key' => 'type', 'label' => 'Jenis', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'asc', 'sortParam' => 'pending_reviews_sort', 'directionParam' => 'pending_reviews_direction'])
+                                    @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Nama', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'asc', 'sortParam' => 'pending_reviews_sort', 'directionParam' => 'pending_reviews_direction'])
+                                    @include('competition.partials.sortable-th', ['key' => 'club', 'label' => 'Klub', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'asc', 'sortParam' => 'pending_reviews_sort', 'directionParam' => 'pending_reviews_direction'])
+                                    @include('competition.partials.sortable-th', ['key' => 'submitted_at', 'label' => 'Diajukan', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'asc', 'sortParam' => 'pending_reviews_sort', 'directionParam' => 'pending_reviews_direction'])
+                                    @include('competition.partials.sortable-th', ['key' => 'waiting_label', 'label' => 'Lama Menunggu', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'asc', 'sortParam' => 'pending_reviews_sort', 'directionParam' => 'pending_reviews_direction'])
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -180,40 +192,48 @@
 @elseif (! auth()->user()->isAdmin())
     <div class="row">
         <div class="col-md-6 col-xl-3">
-            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
-                <div class="card-body">
-                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Klub Menunggu Review</span>
-                    <h3 class="lap-admin-stat-value">{{ $stats['pending_clubs'] }}</h3>
-                    <p class="lap-admin-stat-copy mt-2">Pengajuan klub menunggu keputusan admin</p>
+            <a href="{{ route('clubs.index', ['status' => \App\Models\Club::STATUS_SUBMITTED]) }}" class="text-decoration-none text-reset d-block">
+                <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
+                    <div class="card-body">
+                        <span class="lap-admin-chip lap-admin-chip-pending mb-3">Klub Menunggu Review</span>
+                        <h3 class="lap-admin-stat-value">{{ $stats['pending_clubs'] }}</h3>
+                        <p class="lap-admin-stat-copy mt-2">Pengajuan klub menunggu keputusan admin</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
-                <div class="card-body">
-                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Ofisial Menunggu Review</span>
-                    <h3 class="lap-admin-stat-value">{{ $stats['pending_officials'] }}</h3>
-                    <p class="lap-admin-stat-copy mt-2">Pengajuan ofisial menunggu keputusan admin</p>
+            <a href="{{ route('officials.index', ['status' => \App\Models\Official::STATUS_SUBMITTED]) }}" class="text-decoration-none text-reset d-block">
+                <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
+                    <div class="card-body">
+                        <span class="lap-admin-chip lap-admin-chip-pending mb-3">Ofisial Menunggu Review</span>
+                        <h3 class="lap-admin-stat-value">{{ $stats['pending_officials'] }}</h3>
+                        <p class="lap-admin-stat-copy mt-2">Pengajuan ofisial menunggu keputusan admin</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
-                <div class="card-body">
-                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">Pemain Menunggu Review</span>
-                    <h3 class="lap-admin-stat-value">{{ $stats['pending_players'] }}</h3>
-                    <p class="lap-admin-stat-copy mt-2">Pengajuan pemain menunggu keputusan admin</p>
+            <a href="{{ route('players.index', ['status' => \App\Models\Player::STATUS_SUBMITTED]) }}" class="text-decoration-none text-reset d-block">
+                <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
+                    <div class="card-body">
+                        <span class="lap-admin-chip lap-admin-chip-pending mb-3">Pemain Menunggu Review</span>
+                        <h3 class="lap-admin-stat-value">{{ $stats['pending_players'] }}</h3>
+                        <p class="lap-admin-stat-copy mt-2">Pengajuan pemain menunggu keputusan admin</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
-                <div class="card-body">
-                    <span class="lap-admin-chip lap-admin-chip-pending mb-3">DSP Menunggu Review</span>
-                    <h3 class="lap-admin-stat-value">{{ $stats['pending_lineups'] }}</h3>
-                    <p class="lap-admin-stat-copy mt-2">Pengajuan DSP menunggu keputusan admin</p>
+            <a href="{{ route('lineup-lists.index', ['status' => \App\Models\LineupList::STATUS_SUBMITTED]) }}" class="text-decoration-none text-reset d-block">
+                <div class="card lap-admin-stat-card lap-admin-stat-card-pending">
+                    <div class="card-body">
+                        <span class="lap-admin-chip lap-admin-chip-pending mb-3">DSP Menunggu Review</span>
+                        <h3 class="lap-admin-stat-value">{{ $stats['pending_lineups'] }}</h3>
+                        <p class="lap-admin-stat-copy mt-2">Pengajuan DSP menunggu keputusan admin</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -230,7 +250,7 @@
         default => '-',
     };
 @endphp
-<div class="row">
+<div class="row lap-dashboard-deferred is-compact">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -271,12 +291,12 @@
                     <table class="table competition-table align-middle">
                         <thead>
                             <tr>
-                                <th>Jenis</th>
-                                <th>Nama</th>
-                                <th>Klub</th>
-                                <th>Status</th>
-                                    <th>Diajukan</th>
-                                <th>Reviewer</th>
+                                @include('competition.partials.sortable-th', ['key' => 'type', 'label' => 'Jenis', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Nama', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'club', 'label' => 'Klub', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'status', 'label' => 'Status', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'submitted_at', 'label' => 'Diajukan', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'reviewed_by', 'label' => 'Reviewer', 'defaultSort' => 'submitted_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_submissions_sort', 'directionParam' => 'recent_submissions_direction'])
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -321,9 +341,10 @@
                     <table class="table competition-table competition-table-compact align-middle">
                         <thead>
                             <tr>
-                                <th>Nama</th>
-                                <th>Klub</th>
-                                <th>Usia</th>
+                                @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Nama', 'defaultSort' => 'updated_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_players_sort', 'directionParam' => 'recent_players_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'club', 'label' => 'Klub', 'defaultSort' => 'updated_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_players_sort', 'directionParam' => 'recent_players_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Usia', 'defaultSort' => 'updated_at', 'defaultDirection' => 'desc', 'sortParam' => 'recent_players_sort', 'directionParam' => 'recent_players_direction'])
+                                <th>Pemain</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -332,10 +353,16 @@
                                     <td>{{ $player->name }}</td>
                                     <td>{{ $player->seasonClub?->name ?? $player->club?->name }}</td>
                                     <td>{{ $player->primaryAgeGroup?->name ?: '-' }}</td>
+                                    <td>
+                                        <a href="{{ route('players.show', $player->player_id ?? $player->id) }}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2">
+                                            <i data-lucide="eye" class="fs-14"></i>
+                                            <span>Buka</span>
+                                        </a>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="competition-table-empty">Belum ada data pemain.</td>
+                                    <td colspan="4" class="competition-table-empty">Belum ada data pemain.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -361,10 +388,10 @@
                     <table class="table competition-table align-middle">
                         <thead>
                             <tr>
-                                <th>Judul</th>
-                                <th>Klub</th>
-                                <th>Kelompok Usia</th>
-                                <th>Tanggal</th>
+                                @include('competition.partials.sortable-th', ['key' => 'title', 'label' => 'Judul', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc', 'sortParam' => 'recent_lineups_sort', 'directionParam' => 'recent_lineups_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'club', 'label' => 'Klub', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc', 'sortParam' => 'recent_lineups_sort', 'directionParam' => 'recent_lineups_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'age_group', 'label' => 'Kelompok Usia', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc', 'sortParam' => 'recent_lineups_sort', 'directionParam' => 'recent_lineups_direction'])
+                                @include('competition.partials.sortable-th', ['key' => 'match_date', 'label' => 'Tanggal', 'defaultSort' => 'match_date', 'defaultDirection' => 'desc', 'sortParam' => 'recent_lineups_sort', 'directionParam' => 'recent_lineups_direction'])
                                 <th>DSP</th>
                             </tr>
                         </thead>

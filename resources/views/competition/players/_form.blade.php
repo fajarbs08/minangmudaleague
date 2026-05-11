@@ -18,7 +18,7 @@
             'is_starter' => false,
             'is_substitute' => false,
         ]]);
-    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 512 KB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 4 MB.';
+    $uploadHelp = 'Foto: JPG, PNG, atau WebP, maks. 512 KB. Dokumen: PDF, JPG, PNG, atau WebP, maks. 512 KB.';
     $requiresPhotoUpload = blank($player->photo_path);
     $requiresBirthCertificateUpload = blank($player->birth_certificate_file_path);
     $requiresFamilyCardUpload = blank($player->family_card_file_path);
@@ -53,6 +53,7 @@
     <div class="col-lg-4 mb-3">
         <label class="form-label">Pas Foto 3x4 <span class="text-danger">*</span></label>
         <input type="file" name="photo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp" {{ $requiresPhotoUpload ? 'required' : '' }}>
+        <div class="form-text">Foto akan dinormalisasi ke format standar saat disimpan.</div>
         @if ($player->photo_file_url)
             <a href="{{ $player->photo_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 d-inline-flex align-items-center gap-2">
                 <i data-lucide="image" class="fs-14"></i>

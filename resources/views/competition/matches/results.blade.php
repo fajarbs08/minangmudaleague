@@ -1,59 +1,24 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @php
-    $filterCount = collect(request()->only(['age_group_id', 'competition_format']))->filter(fn ($value) => filled($value))->count();
+    $filterCount = collect(request()->only(['age_group_id']))->filter(fn ($value) => filled($value))->count();
     $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
-    $resultModalPayload = $matches->getCollection()->mapWithKeys(function ($match) {
-        $playersByClub = $match->lineupLists
-            ->groupBy(fn ($lineup) => (int) $lineup->club_id)
-            ->map(function ($lineups) use ($match) {
-                return $lineups
-                    ->flatMap(function ($lineup) use ($match) {
-                        return $lineup->players->map(function ($player) use ($match) {
-                            $jerseyNumber = $player->pivot->jersey_number ?? $player->displayJerseyNumber($match->age_group_id);
-
-                            return [
-                                'id' => (int) $player->id,
-                                'label' => trim(($jerseyNumber ? '#'.$jerseyNumber.' ' : '').$player->name),
-                            ];
-                        });
-                    })
-                    ->unique('id')
-                    ->values();
-            });
-
-        return [
-            $match->id => [
-                'id' => (int) $match->id,
-                'title' => $match->clubA?->name.' vs '.$match->clubB?->name,
-                'route' => route('match-results.update', $match),
-                'score_a' => $match->score_club_a,
-                'score_b' => $match->score_club_b,
-                'is_finished' => $match->is_finished,
-                'clubs' => [
-                    [
-                        'id' => (int) $match->club_a_id,
-                        'label' => $match->clubA?->name ?: 'Klub A',
-                        'players' => $playersByClub->get((int) $match->club_a_id, collect())->all(),
-                    ],
-                    [
-                        'id' => (int) $match->club_b_id,
-                        'label' => $match->clubB?->name ?: 'Klub B',
-                        'players' => $playersByClub->get((int) $match->club_b_id, collect())->all(),
-                    ],
-                ],
-                'goal_events' => $match->goalEvents
-                    ->map(fn ($goal) => [
-                        'club_id' => (int) $goal->club_id,
-                        'player_id' => (int) $goal->player_id,
-                        'assist_player_id' => $goal->assist_player_id ? (int) $goal->assist_player_id : null,
-                    ])
-                    ->values()
-                    ->all(),
-            ],
-        ];
-    });
+    $fixedCompetitionFormat = $fixedCompetitionFormat ?? null;
+    $indexRouteName = $indexRouteName ?? 'match-results.league.index';
 @endphp
+
+@push('css')
+<style>
+    .lap-report-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 1080px;
+    }
+
+    .lap-report-deferred.is-compact {
+        contain-intrinsic-size: 1px 520px;
+    }
+</style>
+@endpush
 
 @section('content')
 <div class="match-results-page">
@@ -61,12 +26,12 @@
     <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Hasil Pertandingan</li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ $title }}</li>
             </ol>
         </nav>
-        <h4 class="lap-admin-page-title">Hasil Pertandingan</h4>
-        <p class="lap-admin-page-copy">Kelola hasil laga untuk pertandingan yang sudah terjadwal.</p>
+        <h4 class="lap-admin-page-title">{{ $title }}</h4>
+        <p class="lap-admin-page-copy">Kelola hasil laga untuk pertandingan {{ $fixedCompetitionFormat === 'knockout' ? 'knockout' : 'liga' }} yang sudah terjadwal.</p>
     </div>
     <div class="lap-admin-page-actions">
         <button
@@ -206,7 +171,7 @@
     }
 </style>
 
-<div class="card">
+<div class="card lap-report-deferred is-compact">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <h4 class="card-title mb-1">Daftar Hasil Pertandingan</h4>
@@ -223,7 +188,7 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive competition-table-wrap">
+            <div class="table-responsive competition-table-wrap lap-report-deferred">
             <table class="table competition-table competition-table-compact match-results-table align-middle text-nowrap">
                 <thead>
                     <tr>
@@ -300,12 +265,13 @@
                                                     {{ $match->is_finished ? 'Perbarui skor dan status pertandingan ini.' : 'Input skor setelah pertandingan selesai.' }}
                                                 </div>
                                                 @include('competition.partials.action-item', [
-                                                    'icon' => $match->is_finished ? 'square-pen' : 'clipboard-pen',
+                                                    'icon' => $match->is_finished ? 'square-pen' : 'clipboard-list',
                                                     'label' => $match->is_finished ? 'Edit Hasil' : 'Input Hasil',
                                                     'attributes' => [
                                                         'data-bs-toggle' => 'modal',
                                                         'data-bs-target' => '#matchResultModal',
                                                         'data-match-id' => $match->id,
+                                                        'data-payload-url' => route('match-results.payload', $match),
                                                     ],
                                                 ])
                                             </div>
@@ -347,18 +313,9 @@
                     @endforeach
                 </select>
             </div>
-            <div>
-                <label for="result-competition-format" class="form-label">Format pertandingan</label>
-                <select id="result-competition-format" name="competition_format" class="form-select">
-                    <option value="">Semua format</option>
-                    @foreach ($formatOptions as $value => $label)
-                        <option value="{{ $value }}" @selected(request('competition_format') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
             <div class="d-grid gap-2 mt-2">
                 <button type="submit" class="btn btn-primary">Terapkan Filter</button>
-                <a href="{{ route('match-results.index') }}" class="btn btn-light">Reset Filter</a>
+                <a href="{{ route($indexRouteName) }}" class="btn btn-light">Reset Filter</a>
             </div>
         </form>
     </div>
@@ -373,6 +330,7 @@
             <form method="POST" id="match-result-form">
                 @csrf
                 @method('PATCH')
+                <input type="hidden" name="redirect_route" value="{{ $indexRouteName }}">
                 <div class="modal-header">
                     <div>
                         <h5 class="modal-title" id="matchResultModalLabel">Input Hasil Pertandingan</h5>
@@ -420,17 +378,19 @@
     </div>
 </div>
 
-<script type="application/json" id="match-results-payload">@json($resultModalPayload)</script>
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modal = document.getElementById('matchResultModal');
         if (!modal) return;
-        const payloadElement = document.getElementById('match-results-payload');
-        const payloadByMatch = payloadElement ? JSON.parse(payloadElement.textContent || '{}') : {};
+        const payloadByMatch = {};
         const goalEventList = document.getElementById('goal-event-list');
         const addGoalEventButton = document.getElementById('add-goal-event-row');
         const emptyState = document.getElementById('goal-event-empty-state');
+        const title = document.getElementById('match-result-title');
+        const scoreA = document.getElementById('match-score-a');
+        const scoreB = document.getElementById('match-score-b');
+        const finished = document.getElementById('match-is-finished');
+        const form = document.getElementById('match-result-form');
         const clubOptionsMarkup = (clubs, selectedClubId) => {
             const options = ['<option value="">Tim</option>'];
             clubs.forEach((club) => {
@@ -524,29 +484,58 @@
             if (!trigger) return;
 
             const matchId = trigger.getAttribute('data-match-id');
-            const matchData = payloadByMatch[matchId];
-            if (!matchData) return;
+            const payloadUrl = trigger.getAttribute('data-payload-url');
+            if (!payloadUrl) return;
 
-            const form = document.getElementById('match-result-form');
-            const title = document.getElementById('match-result-title');
-            const scoreA = document.getElementById('match-score-a');
-            const scoreB = document.getElementById('match-score-b');
-            const finished = document.getElementById('match-is-finished');
-
-            form.action = matchData.route;
-            title.textContent = matchData.title || '-';
-            scoreA.value = matchData.score_a ?? '';
-            scoreB.value = matchData.score_b ?? '';
-            finished.checked = !!matchData.is_finished;
+            title.textContent = 'Memuat...';
+            scoreA.value = '';
+            scoreB.value = '';
+            finished.checked = false;
             goalEventList.innerHTML = '';
+            syncEmptyState();
+            addGoalEventButton.onclick = null;
 
-            if (Array.isArray(matchData.goal_events) && matchData.goal_events.length) {
-                matchData.goal_events.forEach((goalEvent) => appendGoalEventRow(matchData, goalEvent));
+            const applyMatchData = (matchData) => {
+                form.action = matchData.route;
+                title.textContent = matchData.title || '-';
+                scoreA.value = matchData.score_a ?? '';
+                scoreB.value = matchData.score_b ?? '';
+                finished.checked = !!matchData.is_finished;
+                goalEventList.innerHTML = '';
+
+                if (Array.isArray(matchData.goal_events) && matchData.goal_events.length) {
+                    matchData.goal_events.forEach((goalEvent) => appendGoalEventRow(matchData, goalEvent));
+                }
+
+                syncEmptyState();
+                addGoalEventButton.onclick = () => appendGoalEventRow(matchData);
+            };
+
+            if (payloadByMatch[matchId]) {
+                applyMatchData(payloadByMatch[matchId]);
+                return;
             }
 
-            syncEmptyState();
+            fetch(payloadUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+            })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        throw new Error('Gagal memuat payload hasil pertandingan.');
+                    }
 
-            addGoalEventButton.onclick = () => appendGoalEventRow(matchData);
+                    const matchData = await response.json();
+                    payloadByMatch[matchId] = matchData;
+                    applyMatchData(matchData);
+                })
+                .catch(() => {
+                    title.textContent = 'Gagal memuat data pertandingan';
+                    goalEventList.innerHTML = '';
+                    syncEmptyState();
+                });
         });
     });
 </script>

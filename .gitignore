@@ -22,6 +22,21 @@
 /\.npm-cache/
 /artifacts-trash/*
 !/artifacts-trash/.gitkeep
+/storage/logs/*.log
+
+# Local debug artifacts in project root
+/*-after-sort.json
+/*-before-sort.json
+/*-inspect.json
+/*-table-inspect.json
+/*-snapshot.yml
+/*-open.yml
+/*-deep.yml
+/mobile-*-check.json
+/hasil-pertandingan-console*.txt
+/hasil-pertandingan-requests.txt
+/hasil-pertandingan-snapshot.md
+/klub.yml
 Homestead.json
 Homestead.yaml
 Thumbs.db

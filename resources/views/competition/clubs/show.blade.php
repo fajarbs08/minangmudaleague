@@ -4,12 +4,21 @@
     $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
 @endphp
 
+@push('css')
+<style>
+    .lap-detail-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 720px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('clubs.index') }}">Klub</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Detail</li>
             </ol>
@@ -36,7 +45,7 @@
                     <div class="mb-3">
                         <div class="text-muted small">Logo</div>
                         <div class="d-inline-flex align-items-center justify-content-center rounded border bg-white p-3 mt-1" style="width: 140px; height: 140px;">
-                            <img src="{{ $club->logo_file_url }}" alt="Logo klub" class="img-fluid" style="max-width: 112px; max-height: 112px; width: auto; height: auto; object-fit: contain;">
+                            <img src="{{ $club->logo_file_url }}" alt="Logo klub" class="img-fluid" width="112" height="112" decoding="async" fetchpriority="high" style="max-width: 112px; max-height: 112px; width: auto; height: auto; object-fit: contain;">
                         </div>
                     </div>
                 @endif
@@ -113,7 +122,7 @@
     </div>
 </div>
 
-<div class="card mt-3">
+<div class="card mt-3 lap-detail-deferred">
     <div class="card-header">
         <h5 class="card-title mb-0">Dokumen</h5>
     </div>
@@ -137,7 +146,7 @@
     </div>
 </div>
 
-<div class="card mt-3">
+<div class="card mt-3 lap-detail-deferred">
     <div class="card-header">
         <h5 class="card-title mb-0">Status Verifikasi</h5>
     </div>
@@ -163,7 +172,7 @@
     </div>
 </div>
 
-<div class="card mt-3">
+<div class="card mt-3 lap-detail-deferred">
     <div class="card-header">
         <h5 class="card-title mb-0">Aksi Verifikasi</h5>
     </div>

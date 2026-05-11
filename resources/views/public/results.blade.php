@@ -305,7 +305,7 @@
                         </div>
                         <div class="lap-scoreboard">
                             <div class="lap-team-stack">
-                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['home_logo'], 'label' => $normalizedFeatured['home_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['home_logo'], 'label' => $normalizedFeatured['home_name'], 'badgeClass' => 'lap-results-club-mark', 'width' => 72, 'height' => 72])</span>
                                 <h3 class="lap-team-name">{{ $normalizedFeatured['home_name'] }}</h3>
                             </div>
                             <div class="text-center">
@@ -314,7 +314,7 @@
                                 <p class="lap-card-copy">{{ $normalizedFeatured['time'] }} · {{ $normalizedFeatured['venue'] }}</p>
                             </div>
                             <div class="lap-team-stack is-away">
-                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['away_logo'], 'label' => $normalizedFeatured['away_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $normalizedFeatured['away_logo'], 'label' => $normalizedFeatured['away_name'], 'badgeClass' => 'lap-results-club-mark', 'width' => 72, 'height' => 72])</span>
                                 <h3 class="lap-team-name">{{ $normalizedFeatured['away_name'] }}</h3>
                             </div>
                         </div>
@@ -401,7 +401,7 @@
                                             </div>
                                             <div class="lap-match-teams">
                                                 <div class="lap-team-stack">
-                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['home_logo'], 'label' => $match['home_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['home_logo'], 'label' => $match['home_name'], 'badgeClass' => 'lap-results-club-mark', 'width' => 72, 'height' => 72])</span>
                                                     <strong class="lap-team-name">{{ $match['home_name'] }}</strong>
                                                 </div>
                                                 <div class="text-center">
@@ -410,7 +410,7 @@
                                                     <p class="lap-card-copy">{{ $match['venue'] }}</p>
                                                 </div>
                                                 <div class="lap-team-stack is-away">
-                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['away_logo'], 'label' => $match['away_name'], 'badgeClass' => 'lap-results-club-mark'])</span>
+                                                    <span class="lap-logo-frame">@include('public.partials.identity-mark', ['imageUrl' => $match['away_logo'], 'label' => $match['away_name'], 'badgeClass' => 'lap-results-club-mark', 'width' => 72, 'height' => 72])</span>
                                                     <strong class="lap-team-name">{{ $match['away_name'] }}</strong>
                                                 </div>
                                             </div>

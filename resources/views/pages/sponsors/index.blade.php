@@ -71,10 +71,10 @@
             <table class="table competition-table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Sponsor</th>
-                        <th>Tier</th>
-                        <th>Status</th>
-                        <th>Urutan</th>
+                        @include('competition.partials.sortable-th', ['key' => 'name', 'label' => 'Sponsor', 'defaultSort' => 'sort_order', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'tier', 'label' => 'Tier', 'defaultSort' => 'sort_order', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'is_published', 'label' => 'Status', 'defaultSort' => 'sort_order', 'defaultDirection' => 'asc'])
+                        @include('competition.partials.sortable-th', ['key' => 'sort_order', 'label' => 'Urutan', 'defaultSort' => 'sort_order', 'defaultDirection' => 'asc'])
                         <th class="text-end competition-table-actions">Aksi</th>
                     </tr>
                 </thead>

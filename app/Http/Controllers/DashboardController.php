@@ -6,6 +6,7 @@ use App\Models\AgeGroup;
 use App\Models\Club;
 use App\Models\Club as ClubModel;
 use App\Models\LineupList;
+use App\Models\MatchGoal;
 use App\Models\MatchSchedule;
 use App\Models\Official;
 use App\Models\Player;
@@ -19,6 +20,8 @@ use App\Services\SeasonContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -280,6 +283,7 @@ class DashboardController extends Controller
     {
         $season = $this->selectedPublicSeason($request);
         $publicSeasonQuery = $this->publicSeasonQuery($season);
+        $knockoutBrackets = $this->publicKnockoutBrackets($season);
 
         return view('public.brackets', $this->publicPageData([
             'title' => 'Bagan Knockout',
@@ -289,8 +293,7 @@ class DashboardController extends Controller
             'bannerCurrent' => 'Bagan Knockout',
             'seoDescription' => 'Lihat bagan knockout resmi Liga Anak Piaman Laweh per kelompok usia, lengkap dengan jalur pertandingan dan hasil tiap babak.',
             'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
-            'publicKnockoutBrackets' => $this->publicKnockoutBrackets($season, $publicSeasonQuery),
-            'publicBracketryBrackets' => $this->publicBracketryBrackets($season, $publicSeasonQuery),
+            'publicBracketryBrackets' => $this->publicBracketryBrackets($season, $publicSeasonQuery, $knockoutBrackets),
             'selectedPublicSeason' => $season,
             'publicSeasonOptions' => $this->seasonContext->publicVisible(),
             'publicSeasonQuery' => $publicSeasonQuery,
@@ -305,17 +308,12 @@ class DashboardController extends Controller
 
     public function publicInformationFileRedirect(string $informationResource)
     {
-        return $this->publicInformationRedirect();
+        return redirect()->route('public.information');
     }
 
     public function publicInformationShowRedirect(string $resourceSlug)
     {
-        return $this->publicInformationRedirect();
-    }
-
-    public function legacyMatchesIndexRedirect()
-    {
-        return redirect()->route('matches.league.index');
+        return redirect()->route('public.information');
     }
 
     private function buildPublicSchedulePageData(Request $request, array $overrides = []): array
@@ -429,15 +427,8 @@ class DashboardController extends Controller
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $resultsQuery = MatchSchedule::query()->forSeason($season?->id)
-            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
-            ->where('is_finished', true)
-            ->whereNotNull('score_club_a')
-            ->whereNotNull('score_club_b')
-            ->orderByDesc('match_date')
-            ->orderByDesc('kickoff_time');
+        $resultsQuery = $this->publicResultsQuery($season);
 
-        $allResults = (clone $resultsQuery)->get();
         $filteredResults = (clone $resultsQuery)
             ->when($selectedAgeGroupId, fn (Builder $query, int $ageGroupId) => $query->where('age_group_id', $ageGroupId))
             ->when($selectedYear, fn (Builder $query, int $year) => $query->whereYear('match_date', $year))
@@ -450,56 +441,97 @@ class DashboardController extends Controller
             })
             ->get();
 
+        $ageGroupIds = (clone $resultsQuery)
+            ->select('age_group_id')
+            ->distinct()
+            ->pluck('age_group_id')
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->values();
+
         $resultFilterOptions = [
-            'age_groups' => $allResults
-                ->pluck('ageGroup')
-                ->filter()
-                ->unique('id')
-                ->sortBy('name')
-                ->values()
-                ->map(fn ($ageGroup) => [
+            'age_groups' => AgeGroup::competition()
+                ->whereIn('id', $ageGroupIds)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (AgeGroup $ageGroup) => [
                     'value' => (string) $ageGroup->id,
                     'label' => $ageGroup->name,
                 ]),
-            'years' => $allResults
-                ->map(fn (MatchSchedule $match) => optional($match->match_date)->format('Y'))
+            'years' => (clone $resultsQuery)
+                ->selectRaw('DISTINCT YEAR(match_date) as year')
+                ->whereNotNull('match_date')
+                ->orderByDesc('year')
+                ->pluck('year')
                 ->filter()
-                ->unique()
-                ->sortDesc()
-                ->values()
-                ->map(fn (string $year) => [
-                    'value' => $year,
-                    'label' => $year,
-                ]),
-            'dates' => $allResults
-                ->map(function (MatchSchedule $match) {
-                    $date = $match->match_date;
-
-                    if (! $date) {
-                        return null;
-                    }
+                ->map(fn ($year) => [
+                    'value' => (string) $year,
+                    'label' => (string) $year,
+                ])
+                ->values(),
+            'dates' => (clone $resultsQuery)
+                ->selectRaw('DISTINCT DATE(match_date) as match_date_value')
+                ->whereNotNull('match_date')
+                ->orderBy('match_date_value')
+                ->pluck('match_date_value')
+                ->filter()
+                ->map(function (string $dateValue) {
+                    $date = \Illuminate\Support\Carbon::parse($dateValue);
 
                     return [
                         'value' => $date->toDateString(),
                         'label' => $date->translatedFormat('d F Y'),
                     ];
                 })
-                ->filter()
-                ->unique('value')
-                ->sortBy('value')
-                ->values(),
-            'clubs' => $allResults
-                ->flatMap(function (MatchSchedule $match) {
-                    return collect([
-                        ['value' => (string) $match->club_a_id, 'label' => $match->club_a_display_name ?: $match->club_a_short_name],
-                        ['value' => (string) $match->club_b_id, 'label' => $match->club_b_display_name ?: $match->club_b_short_name],
-                    ]);
-                })
-                ->filter(fn (array $club) => filled($club['value']) && filled($club['label']))
-                ->unique('value')
-                ->sortBy('label')
                 ->values(),
         ];
+
+        $clubIdQuery = MatchSchedule::query()->forSeason($season?->id)
+            ->selectRaw('club_a_id as club_id')
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->union(
+                MatchSchedule::query()->forSeason($season?->id)
+                    ->selectRaw('club_b_id as club_id')
+                    ->where('is_finished', true)
+                    ->whereNotNull('score_club_a')
+                    ->whereNotNull('score_club_b')
+            );
+
+        $clubIds = DB::query()
+            ->fromSub($clubIdQuery, 'result_clubs')
+            ->select('club_id')
+            ->distinct()
+            ->pluck('club_id')
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->values();
+
+        $seasonClubMap = SeasonClub::query()
+            ->where('season_id', $season?->id)
+            ->whereIn('club_id', $clubIds)
+            ->get(['club_id', 'name', 'short_name'])
+            ->keyBy('club_id');
+
+        $clubMap = Club::query()
+            ->whereIn('id', $clubIds)
+            ->get(['id', 'name', 'short_name'])
+            ->keyBy('id');
+
+        $resultFilterOptions['clubs'] = $clubIds
+            ->map(function (int $clubId) use ($seasonClubMap, $clubMap) {
+                $seasonClub = $seasonClubMap->get($clubId);
+                $club = $clubMap->get($clubId);
+                $label = $seasonClub?->name ?: $seasonClub?->short_name ?: $club?->name ?: $club?->short_name;
+
+                return filled($label)
+                    ? ['value' => (string) $clubId, 'label' => $label]
+                    : null;
+            })
+            ->filter()
+            ->sortBy('label')
+            ->values();
 
         return $this->publicPageData(array_merge([
             'title' => 'Hasil Pertandingan',
@@ -631,75 +663,140 @@ class DashboardController extends Controller
     {
         $season = $this->selectedPublicSeason($request);
         $publicSeasonQuery = $this->publicSeasonQuery($season);
-        $allLeagueMatches = $this->publicStandingsMatchesQuery($season)->get();
-        $selectedAgeGroupId = $request->integer('age_group_id') ?: null;
+        $baseStandingsQuery = $this->publicStandingsMatchesQuery($season);
+        $defaultAgeGroupId = (clone $baseStandingsQuery)
+            ->select('age_group_id')
+            ->distinct()
+            ->orderBy('age_group_id')
+            ->value('age_group_id');
+        $selectedAgeGroupId = $request->has('age_group_id')
+            ? ($request->integer('age_group_id') ?: null)
+            : $defaultAgeGroupId;
         $selectedYear = $request->integer('year') ?: null;
         $selectedDate = $this->normalizePublicDateFilter($request->input('date'));
         $selectedClubId = $request->integer('club_id') ?: null;
 
-        $filteredMatches = $allLeagueMatches
-            ->when($selectedAgeGroupId, fn (Collection $matches, int $ageGroupId) => $matches->where('age_group_id', $ageGroupId))
-            ->when($selectedYear, function (Collection $matches, int $year) {
-                return $matches->filter(fn (MatchSchedule $match) => (int) optional($match->match_date)->format('Y') === $year)->values();
+        $filteredMatches = (clone $baseStandingsQuery)
+            ->when($selectedAgeGroupId, fn (Builder $query, int $ageGroupId) => $query->where('age_group_id', $ageGroupId))
+            ->when($selectedYear, fn (Builder $query, int $year) => $query->whereYear('match_date', $year))
+            ->when($selectedDate, fn (Builder $query, string $date) => $query->whereDate('match_date', $date))
+            ->when($selectedClubId, function (Builder $query, int $clubId) {
+                $query->where(function (Builder $inner) use ($clubId) {
+                    $inner->where('club_a_id', $clubId)
+                        ->orWhere('club_b_id', $clubId);
+                });
             })
-            ->when($selectedDate, fn (Collection $matches, string $date) => $matches->filter(fn (MatchSchedule $match) => optional($match->match_date)->toDateString() === $date)->values())
-            ->when($selectedClubId, function (Collection $matches, int $clubId) {
-                return $matches->filter(function (MatchSchedule $match) use ($clubId) {
-                    return (int) $match->club_a_id === $clubId || (int) $match->club_b_id === $clubId;
-                })->values();
-            });
+            ->get();
 
         $standings = $this->buildPublicStandings($filteredMatches);
+        $topScorers = $this->buildPublicGoalLeaderboard(
+            season: $season,
+            type: 'scorer',
+            ageGroupId: $selectedAgeGroupId,
+            year: $selectedYear,
+            date: $selectedDate,
+            clubId: $selectedClubId,
+        );
+        $topAssists = $this->buildPublicGoalLeaderboard(
+            season: $season,
+            type: 'assist',
+            ageGroupId: $selectedAgeGroupId,
+            year: $selectedYear,
+            date: $selectedDate,
+            clubId: $selectedClubId,
+        );
 
-        $ageGroupOptions = $allLeagueMatches
-            ->pluck('ageGroup')
+        $ageGroupIds = (clone $baseStandingsQuery)
+            ->select('age_group_id')
+            ->distinct()
+            ->pluck('age_group_id')
             ->filter()
-            ->unique('id')
-            ->sortBy('name')
-            ->values()
-            ->map(fn ($ageGroup) => [
+            ->map(fn ($value) => (int) $value)
+            ->values();
+
+        $ageGroupOptions = AgeGroup::competition()
+            ->whereIn('id', $ageGroupIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (AgeGroup $ageGroup) => [
                 'value' => (string) $ageGroup->id,
                 'label' => $ageGroup->name,
             ]);
 
-        $yearOptions = $allLeagueMatches
-            ->map(fn (MatchSchedule $match) => optional($match->match_date)->format('Y'))
+        $yearOptions = (clone $baseStandingsQuery)
+            ->selectRaw('DISTINCT YEAR(match_date) as year')
+            ->whereNotNull('match_date')
+            ->orderByDesc('year')
+            ->pluck('year')
             ->filter()
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->map(fn (string $year) => [
-                'value' => $year,
-                'label' => $year,
-            ]);
+            ->map(fn ($year) => [
+                'value' => (string) $year,
+                'label' => (string) $year,
+            ])
+            ->values();
 
-        $dateOptions = $allLeagueMatches
-            ->map(function (MatchSchedule $match) {
-                $date = $match->match_date;
-
-                if (! $date) {
-                    return null;
-                }
+        $dateOptions = (clone $baseStandingsQuery)
+            ->selectRaw('DISTINCT DATE(match_date) as match_date_value')
+            ->whereNotNull('match_date')
+            ->orderBy('match_date_value')
+            ->pluck('match_date_value')
+            ->filter()
+            ->map(function (string $dateValue) {
+                $date = \Illuminate\Support\Carbon::parse($dateValue);
 
                 return [
                     'value' => $date->toDateString(),
                     'label' => $date->translatedFormat('d F Y'),
                 ];
             })
-            ->filter()
-            ->unique('value')
-            ->sortBy('value')
             ->values();
 
-        $clubOptions = $allLeagueMatches
-            ->flatMap(function (MatchSchedule $match) {
-                return collect([
-                    ['value' => (string) $match->club_a_id, 'label' => $match->club_a_short_name ?: $match->club_a_display_name],
-                    ['value' => (string) $match->club_b_id, 'label' => $match->club_b_short_name ?: $match->club_b_display_name],
-                ]);
+        $clubIdQuery = MatchSchedule::query()->forSeason($season?->id)
+            ->selectRaw('club_a_id as club_id')
+            ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
+            ->where('is_finished', true)
+            ->whereNotNull('score_club_a')
+            ->whereNotNull('score_club_b')
+            ->union(
+                MatchSchedule::query()->forSeason($season?->id)
+                    ->selectRaw('club_b_id as club_id')
+                    ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
+                    ->where('is_finished', true)
+                    ->whereNotNull('score_club_a')
+                    ->whereNotNull('score_club_b')
+            );
+
+        $clubIds = DB::query()
+            ->fromSub($clubIdQuery, 'standings_clubs')
+            ->select('club_id')
+            ->distinct()
+            ->pluck('club_id')
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->values();
+
+        $seasonClubMap = SeasonClub::query()
+            ->where('season_id', $season?->id)
+            ->whereIn('club_id', $clubIds)
+            ->get(['club_id', 'name', 'short_name'])
+            ->keyBy('club_id');
+
+        $clubMap = Club::query()
+            ->whereIn('id', $clubIds)
+            ->get(['id', 'name', 'short_name'])
+            ->keyBy('id');
+
+        $clubOptions = $clubIds
+            ->map(function (int $clubId) use ($seasonClubMap, $clubMap) {
+                $seasonClub = $seasonClubMap->get($clubId);
+                $club = $clubMap->get($clubId);
+                $label = $seasonClub?->short_name ?: $seasonClub?->name ?: $club?->short_name ?: $club?->name;
+
+                return filled($label)
+                    ? ['value' => (string) $clubId, 'label' => $label]
+                    : null;
             })
-            ->filter(fn (array $club) => filled($club['value']) && filled($club['label']))
-            ->unique('value')
+            ->filter()
             ->sortBy('label')
             ->values();
 
@@ -711,6 +808,8 @@ class DashboardController extends Controller
             'bannerCurrent' => 'Klasemen Liga',
             'seoDescription' => 'Klasemen sementara Liga Anak Piaman Laweh berdasarkan hasil pertandingan resmi di setiap kelompok usia.',
             'publicStandings' => $standings,
+            'topScorers' => $topScorers,
+            'topAssists' => $topAssists,
             'standingsFilterOptions' => [
                 'age_groups' => $ageGroupOptions,
                 'years' => $yearOptions,
@@ -887,74 +986,221 @@ class DashboardController extends Controller
         ]));
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-        $clubIds = $user->isAdmin() ? Club::query()->select('id') : $user->clubs()->select('id');
         $currentSeasonId = $this->seasonContext->currentId();
         $showAdminWorkflow = $user->isAdmin() && ! $this->seasonContext->isViewingHistory();
-        $hasSeasonSnapshots = $currentSeasonId
-            && Schema::hasTable('season_clubs')
-            && Schema::hasTable('season_officials')
-            && Schema::hasTable('season_players');
+        $hasSeasonSnapshots = $currentSeasonId && $this->hasSeasonSnapshotTables();
+        $clubIdValues = $user->isAdmin()
+            ? null
+            : Club::query()->where('user_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
-        $stats = $hasSeasonSnapshots
-            ? [
-                'clubs' => SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
-                'officials' => SeasonOfficial::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
-                'players' => SeasonPlayer::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->count(),
-                'lineups' => LineupList::query()->forActiveSeason()->whereIn('club_id', $clubIds)->count(),
-                'pending_clubs' => SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_officials' => SeasonOfficial::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_players' => SeasonPlayer::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_lineups' => LineupList::query()->forActiveSeason()->whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-            ]
+        $dashboardPayload = Cache::remember(
+            $this->dashboardSummaryCacheKey($user->id, $currentSeasonId, $showAdminWorkflow, $hasSeasonSnapshots),
+            now()->addSeconds(20),
+            function () use ($user, $currentSeasonId, $showAdminWorkflow, $hasSeasonSnapshots, $clubIdValues) {
+                $clubScope = function ($query, string $column = 'club_id') use ($user, $clubIdValues) {
+                    if ($user->isAdmin()) {
+                        return $query;
+                    }
+
+                    return empty($clubIdValues)
+                        ? $query->whereRaw('1 = 0')
+                        : $query->whereIn($column, $clubIdValues);
+                };
+
+                $stats = $hasSeasonSnapshots
+                    ? [
+                        'clubs' => $clubScope(SeasonClub::query()->where('season_id', $currentSeasonId))->count(),
+                        'officials' => $clubScope(SeasonOfficial::query()->where('season_id', $currentSeasonId))->count(),
+                        'players' => $clubScope(SeasonPlayer::query()->where('season_id', $currentSeasonId))->count(),
+                        'lineups' => $clubScope(LineupList::query()->forActiveSeason())->count(),
+                        'pending_clubs' => $clubScope(SeasonClub::query()->where('season_id', $currentSeasonId))->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_officials' => $clubScope(SeasonOfficial::query()->where('season_id', $currentSeasonId))->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_players' => $clubScope(SeasonPlayer::query()->where('season_id', $currentSeasonId))->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_lineups' => $clubScope(LineupList::query()->forActiveSeason())->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                    ]
+                    : [
+                        'clubs' => $clubScope(Club::query(), 'id')->count(),
+                        'officials' => $clubScope(Official::query())->count(),
+                        'players' => $clubScope(Player::query())->count(),
+                        'lineups' => $clubScope(LineupList::query())->count(),
+                        'pending_clubs' => $clubScope(Club::query(), 'id')->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_officials' => $clubScope(Official::query())->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_players' => $clubScope(Player::query())->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                        'pending_lineups' => $clubScope(LineupList::query())->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                    ];
+
+                $recentPlayers = $hasSeasonSnapshots
+                    ? $clubScope(SeasonPlayer::query()->with(['seasonClub', 'primaryAgeGroup'])->where('season_id', $currentSeasonId))
+                        ->latest('updated_at')
+                        ->take(5)
+                        ->get()
+                    : $clubScope(Player::query()->with(['club', 'primaryAgeGroup']))
+                        ->latest()
+                        ->take(5)
+                        ->get();
+
+                $recentLineups = $clubScope(
+                    LineupList::query()
+                        ->when($hasSeasonSnapshots, fn ($query) => $query->forActiveSeason())
+                        ->with(['club', 'ageGroup'])
+                )
+                    ->latest()
+                    ->take(5)
+                    ->get();
+
+                $clubSummary = null;
+                if (! $user->isAdmin()) {
+                    $clubSummary = $hasSeasonSnapshots
+                        ? $clubScope(SeasonClub::query()->where('season_id', $currentSeasonId))->latest('id')->first()
+                        : $clubScope(Club::query(), 'id')->latest()->first();
+                }
+
+                return [
+                    'stats' => $stats,
+                    'recentPlayers' => $recentPlayers,
+                    'recentLineups' => $recentLineups,
+                    'clubSummary' => $clubSummary,
+                ];
+            }
+        );
+
+        $adminPayload = $showAdminWorkflow
+            ? Cache::remember(
+                $this->dashboardAdminCacheKey($currentSeasonId),
+                now()->addSeconds(15),
+                fn () => [
+                    'adminReviewStats' => $this->adminReviewStats(),
+                    'adminQueues' => $this->adminQueues(),
+                    'recentSubmissions' => $this->recentSubmissions(),
+                    'oldestPendingReviews' => $this->oldestPendingReviews(),
+                    'adminResources' => [
+                        'club_accounts' => User::query()->where('role', 'club')->count(),
+                        'unused_club_accounts' => User::query()->where('role', 'club')->doesntHave('club')->count(),
+                    ],
+                ]
+            )
             : [
-                'clubs' => Club::whereIn('id', $clubIds)->count(),
-                'officials' => Official::whereIn('club_id', $clubIds)->count(),
-                'players' => Player::whereIn('club_id', $clubIds)->count(),
-                'lineups' => LineupList::whereIn('club_id', $clubIds)->count(),
-                'pending_clubs' => Club::whereIn('id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_officials' => Official::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_players' => Player::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
-                'pending_lineups' => LineupList::whereIn('club_id', $clubIds)->where('verification_status', ClubModel::STATUS_SUBMITTED)->count(),
+                'adminReviewStats' => [],
+                'adminQueues' => [],
+                'recentSubmissions' => collect(),
+                'oldestPendingReviews' => collect(),
+                'adminResources' => [],
             ];
-
-        $recentPlayers = $hasSeasonSnapshots
-            ? SeasonPlayer::query()->with(['seasonClub', 'primaryAgeGroup'])->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->latest('updated_at')->take(5)->get()
-            : Player::with(['club', 'primaryAgeGroup'])->whereIn('club_id', $clubIds)->latest()->take(5)->get();
-
-        $recentLineups = LineupList::query()
-            ->when($hasSeasonSnapshots, fn ($query) => $query->forActiveSeason())
-            ->with(['club', 'ageGroup'])
-            ->whereIn('club_id', $clubIds)
-            ->latest()
-            ->take(5)
-            ->get();
-
-        $clubSummary = null;
-        if (! $user->isAdmin()) {
-            $clubSummary = $hasSeasonSnapshots
-                ? SeasonClub::query()->where('season_id', $currentSeasonId)->whereIn('club_id', $clubIds)->latest('id')->first()
-                : Club::whereIn('id', $clubIds)->latest()->first();
-        }
 
         return view('competition.dashboard', [
             'title' => 'Dashboard Registrasi',
-            'stats' => $stats,
-            'recentPlayers' => $recentPlayers,
-            'recentLineups' => $recentLineups,
-            'clubSummary' => $clubSummary,
+            'stats' => $dashboardPayload['stats'],
+            'recentPlayers' => $this->sortDashboardItems(
+                $dashboardPayload['recentPlayers'],
+                $request,
+                'recent_players_sort',
+                'recent_players_direction',
+                'updated_at',
+                'desc',
+                [
+                    'name' => fn ($player) => mb_strtolower((string) $player->name),
+                    'club' => fn ($player) => mb_strtolower((string) ($player->seasonClub?->name ?? $player->club?->name ?? '')),
+                    'age_group' => fn ($player) => mb_strtolower((string) ($player->primaryAgeGroup?->name ?? '')),
+                    'updated_at' => fn ($player) => $player->updated_at?->getTimestamp() ?? 0,
+                ]
+            ),
+            'recentLineups' => $this->sortDashboardItems(
+                $dashboardPayload['recentLineups'],
+                $request,
+                'recent_lineups_sort',
+                'recent_lineups_direction',
+                'match_date',
+                'desc',
+                [
+                    'title' => fn ($lineup) => mb_strtolower((string) $lineup->title),
+                    'club' => fn ($lineup) => mb_strtolower((string) ($lineup->club?->name ?? '')),
+                    'age_group' => fn ($lineup) => mb_strtolower((string) ($lineup->ageGroup?->name ?? '')),
+                    'match_date' => fn ($lineup) => optional($lineup->match_date)->getTimestamp() ?? 0,
+                ]
+            ),
+            'clubSummary' => $dashboardPayload['clubSummary'],
             'showAdminWorkflow' => $showAdminWorkflow,
-            'adminReviewStats' => $showAdminWorkflow ? $this->adminReviewStats() : [],
-            'adminQueues' => $showAdminWorkflow ? $this->adminQueues() : [],
-            'recentSubmissions' => $showAdminWorkflow ? $this->recentSubmissions() : collect(),
-            'oldestPendingReviews' => $showAdminWorkflow ? $this->oldestPendingReviews() : collect(),
-            'adminResources' => $showAdminWorkflow ? [
-                'club_accounts' => User::query()->where('role', 'club')->count(),
-                'unused_club_accounts' => User::query()->where('role', 'club')->doesntHave('clubs')->count(),
-            ] : [],
+            'adminReviewStats' => $adminPayload['adminReviewStats'],
+            'adminQueues' => $adminPayload['adminQueues'],
+            'recentSubmissions' => $this->sortDashboardItems(
+                $adminPayload['recentSubmissions'],
+                $request,
+                'recent_submissions_sort',
+                'recent_submissions_direction',
+                'submitted_at',
+                'desc',
+                [
+                    'type' => fn (array $item) => mb_strtolower((string) ($item['type'] ?? '')),
+                    'name' => fn (array $item) => mb_strtolower((string) ($item['name'] ?? '')),
+                    'club' => fn (array $item) => mb_strtolower((string) ($item['club'] ?? '')),
+                    'status' => fn (array $item) => mb_strtolower((string) ($item['status'] ?? '')),
+                    'submitted_at' => fn (array $item) => optional($item['submitted_at'] ?? null)?->getTimestamp() ?? 0,
+                    'reviewed_by' => fn (array $item) => mb_strtolower((string) ($item['reviewed_by'] ?? '')),
+                ]
+            ),
+            'oldestPendingReviews' => $this->sortDashboardItems(
+                $adminPayload['oldestPendingReviews'],
+                $request,
+                'pending_reviews_sort',
+                'pending_reviews_direction',
+                'submitted_at',
+                'asc',
+                [
+                    'type' => fn (array $item) => mb_strtolower((string) ($item['type'] ?? '')),
+                    'name' => fn (array $item) => mb_strtolower((string) ($item['name'] ?? '')),
+                    'club' => fn (array $item) => mb_strtolower((string) ($item['club'] ?? '')),
+                    'submitted_at' => fn (array $item) => optional($item['submitted_at'] ?? null)?->getTimestamp() ?? 0,
+                    'waiting_label' => fn (array $item) => mb_strtolower((string) ($item['waiting_label'] ?? '')),
+                ]
+            ),
+            'adminResources' => $adminPayload['adminResources'],
         ]);
+    }
+
+    private function sortDashboardItems(Collection $items, Request $request, string $sortParam, string $directionParam, string $defaultSort, string $defaultDirection, array $sortMap): Collection
+    {
+        $sort = $request->string($sortParam)->value() ?: $defaultSort;
+        $direction = $request->input($directionParam) === 'asc' ? 'asc' : 'desc';
+
+        if (! array_key_exists($sort, $sortMap)) {
+            $sort = $defaultSort;
+            $direction = $defaultDirection;
+        }
+
+        $sorted = $items->sortBy($sortMap[$sort], SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $direction === 'desc'
+            ? $sorted->reverse()->values()
+            : $sorted->values();
+    }
+
+    private function hasSeasonSnapshotTables(): bool
+    {
+        return Cache::rememberForever('dashboard:has-season-snapshot-tables', fn () =>
+            Schema::hasTable('season_clubs')
+            && Schema::hasTable('season_officials')
+            && Schema::hasTable('season_players')
+        );
+    }
+
+    private function dashboardSummaryCacheKey(int $userId, ?int $seasonId, bool $showAdminWorkflow, bool $hasSeasonSnapshots): string
+    {
+        return implode(':', [
+            'dashboard',
+            'summary',
+            $userId,
+            $seasonId ?: 'none',
+            $showAdminWorkflow ? 'admin' : 'club',
+            $hasSeasonSnapshots ? 'snapshots' : 'legacy',
+        ]);
+    }
+
+    private function dashboardAdminCacheKey(?int $seasonId): string
+    {
+        return 'dashboard:admin:'.($seasonId ?: 'none');
     }
 
     private function publicStandingsMatchesQuery(?Season $season = null): Builder
@@ -962,7 +1208,26 @@ class DashboardController extends Controller
         $season ??= $this->seasonContext->active();
 
         return MatchSchedule::query()->forSeason($season?->id)
-            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason'])
+            ->select([
+                'id',
+                'age_group_id',
+                'club_a_id',
+                'club_b_id',
+                'club_a_season_id',
+                'club_b_season_id',
+                'match_date',
+                'kickoff_time',
+                'score_club_a',
+                'score_club_b',
+                'is_finished',
+            ])
+            ->with([
+                'ageGroup:id,name',
+                'clubA:id,name,short_name,logo_url',
+                'clubB:id,name,short_name,logo_url',
+                'clubASeason:id,club_id,name,short_name,logo_url',
+                'clubBSeason:id,club_id,name,short_name,logo_url',
+            ])
             ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -974,101 +1239,135 @@ class DashboardController extends Controller
 
     private function buildPublicStandings(Collection $matches): Collection
     {
-        return $matches
-            ->groupBy('age_group_id')
-            ->map(function (Collection $matches) {
-                $table = collect();
+        if ($matches->isEmpty()) {
+            return collect();
+        }
 
-                foreach ($matches as $match) {
-                    foreach ([
-                        [
-                            'club' => $match->clubA,
-                            'goals_for' => (int) $match->score_club_a,
-                            'goals_against' => (int) $match->score_club_b,
-                            'display_name' => $match->club_a_display_name,
-                            'display_short_name' => $match->club_a_short_name,
-                            'display_public_slug' => $match->club_a_public_slug,
-                            'display_logo_url' => $match->club_a_logo_file_url,
-                        ],
-                        [
-                            'club' => $match->clubB,
-                            'goals_for' => (int) $match->score_club_b,
-                            'goals_against' => (int) $match->score_club_a,
-                            'display_name' => $match->club_b_display_name,
-                            'display_short_name' => $match->club_b_short_name,
-                            'display_public_slug' => $match->club_b_public_slug,
-                            'display_logo_url' => $match->club_b_logo_file_url,
-                        ],
-                    ] as $entry) {
-                        if (! $entry['club']) {
-                            continue;
-                        }
+        $ageGroups = $matches
+            ->pluck('ageGroup')
+            ->filter()
+            ->keyBy('id');
 
-                        $clubId = $entry['club']->id;
-                        $row = $table->get($clubId, [
-                            'club_id' => $clubId,
-                            'club_name' => $entry['display_name'] ?: $entry['club']->name,
-                            'club_short_name' => $entry['display_short_name'] ?: $entry['display_name'] ?: $entry['club']->short_name ?: $entry['club']->name,
-                            'club_public_slug' => $entry['display_public_slug'] ?: $entry['club']->public_slug,
-                            'club_logo_url' => $entry['display_logo_url'] ?: $this->publicClubLogoUrl($entry['club'], 'public-assets/img/inner/flag/b1.png'),
-                            'played' => 0,
-                            'won' => 0,
-                            'drawn' => 0,
-                            'lost' => 0,
-                            'goals_for' => 0,
-                            'goals_against' => 0,
-                            'goal_difference' => 0,
-                            'points' => 0,
-                            'previous_points' => 0,
-                            'points_delta' => 0,
-                            'recent_form' => [],
-                        ]);
+        $matchIds = $matches->pluck('id')->map(fn ($id) => (int) $id)->filter()->values();
 
-                        $previousPoints = $row['points'];
-                        $row['played']++;
-                        $row['goals_for'] += $entry['goals_for'];
-                        $row['goals_against'] += $entry['goals_against'];
+        $clubAQuery = MatchSchedule::query()
+            ->whereIn('id', $matchIds)
+            ->selectRaw('age_group_id, club_a_id as club_id, 1 as played, score_club_a as goals_for, score_club_b as goals_against, CASE WHEN score_club_a > score_club_b THEN 1 ELSE 0 END as won, CASE WHEN score_club_a = score_club_b THEN 1 ELSE 0 END as drawn, CASE WHEN score_club_a < score_club_b THEN 1 ELSE 0 END as lost, CASE WHEN score_club_a > score_club_b THEN 3 WHEN score_club_a = score_club_b THEN 1 ELSE 0 END as points');
 
-                        if ($entry['goals_for'] > $entry['goals_against']) {
-                            $row['won']++;
-                            $row['points'] += 3;
-                            $row['recent_form'][] = 'W';
-                        } elseif ($entry['goals_for'] === $entry['goals_against']) {
-                            $row['drawn']++;
-                            $row['points'] += 1;
-                            $row['recent_form'][] = 'D';
-                        } else {
-                            $row['lost']++;
-                            $row['recent_form'][] = 'L';
-                        }
+        $clubBQuery = MatchSchedule::query()
+            ->whereIn('id', $matchIds)
+            ->selectRaw('age_group_id, club_b_id as club_id, 1 as played, score_club_b as goals_for, score_club_a as goals_against, CASE WHEN score_club_b > score_club_a THEN 1 ELSE 0 END as won, CASE WHEN score_club_b = score_club_a THEN 1 ELSE 0 END as drawn, CASE WHEN score_club_b < score_club_a THEN 1 ELSE 0 END as lost, CASE WHEN score_club_b > score_club_a THEN 3 WHEN score_club_b = score_club_a THEN 1 ELSE 0 END as points');
 
-                        $row['goal_difference'] = $row['goals_for'] - $row['goals_against'];
-                        $row['previous_points'] = $previousPoints;
-                        $row['points_delta'] = $row['points'] - $previousPoints;
-                        $row['recent_form'] = array_slice($row['recent_form'], -2);
+        $standingsRows = DB::query()
+            ->fromSub($clubAQuery->unionAll($clubBQuery), 'standings_base')
+            ->selectRaw('standings_base.age_group_id, standings_base.club_id, SUM(standings_base.played) as played, SUM(standings_base.won) as won, SUM(standings_base.drawn) as drawn, SUM(standings_base.lost) as lost, SUM(standings_base.goals_for) as goals_for, SUM(standings_base.goals_against) as goals_against, SUM(standings_base.goals_for) - SUM(standings_base.goals_against) as goal_difference, SUM(standings_base.points) as points')
+            ->groupBy('standings_base.age_group_id', 'standings_base.club_id')
+            ->orderBy('standings_base.age_group_id')
+            ->orderByDesc('points')
+            ->orderByDesc('goal_difference')
+            ->orderByDesc('goals_for')
+            ->get()
+            ->groupBy('age_group_id');
 
-                        $table->put($clubId, $row);
-                    }
+        $metaByGroupClub = [];
+
+        foreach ($matches as $match) {
+            foreach ([
+                [
+                    'club' => $match->clubA,
+                    'club_id' => (int) $match->club_a_id,
+                    'goals_for' => (int) $match->score_club_a,
+                    'goals_against' => (int) $match->score_club_b,
+                    'display_name' => $match->club_a_display_name,
+                    'display_short_name' => $match->club_a_short_name,
+                    'display_public_slug' => $match->club_a_public_slug,
+                    'display_logo_url' => $match->club_a_logo_file_url,
+                ],
+                [
+                    'club' => $match->clubB,
+                    'club_id' => (int) $match->club_b_id,
+                    'goals_for' => (int) $match->score_club_b,
+                    'goals_against' => (int) $match->score_club_a,
+                    'display_name' => $match->club_b_display_name,
+                    'display_short_name' => $match->club_b_short_name,
+                    'display_public_slug' => $match->club_b_public_slug,
+                    'display_logo_url' => $match->club_b_logo_file_url,
+                ],
+            ] as $entry) {
+                if (! $entry['club']) {
+                    continue;
                 }
 
-                return [
-                    'age_group' => $matches->first()?->ageGroup,
-                    'last_match_date' => $matches->last()?->match_date,
-                    'rows' => $table
-                        ->sortBy([
-                            ['points', 'desc'],
-                            ['goal_difference', 'desc'],
-                            ['goals_for', 'desc'],
-                            ['club_name', 'asc'],
-                        ])
-                        ->values()
-                        ->map(function (array $row, int $index) {
-                            $row['position'] = $index + 1;
+                $groupId = (int) $match->age_group_id;
+                $clubId = $entry['club_id'];
+                $metaByGroupClub[$groupId] ??= [];
+                $row = $metaByGroupClub[$groupId][$clubId] ?? [
+                    'club_name' => $entry['display_name'] ?: $entry['club']->name,
+                    'club_short_name' => $entry['display_short_name'] ?: $entry['display_name'] ?: $entry['club']->short_name ?: $entry['club']->name,
+                    'club_public_slug' => $entry['display_public_slug'] ?: $entry['club']->public_slug,
+                    'club_logo_url' => $entry['display_logo_url'] ?: $this->publicClubLogoUrl($entry['club'], 'public-assets/img/inner/flag/b1.png'),
+                    'points' => 0,
+                    'previous_points' => 0,
+                    'points_delta' => 0,
+                    'recent_form' => [],
+                ];
 
-                            return $row;
-                        })
-                        ->take(10)
-                        ->values(),
+                $previousPoints = $row['points'];
+
+                if ($entry['goals_for'] > $entry['goals_against']) {
+                    $row['points'] += 3;
+                    $row['recent_form'][] = 'W';
+                    $row['points_delta'] = 3;
+                } elseif ($entry['goals_for'] === $entry['goals_against']) {
+                    $row['points'] += 1;
+                    $row['recent_form'][] = 'D';
+                    $row['points_delta'] = 1;
+                } else {
+                    $row['recent_form'][] = 'L';
+                    $row['points_delta'] = 0;
+                }
+
+                $row['previous_points'] = $previousPoints;
+                $row['recent_form'] = array_slice($row['recent_form'], -2);
+                $metaByGroupClub[$groupId][$clubId] = $row;
+            }
+        }
+
+        return $matches
+            ->groupBy('age_group_id')
+            ->map(function (Collection $groupMatches, int $groupId) use ($ageGroups, $standingsRows, $metaByGroupClub) {
+                $rows = collect($standingsRows->get($groupId, collect()))
+                    ->values()
+                    ->map(function ($row, int $index) use ($groupId, $metaByGroupClub) {
+                        $clubMeta = $metaByGroupClub[$groupId][(int) $row->club_id] ?? [];
+
+                        return [
+                            'club_id' => (int) $row->club_id,
+                            'club_name' => $clubMeta['club_name'] ?? 'Klub',
+                            'club_short_name' => $clubMeta['club_short_name'] ?? ($clubMeta['club_name'] ?? 'Klub'),
+                            'club_public_slug' => $clubMeta['club_public_slug'] ?? null,
+                            'club_logo_url' => $clubMeta['club_logo_url'] ?? null,
+                            'played' => (int) $row->played,
+                            'won' => (int) $row->won,
+                            'drawn' => (int) $row->drawn,
+                            'lost' => (int) $row->lost,
+                            'goals_for' => (int) $row->goals_for,
+                            'goals_against' => (int) $row->goals_against,
+                            'goal_difference' => (int) $row->goal_difference,
+                            'points' => (int) $row->points,
+                            'previous_points' => (int) ($clubMeta['previous_points'] ?? 0),
+                            'points_delta' => (int) ($clubMeta['points_delta'] ?? 0),
+                            'recent_form' => $clubMeta['recent_form'] ?? [],
+                            'position' => $index + 1,
+                        ];
+                    })
+                    ->take(10)
+                    ->values();
+
+                return [
+                    'age_group' => $ageGroups->get($groupId),
+                    'last_match_date' => $groupMatches->last()?->match_date,
+                    'rows' => $rows,
                 ];
             })
             ->values();
@@ -1079,19 +1378,84 @@ class DashboardController extends Controller
         return $this->buildPublicStandings($this->publicStandingsMatchesQuery($season)->get());
     }
 
+    private function buildPublicGoalLeaderboard(
+        ?Season $season = null,
+        string $type = 'scorer',
+        ?int $ageGroupId = null,
+        ?int $year = null,
+        ?string $date = null,
+        ?int $clubId = null,
+    ): Collection {
+        $season ??= $this->seasonContext->active();
+
+        $relationColumn = $type === 'assist' ? 'assist_player_id' : 'player_id';
+        $ageGroups = AgeGroup::competition()->get()->keyBy('id');
+
+        return MatchGoal::query()->forSeason($season?->id)
+            ->select([
+                'match_schedules.age_group_id',
+                'players.id as player_id',
+                'players.name as player_name',
+                'clubs.name as club_name',
+                'clubs.short_name as club_short_name',
+            ])
+            ->selectRaw('COUNT(match_goals.id) as total')
+            ->join('match_schedules', 'match_schedules.id', '=', 'match_goals.match_id')
+            ->join('players', 'players.id', '=', "match_goals.{$relationColumn}")
+            ->leftJoin('clubs', 'clubs.id', '=', 'players.club_id')
+            ->where('match_schedules.competition_format', MatchSchedule::FORMAT_LEAGUE)
+            ->where('match_schedules.is_finished', true)
+            ->whereNotNull("match_goals.{$relationColumn}")
+            ->when($ageGroupId, fn (Builder $query, int $value) => $query->where('match_schedules.age_group_id', $value))
+            ->when($year, fn (Builder $query, int $value) => $query->whereYear('match_schedules.match_date', $value))
+            ->when($date, fn (Builder $query, string $value) => $query->whereDate('match_schedules.match_date', $value))
+            ->when($clubId, function (Builder $query, int $value) {
+                $query->where(function (Builder $inner) use ($value) {
+                    $inner->where('match_schedules.club_a_id', $value)
+                        ->orWhere('match_schedules.club_b_id', $value);
+                });
+            })
+            ->groupBy('match_schedules.age_group_id', 'players.id', 'players.name', 'clubs.name', 'clubs.short_name')
+            ->orderBy('match_schedules.age_group_id')
+            ->orderByRaw('COUNT(match_goals.id) DESC')
+            ->orderBy('players.name')
+            ->get()
+            ->groupBy('age_group_id')
+            ->map(function (Collection $groupRows, int $groupId) use ($ageGroups) {
+                return [
+                    'age_group' => $ageGroups->get($groupId),
+                    'rows' => $groupRows
+                        ->values()
+                        ->take(5)
+                        ->map(function ($row, int $index) {
+                            return [
+                                'position' => $index + 1,
+                                'player_name' => $row->player_name,
+                                'club_name' => $row->club_name ?: $row->club_short_name ?: '-',
+                                'total' => (int) $row->total,
+                            ];
+                        }),
+                ];
+            })
+            ->values();
+    }
+
     private function publicKnockoutBrackets(?Season $season = null, array $publicSeasonQuery = []): Collection
     {
         $season ??= $this->seasonContext->active();
 
         return MatchSchedule::query()->forSeason($season?->id)
             ->with([
-                'ageGroup',
-                'clubA.user',
-                'clubB.user',
-                'clubASeason',
-                'clubBSeason',
-                'goalEvents.scorer',
-                'goalEvents.assistPlayer',
+                'ageGroup:id,name',
+                'clubA:id,name,short_name,logo_url,user_id',
+                'clubA.user:id,is_active',
+                'clubB:id,name,short_name,logo_url,user_id',
+                'clubB.user:id,is_active',
+                'clubASeason:id,club_id,name,short_name,logo_url',
+                'clubBSeason:id,club_id,name,short_name,logo_url',
+                'goalEvents:id,match_id,club_id,player_id,assist_player_id,display_order',
+                'goalEvents.scorer:id,name',
+                'goalEvents.assistPlayer:id,name',
             ])
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->whereHas('ageGroup', fn (Builder $query) => $query->competition())
@@ -1173,9 +1537,11 @@ class DashboardController extends Controller
         return in_array($normalized, ['final', 'babak final', 'grand final', 'finale'], true);
     }
 
-    private function publicBracketryBrackets(?Season $season = null, array $publicSeasonQuery = []): Collection
+    private function publicBracketryBrackets(?Season $season = null, array $publicSeasonQuery = [], ?Collection $knockoutBrackets = null): Collection
     {
-        return $this->publicKnockoutBrackets($season, $publicSeasonQuery)->map(function (array $bracket) use ($publicSeasonQuery): array {
+        $knockoutBrackets ??= $this->publicKnockoutBrackets($season, $publicSeasonQuery);
+
+        return $knockoutBrackets->map(function (array $bracket) use ($publicSeasonQuery): array {
             $allRounds = collect($bracket['rounds'])->values();
             $displayRounds = $allRounds;
 
@@ -1322,47 +1688,25 @@ class DashboardController extends Controller
 
     private function publicPageData(array $overrides = []): array
     {
-        $upcomingMatches = $this->publicUpcomingMatchesQuery()
-            ->with(['ageGroup', 'clubA', 'clubB'])
-            ->limit(12)
-            ->get();
-
-        $recentResults = $this->publicResultsQuery()
-            ->limit(12)
-            ->get();
-
-        $featuredClubs = $this->activePublicClubsQuery()
-            ->latest('updated_at')
-            ->limit(12)
-            ->get();
-
-        $featuredPlayers = $this->activePublicPlayersQuery()
-            ->with(['club', 'primaryAgeGroup'])
-            ->latest('updated_at')
-            ->limit(12)
-            ->get();
-
         $defaults = [
             'title' => 'Liga Anak Piaman Laweh',
             'activePublicPage' => 'home',
             'bannerTitle' => null,
             'bannerCurrent' => null,
             'publicStats' => [
-                'clubs' => $this->activePublicClubsQuery()->count(),
-                'officials' => $this->activePublicOfficialsQuery()->count(),
-                'players' => $this->activePublicPlayersQuery()->count(),
-                'lineups' => LineupList::query()->forActiveSeason()->whereHas('club.user', fn (Builder $query) => $query->active())->count(),
+                'clubs' => 0,
+                'officials' => 0,
+                'players' => 0,
+                'lineups' => 0,
             ],
-            'featuredClubs' => $featuredClubs,
-            'featuredPlayers' => $featuredPlayers,
-            'upcomingMatches' => $upcomingMatches,
-            'recentResults' => $recentResults,
-            'headlineMatch' => $upcomingMatches->first(),
-            'featuredResult' => $recentResults->first(),
-            'publicStandings' => $this->publicStandings(),
-            'publicKnockoutBrackets' => $this->publicKnockoutBrackets(),
-            'publicBracketryBrackets' => $this->publicBracketryBrackets(),
-            'featuredSponsors' => $this->publicSponsorsData(),
+            'featuredClubs' => collect(),
+            'featuredPlayers' => collect(),
+            'upcomingMatches' => collect(),
+            'recentResults' => collect(),
+            'headlineMatch' => null,
+            'featuredResult' => null,
+            'publicStandings' => collect(),
+            'featuredSponsors' => collect(),
             'selectedPublicSeason' => null,
             'publicSeasonOptions' => collect(),
             'publicSeasonQuery' => [],
@@ -1370,6 +1714,61 @@ class DashboardController extends Controller
         ];
 
         $data = array_merge($defaults, $overrides);
+        $activePublicPage = $data['activePublicPage'] ?? 'home';
+
+        if ($activePublicPage === 'home') {
+            $activeSeasonId = $this->seasonContext->activeId() ?: 0;
+            $homeCacheKey = 'public:home:payload:'.$activeSeasonId;
+
+            $homePayload = Cache::remember($homeCacheKey, now()->addSeconds(60), function () {
+                $upcomingMatches = $this->publicUpcomingMatchesQuery()
+                    ->with([
+                        'ageGroup:id,name',
+                        'clubA:id,name,short_name,logo_url',
+                        'clubB:id,name,short_name,logo_url',
+                    ])
+                    ->limit(12)
+                    ->get();
+
+                $recentResults = $this->publicResultsQuery()
+                    ->limit(12)
+                    ->get();
+
+                $featuredClubs = $this->activePublicClubsQuery()
+                    ->latest('updated_at')
+                    ->limit(12)
+                    ->get();
+
+                $featuredPlayers = $this->activePublicPlayersQuery()
+                    ->with([
+                        'club:id,name,short_name,logo_url',
+                        'primaryAgeGroup:id,name',
+                    ])
+                    ->latest('updated_at')
+                    ->limit(12)
+                    ->get();
+
+                return [
+                    'publicStats' => [
+                        'clubs' => $this->activePublicClubsQuery()->count(),
+                        'officials' => $this->activePublicOfficialsQuery()->count(),
+                        'players' => $this->activePublicPlayersQuery()->count(),
+                        'lineups' => LineupList::query()->forActiveSeason()->whereHas('club.user', fn (Builder $query) => $query->active())->count(),
+                    ],
+                    'featuredClubs' => $featuredClubs,
+                    'featuredPlayers' => $featuredPlayers,
+                    'upcomingMatches' => $upcomingMatches,
+                    'recentResults' => $recentResults,
+                    'headlineMatch' => $upcomingMatches->first(),
+                    'featuredResult' => $recentResults->first(),
+                    'publicStandings' => $this->publicStandings(),
+                    'featuredSponsors' => $this->publicSponsorsData(),
+                ];
+            });
+
+            $data = array_merge($homePayload, $data);
+        }
+
         $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh') === 'Liga Anak Piaman Laweh'
             ? 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak'
             : ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
@@ -1399,7 +1798,31 @@ class DashboardController extends Controller
         $season ??= $this->seasonContext->active();
 
         return MatchSchedule::query()->forSeason($season?->id)
-            ->with(['ageGroup', 'clubA', 'clubB', 'clubASeason', 'clubBSeason', 'goalEvents.scorer', 'goalEvents.assistPlayer'])
+            ->select([
+                'id',
+                'season_id',
+                'age_group_id',
+                'club_a_id',
+                'club_b_id',
+                'club_a_season_id',
+                'club_b_season_id',
+                'match_date',
+                'kickoff_time',
+                'venue',
+                'score_club_a',
+                'score_club_b',
+                'is_finished',
+            ])
+            ->with([
+                'ageGroup:id,name',
+                'clubA:id,name,short_name,logo_url',
+                'clubB:id,name,short_name,logo_url',
+                'clubASeason:id,club_id,name,short_name,logo_url',
+                'clubBSeason:id,club_id,name,short_name,logo_url',
+                'goalEvents:id,match_id,club_id,player_id,assist_player_id,display_order',
+                'goalEvents.scorer:id,name',
+                'goalEvents.assistPlayer:id,name',
+            ])
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
             ->whereNotNull('score_club_b')
@@ -1761,7 +2184,7 @@ class DashboardController extends Controller
             ],
             [
                 'label' => 'Akun Klub Belum Dipakai',
-                'count' => User::query()->where('role', 'club')->doesntHave('clubs')->count(),
+                'count' => User::query()->where('role', 'club')->doesntHave('club')->count(),
                 'hint' => 'Buka halaman pembuatan akun',
                 'href' => route('club-accounts.create'),
             ],
@@ -1783,7 +2206,7 @@ class DashboardController extends Controller
                     'club' => $club->name,
                     'submitted_at' => $club->submitted_at,
                     'reviewed_by' => $club->reviewer?->name,
-                    'href' => route('clubs.index', ['search' => $club->name]),
+                    'href' => route('clubs.show', $club),
                 ]),
             Official::query()
                 ->with(['club', 'reviewer'])
@@ -1848,7 +2271,7 @@ class DashboardController extends Controller
                     'name' => $club->name,
                     'club' => $club->name,
                     'submitted_at' => $club->submitted_at,
-                    'href' => route('clubs.index', ['search' => $club->name, 'status' => ClubModel::STATUS_SUBMITTED]),
+                    'href' => route('clubs.show', $club),
                 ]),
             Official::query()
                 ->with('club')

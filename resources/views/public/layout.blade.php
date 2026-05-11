@@ -1081,9 +1081,9 @@
 <body class="lap-public">
     @php
         $publicCurrentUser = auth()->user();
-        $publicAuthUrl = auth()->check() ? route('dashboard.home') : route('login');
+        $publicAuthUrl = auth()->check() ? route('dashboard.index') : route('login');
         $publicAuthLabel = auth()->check() ? 'Dashboard' : 'Login';
-        $publicContextUrl = request()->routeIs('public.*') ? route('dashboard.home') : route('public.home');
+        $publicContextUrl = request()->routeIs('public.*') ? route('dashboard.index') : route('public.home');
         $publicContextLabel = request()->routeIs('public.*') ? 'Dashboard' : 'Beranda';
     @endphp
     @include('partials.preloader')

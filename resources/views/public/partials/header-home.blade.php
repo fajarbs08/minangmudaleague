@@ -3,8 +3,8 @@
         <div class="mega-menu-wrapper">
             <div class="header-main">
                 <a href="{{ route('public.home') }}" class="logo">
-                    <img class="lap-logo-default" src="{{ asset('images/logo-full-transparent.png') }}" alt="Liga Anak Piaman Laweh">
-                    <img class="lap-logo-sticky" src="{{ asset('images/logo-dark.png') }}" alt="Liga Anak Piaman Laweh">
+                    <img class="lap-logo-default" src="{{ $publicLogo }}" alt="Liga Anak Piaman Laweh" fetchpriority="high" width="220" height="76">
+                    <img class="lap-logo-sticky" src="{{ $publicLogoSticky }}" alt="Liga Anak Piaman Laweh" loading="eager" decoding="async" width="220" height="76">
                 </a>
                 <div class="header-left">
                     <div class="mean__menu-wrapper">
@@ -33,7 +33,7 @@
                             >
                                 <span class="lap-header-user-avatar">
                                     @if ($currentUser?->profile_avatar_url)
-                                        <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}">
+                                        <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}" loading="lazy" decoding="async">
                                     @else
                                         {{ $currentUser?->profile_initials }}
                                     @endif
@@ -56,7 +56,7 @@
                                 <div class="lap-header-user-menu-head">
                                     <span class="lap-header-user-menu-avatar">
                                         @if ($currentUser?->profile_avatar_url)
-                                            <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}">
+                                            <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}" loading="lazy" decoding="async">
                                         @else
                                             {{ $currentUser?->profile_initials }}
                                         @endif

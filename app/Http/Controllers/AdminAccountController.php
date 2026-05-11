@@ -8,11 +8,23 @@ use Illuminate\Validation\Rule;
 
 class AdminAccountController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $allowedSorts = ['name', 'email', 'created_at'];
+        $sort = $request->string('sort')->value() ?: 'name';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'name';
+            $direction = 'asc';
+        }
+
         return view('pages.admin-accounts.index', [
             'title' => 'Akun Admin',
-            'admins' => User::query()->where('role', 'admin')->orderBy('name')->get(),
+            'admins' => User::query()
+                ->where('role', 'admin')
+                ->orderBy($sort, $direction)
+                ->get(),
         ]);
     }
 

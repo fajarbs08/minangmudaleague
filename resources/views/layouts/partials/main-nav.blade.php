@@ -1,184 +1,4 @@
 <div class="main-nav">
-     @php
-          $adminPendingCounts = auth()->user()->isAdmin()
-               ? \Illuminate\Support\Facades\Cache::remember('admin_sidebar_counts', 45, function () {
-                    return [
-                         'clubs' => \App\Models\Club::query()->where('verification_status', \App\Models\Club::STATUS_SUBMITTED)->count(),
-                         'officials' => \App\Models\Official::query()->where('verification_status', \App\Models\Official::STATUS_SUBMITTED)->count(),
-                         'players' => \App\Models\Player::query()->where('verification_status', \App\Models\Player::STATUS_SUBMITTED)->count(),
-                         'lineups' => \App\Models\LineupList::query()->where('verification_status', \App\Models\LineupList::STATUS_SUBMITTED)->count(),
-                    ];
-               })
-               : [];
-     @endphp
-     <style>
-          .main-nav .main-logo-box {
-               justify-content: center;
-               padding: 0 16px;
-               position: relative;
-          }
-
-          .main-nav .main-logo-box .button-toggle-menu {
-               position: absolute;
-               right: 12px;
-               top: 50%;
-               width: 40px;
-               height: 40px;
-               align-items: center;
-               justify-content: center;
-               transform: translateY(-50%);
-          }
-
-          html.sidebar-hover .main-nav:not(:hover) .main-logo-box .button-toggle-menu,
-          html[data-sidenav-size="condensed"] .main-nav .main-logo-box .button-toggle-menu {
-               left: 50%;
-               right: auto;
-               transform: translate(-50%, -50%);
-          }
-
-          .main-nav .logo-box {
-               width: 100%;
-               display: flex;
-               justify-content: center;
-               align-items: center;
-               text-align: center;
-          }
-
-          .main-nav .logo-box .logo-dark,
-          .main-nav .logo-box .logo-light {
-               width: 100%;
-               justify-content: center;
-               align-items: center;
-          }
-
-          .main-nav .logo-box .logo-dark {
-               display: flex;
-          }
-
-          .main-nav .logo-box .logo-light {
-               display: none;
-          }
-
-          html[data-bs-theme="dark"] .main-nav .logo-box .logo-dark,
-          .sidebar-dark .main-nav .logo-box .logo-dark {
-               display: none;
-          }
-
-          html[data-bs-theme="dark"] .main-nav .logo-box .logo-light,
-          .sidebar-dark .main-nav .logo-box .logo-light {
-               display: flex;
-          }
-
-           .main-nav .logo-box .logo-sm {
-                display: none;
-           }
-
-           .main-nav .sidebar-logout {
-                padding: 16px 18px 18px;
-                margin-top: auto;
-           }
-
-           .main-nav .sidebar-logout .logout-button {
-                width: 100%;
-                justify-content: flex-start;
-                gap: 10px;
-                border: 0;
-                border-radius: 12px;
-                padding: 12px 14px;
-                background: rgba(220, 53, 69, 0.08);
-                color: #dc3545;
-                font-weight: 600;
-           }
-
-           .main-nav .sidebar-logout .logout-button:hover {
-                background: rgba(220, 53, 69, 0.14);
-                color: #bb2d3b;
-           }
-
-           .main-nav .menu-title {
-                font-size: 11px;
-                letter-spacing: 0.12em;
-           }
-
-           html.sidebar-dark .main-nav .menu-title,
-           html.sidebar-dark .main-nav .menu-title .menu-title-text,
-           html[data-bs-theme="dark"] .main-nav .menu-title,
-           html[data-bs-theme="dark"] .main-nav .menu-title .menu-title-text {
-                color: rgba(255, 255, 255, 0.82) !important;
-                font-weight: 800;
-           }
-
-           html.sidebar-dark .main-nav .menu-title .menu-title-line,
-           html[data-bs-theme="dark"] .main-nav .menu-title .menu-title-line {
-                background: rgba(255, 255, 255, 0.26) !important;
-           }
-
-           html.sidebar-light .main-nav .menu-title,
-           html.sidebar-light .main-nav .menu-title .menu-title-text {
-                color: rgba(70, 81, 105, 0.88) !important;
-                font-weight: 800;
-           }
-
-           html.sidebar-light .main-nav .menu-title .menu-title-line {
-                background: rgba(70, 81, 105, 0.22) !important;
-           }
-
-           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout,
-           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout {
-                display: flex;
-                justify-content: center;
-                padding-left: 12px;
-                padding-right: 12px;
-           }
-
-           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button,
-           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button {
-                width: 44px;
-                min-width: 44px;
-                height: 44px;
-                padding: 0;
-                justify-content: center;
-                align-items: center;
-                margin: 0 auto;
-                border-radius: 14px;
-           }
-
-            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button .nav-icon,
-            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button .nav-icon {
-                 margin-left: 0;
-            }
-
-            html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-button .nav-icon svg,
-            html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-button .nav-icon svg {
-                 width: 18px;
-                 height: 18px;
-            }
-
-           html[data-sidenav-size="condensed"] .main-nav .sidebar-logout .logout-label,
-           html[data-sidenav-size="hover"] .main-nav:not(:hover) .sidebar-logout .logout-label {
-                display: none;
-           }
-
-          html[data-sidenav-size="default"] .main-nav .logo-box .logo-lg,
-          html.sidebar-enable .main-nav .logo-box .logo-lg {
-               display: block;
-          }
-
-          html[data-sidenav-size="default"] .main-nav .logo-box .logo-sm,
-          html.sidebar-enable .main-nav .logo-box .logo-sm {
-               display: none;
-          }
-
-          html[data-sidenav-size="condensed"] .main-nav .logo-box .logo-lg,
-          html[data-sidenav-size="hover"] .main-nav:not(:hover) .logo-box .logo-lg {
-               display: none;
-          }
-
-          html[data-sidenav-size="condensed"] .main-nav .logo-box .logo-sm,
-          html[data-sidenav-size="hover"] .main-nav:not(:hover) .logo-box .logo-sm {
-               display: block;
-          }
-     </style>
      <div class="d-flex justify-content-between main-logo-box">
           <div class="logo-box">
                <a href="{{ route('dashboard.index') }}" class="logo-dark">
@@ -204,8 +24,8 @@
                     <span class="menu-title-line" aria-hidden="true"></span>
                </li>
 
-               <li class="menu-item {{ request()->routeIs('dashboard.home') || request()->routeIs('dashboard.index') ? 'active' : '' }}">
-                    <a class="menu-link {{ request()->routeIs('dashboard.home') || request()->routeIs('dashboard.index') ? 'active' : '' }}" href="{{ route('dashboard.index') }}">
+               <li class="menu-item {{ $sidebarViewModel->activeClass('dashboard') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('dashboard') }}" href="{{ route('dashboard.index') }}">
                          <span class="nav-icon">
                               <i data-lucide="house"></i>
                          </span>
@@ -220,59 +40,59 @@
                </li>
 
                 @if (auth()->user()->isAdmin())
-                <li class="menu-item">
-                    <a class="menu-link" href="#sidebarAccountManagement" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarAccountManagement">
+                <li class="menu-item {{ $sidebarViewModel->activeClass('account_management') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('account_management') }}" href="#sidebarAccountManagement" data-bs-toggle="collapse" role="button" aria-expanded="{{ $sidebarViewModel->ariaExpanded('account_management') }}" aria-controls="sidebarAccountManagement">
                          <span class="nav-icon">
                               <i data-lucide="users"></i>
                          </span>
                          <span class="nav-text">Manajemen Akun</span>
                          <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
                     </a>
-                    <div class="collapse" id="sidebarAccountManagement">
+                    <div class="collapse {{ $sidebarViewModel->collapseClass('account_management') }}" id="sidebarAccountManagement">
                          <ul class="sub-menu-nav">
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('admin-accounts.index') }}">Akun Admin</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('admin-accounts.*') ? 'active' : '' }}" href="{{ route('admin-accounts.index') }}">Akun Admin</a>
                               </li>
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('club-accounts.create') }}">Akun Club</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('club-accounts.*') ? 'active' : '' }}" href="{{ route('club-accounts.create') }}">Akun Klub</a>
                               </li>
                          </ul>
                     </div>
-               </li>
+                </li>
                @endif
 
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('clubs.index') }}">
+               <li class="menu-item {{ $sidebarViewModel->activeClass('clubs') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('clubs') }}" href="{{ route('clubs.index') }}">
                          <span class="nav-icon">
                               <i data-lucide="shield"></i>
                          </span>
                          <span class="nav-text">Klub</span>
-                         @if (auth()->user()->isAdmin() && $adminPendingCounts['clubs'] > 0)
-                              <span class="badge bg-warning-subtle text-warning ms-auto">{{ $adminPendingCounts['clubs'] }}</span>
+                         @if (auth()->user()->isAdmin() && $sidebarViewModel->pendingCount('clubs') > 0)
+                              <span class="badge bg-warning-subtle text-warning ms-auto sidebar-count-badge">{{ $sidebarViewModel->pendingCount('clubs') }}</span>
                          @endif
                     </a>
                </li>
 
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('officials.index') }}">
+               <li class="menu-item {{ $sidebarViewModel->activeClass('officials') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('officials') }}" href="{{ route('officials.index') }}">
                          <span class="nav-icon">
                               <i data-lucide="users-round"></i>
                          </span>
                          <span class="nav-text">Ofisial</span>
-                         @if (auth()->user()->isAdmin() && $adminPendingCounts['officials'] > 0)
-                              <span class="badge bg-warning-subtle text-warning ms-auto">{{ $adminPendingCounts['officials'] }}</span>
+                         @if (auth()->user()->isAdmin() && $sidebarViewModel->pendingCount('officials') > 0)
+                              <span class="badge bg-warning-subtle text-warning ms-auto sidebar-count-badge">{{ $sidebarViewModel->pendingCount('officials') }}</span>
                          @endif
                     </a>
                </li>
 
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('players.index') }}">
+               <li class="menu-item {{ $sidebarViewModel->activeClass('players') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('players') }}" href="{{ route('players.index') }}">
                          <span class="nav-icon">
                               <i data-lucide="user-round"></i>
                          </span>
                          <span class="nav-text">Pemain</span>
-                         @if (auth()->user()->isAdmin() && $adminPendingCounts['players'] > 0)
-                              <span class="badge bg-warning-subtle text-warning ms-auto">{{ $adminPendingCounts['players'] }}</span>
+                         @if (auth()->user()->isAdmin() && $sidebarViewModel->pendingCount('players') > 0)
+                              <span class="badge bg-warning-subtle text-warning ms-auto sidebar-count-badge">{{ $sidebarViewModel->pendingCount('players') }}</span>
                          @endif
                     </a>
                </li>
@@ -284,15 +104,15 @@
                </li>
 
                 @if (auth()->user()->isAdmin())
-                <li class="menu-item {{ request()->routeIs('matches.*') ? 'active' : '' }}">
-                     <a class="menu-link {{ request()->routeIs('matches.*') ? 'active' : '' }}" href="#sidebarMatchSchedules" data-bs-toggle="collapse" role="button" aria-expanded="{{ request()->routeIs('matches.*') ? 'true' : 'false' }}" aria-controls="sidebarMatchSchedules">
+                <li class="menu-item {{ $sidebarViewModel->activeClass('match_schedules') }}">
+                     <a class="menu-link {{ $sidebarViewModel->activeClass('match_schedules') }}" href="#sidebarMatchSchedules" data-bs-toggle="collapse" role="button" aria-expanded="{{ $sidebarViewModel->ariaExpanded('match_schedules') }}" aria-controls="sidebarMatchSchedules">
                           <span class="nav-icon">
-                               <i data-lucide="calendar-range"></i>
+                               <i data-lucide="flag"></i>
                           </span>
                           <span class="nav-text">Jadwal Match</span>
                           <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
                      </a>
-                     <div class="collapse {{ request()->routeIs('matches.*') ? 'show' : '' }}" id="sidebarMatchSchedules">
+                     <div class="collapse {{ $sidebarViewModel->collapseClass('match_schedules') }}" id="sidebarMatchSchedules">
                           <ul class="sub-menu-nav">
                                <li class="sub-menu-item">
                                     <a class="sub-menu-link {{ request()->routeIs('matches.league.index') ? 'active' : '' }}" href="{{ route('matches.league.index') }}">Jadwal Liga</a>
@@ -304,8 +124,43 @@
                      </div>
                 </li>
 
-                <li class="menu-item {{ request()->routeIs('seasons.*') ? 'active' : '' }}">
-                     <a class="menu-link {{ request()->routeIs('seasons.*') ? 'active' : '' }}" href="{{ route('seasons.index') }}">
+                @endif
+
+               <li class="menu-item {{ $sidebarViewModel->activeClass('lineups') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('lineups') }}" href="{{ route('lineup-lists.index') }}">
+                         <span class="nav-icon">
+                              <i data-lucide="list-checks"></i>
+                         </span>
+                         <span class="nav-text">DSP</span>
+                         @if (auth()->user()->isAdmin() && $sidebarViewModel->pendingCount('lineups') > 0)
+                              <span class="badge bg-warning-subtle text-warning ms-auto sidebar-count-badge">{{ $sidebarViewModel->pendingCount('lineups') }}</span>
+                         @endif
+                    </a>
+               </li>
+
+               <li class="menu-item {{ $sidebarViewModel->activeClass('match_results') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('match_results') }}" href="#sidebarMatchResults" data-bs-toggle="collapse" role="button" aria-expanded="{{ $sidebarViewModel->ariaExpanded('match_results') }}" aria-controls="sidebarMatchResults">
+                         <span class="nav-icon">
+                              <i data-lucide="trophy"></i>
+                         </span>
+                         <span class="nav-text">Hasil Pertandingan</span>
+                         <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
+                    </a>
+                    <div class="collapse {{ $sidebarViewModel->collapseClass('match_results') }}" id="sidebarMatchResults">
+                         <ul class="sub-menu-nav">
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link {{ request()->routeIs('match-results.league.index') ? 'active' : '' }}" href="{{ route('match-results.league.index') }}">Hasil Liga</a>
+                              </li>
+                              <li class="sub-menu-item">
+                                   <a class="sub-menu-link {{ request()->routeIs('match-results.knockout.index') ? 'active' : '' }}" href="{{ route('match-results.knockout.index') }}">Hasil Knockout</a>
+                              </li>
+                         </ul>
+                    </div>
+               </li>
+
+                @if (auth()->user()->isAdmin())
+                <li class="menu-item {{ $sidebarViewModel->activeClass('seasons') }}">
+                     <a class="menu-link {{ $sidebarViewModel->activeClass('seasons') }}" href="{{ route('seasons.index') }}">
                           <span class="nav-icon">
                                <i data-lucide="calendar-range"></i>
                           </span>
@@ -314,51 +169,30 @@
                 </li>
                 @endif
 
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('lineup-lists.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="list-checks"></i>
-                         </span>
-                         <span class="nav-text">DSP</span>
-                         @if (auth()->user()->isAdmin() && $adminPendingCounts['lineups'] > 0)
-                              <span class="badge bg-warning-subtle text-warning ms-auto">{{ $adminPendingCounts['lineups'] }}</span>
-                         @endif
-                    </a>
-               </li>
-
-               <li class="menu-item">
-                    <a class="menu-link" href="{{ route('match-results.index') }}">
-                         <span class="nav-icon">
-                              <i data-lucide="trophy"></i>
-                         </span>
-                         <span class="nav-text">Hasil Pertandingan</span>
-                    </a>
-               </li>
-
-               <li class="menu-item">
-                    <a class="menu-link" href="#sidebarReports" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarReports">
+               <li class="menu-item {{ $sidebarViewModel->activeClass('reports') }}">
+                    <a class="menu-link {{ $sidebarViewModel->activeClass('reports') }}" href="#sidebarReports" data-bs-toggle="collapse" role="button" aria-expanded="{{ $sidebarViewModel->ariaExpanded('reports') }}" aria-controls="sidebarReports">
                          <span class="nav-icon">
                               <i data-lucide="file-text"></i>
                          </span>
                          <span class="nav-text">Laporan</span>
                          <span class="menu-arrow"><i data-lucide="chevron-down"></i></span>
                     </a>
-                    <div class="collapse" id="sidebarReports">
+                    <div class="collapse {{ $sidebarViewModel->collapseClass('reports') }}" id="sidebarReports">
                          <ul class="sub-menu-nav">
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('reports.standings') }}">Klasemen</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('reports.standings') || request()->routeIs('reports.standings.pdf') ? 'active' : '' }}" href="{{ route('reports.standings') }}">Klasemen</a>
                                </li>
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('reports.top-scorers') }}">Top Skor</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('reports.top-scorers') || request()->routeIs('reports.top-scorers.pdf') ? 'active' : '' }}" href="{{ route('reports.top-scorers') }}">Top Skor</a>
                                </li>
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('reports.top-assists') }}">Top Assist</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('reports.top-assists') || request()->routeIs('reports.top-assists.pdf') ? 'active' : '' }}" href="{{ route('reports.top-assists') }}">Top Assist</a>
                                </li>
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('reports.brackets') }}">Bagan Knockout</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('reports.brackets') || request()->routeIs('reports.brackets.print') ? 'active' : '' }}" href="{{ route('reports.brackets') }}">Bagan Knockout</a>
                               </li>
                               <li class="sub-menu-item">
-                                   <a class="sub-menu-link" href="{{ route('reports.overview') }}">Rekap PDF</a>
+                                   <a class="sub-menu-link {{ request()->routeIs('reports.overview') || request()->routeIs('reports.overview.pdf') ? 'active' : '' }}" href="{{ route('reports.overview') }}">Rekap PDF</a>
                               </li>
                          </ul>
                     </div>
@@ -370,8 +204,8 @@
                     <span class="menu-title-text">Publik</span>
                     <span class="menu-title-line" aria-hidden="true"></span>
                </li>
-                <li class="menu-item">
-                     <a class="menu-link" href="{{ route('sponsors.index') }}">
+                <li class="menu-item {{ $sidebarViewModel->activeClass('sponsors') }}">
+                     <a class="menu-link {{ $sidebarViewModel->activeClass('sponsors') }}" href="{{ route('sponsors.index') }}">
                           <span class="nav-icon">
                               <i data-lucide="badge-dollar-sign"></i>
                          </span>

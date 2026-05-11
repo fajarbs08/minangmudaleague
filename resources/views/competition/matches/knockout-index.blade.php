@@ -502,7 +502,7 @@
     <div>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">{{ $pageHeading }}</li>
             </ol>
         </nav>
@@ -612,8 +612,8 @@
                                                     <i data-lucide="grip-vertical" class="fs-18"></i>
                                                 </button>
                                                 <div class="d-flex flex-wrap justify-content-end gap-1">
-                                                    @if ($match->lineupLists->isNotEmpty())
-                                                        <span class="badge bg-primary-subtle text-primary">DSP {{ $match->lineupLists->count() }}</span>
+                                                    @if (($match->lineup_lists_count ?? 0) > 0)
+                                                        <span class="badge bg-primary-subtle text-primary">DSP {{ $match->lineup_lists_count }}</span>
                                                     @endif
                                                     <span class="badge bg-light text-dark border">{{ $match->score_label }}</span>
                                                 </div>
@@ -628,13 +628,13 @@
                                                 </div>
                                             @endif
 
-                                            @if ($match->sourceMatchA || $match->sourceMatchB)
+                                            @if ($match->source_match_a_label || $match->source_match_b_label)
                                                 <div class="knockout-admin-source-pills">
-                                                    @if ($match->sourceMatchA)
-                                                        <span class="knockout-admin-source-pill">A dari {{ $match->sourceMatchA->round_display_label }} / Slot {{ $match->sourceMatchA->bracket_slot }}</span>
+                                                    @if ($match->source_match_a_label)
+                                                        <span class="knockout-admin-source-pill">{{ $match->source_match_a_label }}</span>
                                                     @endif
-                                                    @if ($match->sourceMatchB)
-                                                        <span class="knockout-admin-source-pill">B dari {{ $match->sourceMatchB->round_display_label }} / Slot {{ $match->sourceMatchB->bracket_slot }}</span>
+                                                    @if ($match->source_match_b_label)
+                                                        <span class="knockout-admin-source-pill">{{ $match->source_match_b_label }}</span>
                                                     @endif
                                                 </div>
                                             @endif
@@ -709,7 +709,7 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     document.querySelectorAll('[data-knockout-round-board]').forEach(function (board) {
         const tabs = Array.from(board.querySelectorAll('[data-knockout-round-tab]'));
         const panels = Array.from(board.querySelectorAll('[data-knockout-round-panel]'));
@@ -736,7 +736,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const boardRoot = document.querySelector('[data-knockout-board-root]');
-    if (!boardRoot || typeof window.dragula !== 'function') {
+    if (!boardRoot) {
         return;
     }
 
@@ -800,6 +800,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (@json($isHistoryView)) {
         return;
+    }
+
+    if (typeof window.dragula !== 'function') {
+        if (typeof window.ensureDragula !== 'function') {
+            return;
+        }
+
+        try {
+            await window.ensureDragula();
+        } catch (_error) {
+            showFeedback('Fitur susun bracket belum bisa dimuat. Coba refresh halaman.', 'warning');
+            return;
+        }
     }
 
     const drake = window.dragula(dropzones, {

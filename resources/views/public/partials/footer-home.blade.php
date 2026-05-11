@@ -51,7 +51,7 @@
                     <div class="footer-widget-items">
                         <div class="widget-head">
                             <a href="{{ route('public.home') }}">
-                                <img class="lap-footer-brand-logo" src="{{ $footerReferenceLogo }}" alt="Liga Anak Piaman Laweh">
+                                <img class="lap-footer-brand-logo" src="{{ $footerReferenceLogo }}" alt="Liga Anak Piaman Laweh" loading="lazy" decoding="async" width="80" height="80">
                             </a>
                         </div>
                     </div>

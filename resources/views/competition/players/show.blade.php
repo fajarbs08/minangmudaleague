@@ -5,6 +5,14 @@
     $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeEditedByClub());
 @endphp
+@push('css')
+<style>
+    .lap-detail-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 840px;
+    }
+</style>
+@endpush
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 lap-detail-head">
     <div>
         <h4 class="mb-1">Detail Pemain</h4>
@@ -50,7 +58,7 @@
         <div class="card h-100">
             <div class="card-body text-center">
                 @if ($player->photo_file_url)
-                    <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}" class="img-fluid rounded border mb-3" style="max-height: 280px;">
+                    <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}" class="img-fluid rounded border mb-3" width="280" height="280" decoding="async" fetchpriority="high" style="max-height: 280px;">
                 @else
                     <div class="border rounded d-flex align-items-center justify-content-center text-muted mb-3" style="height: 280px;">
                         Belum ada foto
@@ -84,7 +92,7 @@
             </div>
         </div>
 
-        <div class="card mt-4">
+        <div class="card mt-4 lap-detail-deferred">
             <div class="card-header">
                 <h4 class="card-title mb-0">Detail Kelompok Usia</h4>
             </div>

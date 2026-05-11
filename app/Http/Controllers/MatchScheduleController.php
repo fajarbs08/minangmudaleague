@@ -13,6 +13,7 @@ use App\Services\SeasonSnapshotService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -367,53 +368,14 @@ class MatchScheduleController extends Controller
         ]);
     }
 
-    public function results(Request $request): View
+    public function leagueResults(Request $request): View
     {
-        $user = $request->user();
-        $clubIds = $this->visibleClubIds($user);
-        [$sort, $direction] = $this->resolveSort(
-            request: $request,
-            defaultSort: 'match_date',
-            defaultDirection: 'desc',
-            allowedSorts: ['match_day', 'matchup', 'age_group', 'competition_format', 'round_order', 'match_date', 'venue', 'is_finished'],
-        );
+        return $this->resultsIndex($request, MatchSchedule::FORMAT_LEAGUE, 'match-results.league.index', 'Hasil Liga');
+    }
 
-        $matches = MatchSchedule::query()->forActiveSeason()
-            ->with([
-                'ageGroup',
-                'clubA',
-                'clubB',
-                'goalEvents.scorer',
-                'goalEvents.assistPlayer',
-                'lineupLists' => fn ($query) => $query
-                    ->select('id', 'match_id', 'club_id', 'verification_status')
-                    ->with(['players' => fn ($playerQuery) => $playerQuery
-                        ->select('players.id', 'players.name')
-                        ->withPivot(['jersey_number', 'role', 'display_order'])
-                        ->orderByPivot('role')
-                        ->orderByPivot('display_order')]),
-            ])
-            ->when(! $user->isAdmin(), function ($query) use ($clubIds) {
-                $query->where(function ($inner) use ($clubIds) {
-                    $inner->whereIn('club_a_id', $clubIds)
-                        ->orWhereIn('club_b_id', $clubIds);
-                });
-            })
-            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->where('age_group_id', $ageGroupId))
-            ->when($request->input('competition_format'), fn ($query, $format) => $query->where('competition_format', $format));
-
-        $this->applyMatchSort($matches, $sort, $direction);
-
-        $matches = $matches
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('competition.matches.results', [
-            'title' => 'Hasil Pertandingan',
-            'matches' => $matches,
-            'ageGroups' => AgeGroup::competition()->get(),
-            'formatOptions' => $this->formatOptions(),
-        ]);
+    public function knockoutResults(Request $request): View
+    {
+        return $this->resultsIndex($request, MatchSchedule::FORMAT_KNOCKOUT, 'match-results.knockout.index', 'Hasil Knockout');
     }
 
     public function standings(Request $request): View
@@ -623,6 +585,68 @@ class MatchScheduleController extends Controller
         );
     }
 
+    public function resultPayload(Request $request, MatchSchedule $match)
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+        $this->ensureActiveSeasonMatch($match);
+
+        $match->load([
+            'clubA:id,name',
+            'clubB:id,name',
+            'goalEvents:id,match_id,club_id,player_id,assist_player_id',
+            'lineupLists' => fn ($query) => $query
+                ->select('id', 'match_id', 'club_id')
+                ->with(['players' => fn ($playerQuery) => $playerQuery
+                    ->select('players.id', 'players.name')
+                    ->withPivot(['jersey_number'])]),
+        ]);
+
+        $playersByClub = $match->lineupLists
+            ->groupBy(fn ($lineup) => (int) $lineup->club_id)
+            ->map(function ($lineups) {
+                return $lineups
+                    ->flatMap(fn ($lineup) => $lineup->players->map(function ($player) {
+                        $jerseyNumber = $player->pivot->jersey_number;
+
+                        return [
+                            'id' => (int) $player->id,
+                            'label' => trim(($jerseyNumber ? '#'.$jerseyNumber.' ' : '').$player->name),
+                        ];
+                    }))
+                    ->unique('id')
+                    ->values();
+            });
+
+        return response()->json([
+            'id' => (int) $match->id,
+            'title' => ($match->clubA?->name ?: 'Klub A').' vs '.($match->clubB?->name ?: 'Klub B'),
+            'route' => route('match-results.update', $match),
+            'score_a' => $match->score_club_a,
+            'score_b' => $match->score_club_b,
+            'is_finished' => $match->is_finished,
+            'clubs' => [
+                [
+                    'id' => (int) $match->club_a_id,
+                    'label' => $match->clubA?->name ?: 'Klub A',
+                    'players' => $playersByClub->get((int) $match->club_a_id, collect())->all(),
+                ],
+                [
+                    'id' => (int) $match->club_b_id,
+                    'label' => $match->clubB?->name ?: 'Klub B',
+                    'players' => $playersByClub->get((int) $match->club_b_id, collect())->all(),
+                ],
+            ],
+            'goal_events' => $match->goalEvents
+                ->map(fn ($goal) => [
+                    'club_id' => (int) $goal->club_id,
+                    'player_id' => (int) $goal->player_id,
+                    'assist_player_id' => $goal->assist_player_id ? (int) $goal->assist_player_id : null,
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
     public function updateResult(Request $request, MatchSchedule $match)
     {
         abort_unless($request->user()?->isAdmin(), 403);
@@ -666,9 +690,63 @@ class MatchScheduleController extends Controller
             }
         });
 
+        $redirectRoute = $request->input('redirect_route');
+
+        if (! in_array($redirectRoute, ['match-results.league.index', 'match-results.knockout.index'], true)) {
+            $redirectRoute = $match->competition_format === MatchSchedule::FORMAT_KNOCKOUT
+                ? 'match-results.knockout.index'
+                : 'match-results.league.index';
+        }
+
         return redirect()
-            ->route('match-results.index', $request->only(['age_group_id', 'competition_format']))
+            ->route($redirectRoute, $request->only(['age_group_id']))
             ->with('status', 'Hasil pertandingan berhasil diperbarui.');
+    }
+
+    private function resultsIndex(Request $request, string $competitionFormat, string $indexRouteName, string $title): View
+    {
+        $user = $request->user();
+        $clubIds = $this->visibleClubIds($user);
+        [$sort, $direction] = $this->resolveSort(
+            request: $request,
+            defaultSort: 'match_date',
+            defaultDirection: 'desc',
+            allowedSorts: ['match_day', 'matchup', 'age_group', 'round_order', 'match_date', 'venue', 'is_finished'],
+        );
+
+        $matches = MatchSchedule::query()->forActiveSeason()
+            ->with([
+                'ageGroup',
+                'clubA',
+                'clubB',
+                'goalEvents.scorer',
+                'goalEvents.assistPlayer',
+                'lineupLists' => fn ($query) => $query
+                    ->select('id', 'match_id', 'club_id', 'verification_status'),
+            ])
+            ->where('competition_format', $competitionFormat)
+            ->when(! $user->isAdmin(), function ($query) use ($clubIds) {
+                $query->where(function ($inner) use ($clubIds) {
+                    $inner->whereIn('club_a_id', $clubIds)
+                        ->orWhereIn('club_b_id', $clubIds);
+                });
+            })
+            ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->where('age_group_id', $ageGroupId));
+
+        $this->applyMatchSort($matches, $sort, $direction);
+
+        $matches = $matches
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('competition.matches.results', [
+            'title' => $title,
+            'matches' => $matches,
+            'ageGroups' => AgeGroup::competition()->get(),
+            'formatOptions' => $this->formatOptions(),
+            'fixedCompetitionFormat' => $competitionFormat,
+            'indexRouteName' => $indexRouteName,
+        ]);
     }
 
     private function validatedData(Request $request): array
@@ -819,13 +897,10 @@ class MatchScheduleController extends Controller
 
         $matchesByAgeGroup = MatchSchedule::query()->forActiveSeason()
             ->with([
-                'clubA',
-                'clubB',
-                'lineupLists:id,match_id',
-                'ageGroup',
-                'sourceMatchA:id,round_label,round_order,bracket_slot,match_day,club_a_id,club_b_id',
-                'sourceMatchB:id,round_label,round_order,bracket_slot,match_day,club_a_id,club_b_id',
+                'clubA:id,name',
+                'clubB:id,name',
             ])
+            ->withCount('lineupLists')
             ->where('competition_format', MatchSchedule::FORMAT_KNOCKOUT)
             ->when($ageGroupId, fn ($query) => $query->where('age_group_id', $ageGroupId))
             ->orderBy('age_group_id')
@@ -838,6 +913,26 @@ class MatchScheduleController extends Controller
 
         return $ageGroups->map(function (AgeGroup $ageGroup) use ($matchesByAgeGroup) {
             $ageGroupMatches = $matchesByAgeGroup->get($ageGroup->id, collect());
+            $matchesById = $ageGroupMatches->keyBy('id');
+
+            $ageGroupMatches->each(function (MatchSchedule $match) use ($matchesById) {
+                $sourceMatchA = $match->source_match_a_id ? $matchesById->get((int) $match->source_match_a_id) : null;
+                $sourceMatchB = $match->source_match_b_id ? $matchesById->get((int) $match->source_match_b_id) : null;
+
+                $match->setAttribute(
+                    'source_match_a_label',
+                    $sourceMatchA
+                        ? 'A dari '.$sourceMatchA->round_display_label.' / Slot '.($sourceMatchA->bracket_slot ?: '-')
+                        : null
+                );
+                $match->setAttribute(
+                    'source_match_b_label',
+                    $sourceMatchB
+                        ? 'B dari '.$sourceMatchB->round_display_label.' / Slot '.($sourceMatchB->bracket_slot ?: '-')
+                        : null
+                );
+            });
+
             $winningPathIds = $this->collectKnockoutWinningPathMatchIds($ageGroupMatches);
             $feedingMatchIds = $ageGroupMatches
                 ->flatMap(fn (MatchSchedule $match) => [
@@ -1185,7 +1280,7 @@ class MatchScheduleController extends Controller
     {
         return $user->isAdmin()
             ? Club::query()->pluck('id')
-            : $user->clubs()->pluck('id');
+            : Club::query()->where('user_id', $user->id)->pluck('id');
     }
 
     private function visibleBracketAgeGroupIds(Collection $clubIds): Collection
@@ -1261,33 +1356,44 @@ class MatchScheduleController extends Controller
         $clubIds = $this->visibleClubIds($user);
         $ageGroupId = $request->integer('age_group_id') ?: null;
         $selectedAgeGroup = $this->selectedReportAgeGroup($ageGroupId);
+        $seasonId = $this->seasonContext->activeId() ?: $this->seasonContext->currentId() ?: 0;
+        $clubScopeKey = $user->isAdmin()
+            ? 'admin'
+            : md5($clubIds->map(fn ($id) => (int) $id)->sort()->implode(','));
+        $cachePrefix = implode('|', [
+            'reports',
+            'season='.$seasonId,
+            'scope='.$clubScopeKey,
+            'age='.(string) ($ageGroupId ?: 'all'),
+        ]);
+        $cacheTtl = now()->addSeconds(90);
 
         return [
             'generatedAt' => now(),
             'ageGroups' => AgeGroup::competition()->get(),
             'selectedAgeGroup' => $selectedAgeGroup,
-            'reportSummary' => $this->buildReportSummary(
+            'reportSummary' => Cache::remember($cachePrefix.'|summary', $cacheTtl, fn () => $this->buildReportSummary(
                 user: $user,
                 clubIds: $clubIds,
                 ageGroupId: $ageGroupId,
-            ),
-            'topScorers' => $this->buildGoalLeaderboard(
+            )),
+            'topScorers' => Cache::remember($cachePrefix.'|top_scorers', $cacheTtl, fn () => $this->buildGoalLeaderboard(
                 user: $user,
                 clubIds: $clubIds,
                 type: 'scorer',
                 ageGroupId: $ageGroupId,
-            ),
-            'topAssists' => $this->buildGoalLeaderboard(
+            )),
+            'topAssists' => Cache::remember($cachePrefix.'|top_assists', $cacheTtl, fn () => $this->buildGoalLeaderboard(
                 user: $user,
                 clubIds: $clubIds,
                 type: 'assist',
                 ageGroupId: $ageGroupId,
-            ),
-            'standings' => $this->buildLeagueStandings(
+            )),
+            'standings' => Cache::remember($cachePrefix.'|standings', $cacheTtl, fn () => $this->buildLeagueStandings(
                 user: $user,
                 clubIds: $clubIds,
                 ageGroupId: $ageGroupId,
-            ),
+            )),
         ];
     }
 
@@ -1306,7 +1412,12 @@ class MatchScheduleController extends Controller
             });
         }
 
-        $matches = $matchQuery->get(['id', 'age_group_id', 'score_club_a', 'score_club_b']);
+        $matchSummary = (clone $matchQuery)
+            ->selectRaw('COUNT(*) as total_matches')
+            ->selectRaw('COALESCE(SUM(score_club_a + score_club_b), 0) as total_goals')
+            ->selectRaw('COUNT(DISTINCT age_group_id) as active_age_groups')
+            ->first();
+
         $assistQuery = MatchGoal::query()->forActiveSeason()
             ->join('match_schedules', 'match_schedules.id', '=', 'match_goals.match_id')
             ->where('match_schedules.is_finished', true)
@@ -1323,12 +1434,12 @@ class MatchScheduleController extends Controller
         return [
             [
                 'label' => 'Laga Selesai',
-                'value' => $matches->count(),
+                'value' => (int) ($matchSummary->total_matches ?? 0),
                 'hint' => 'Pertandingan yang hasil skornya sudah dikunci.',
             ],
             [
                 'label' => 'Total Gol',
-                'value' => $matches->sum(fn (MatchSchedule $match) => (int) $match->score_club_a + (int) $match->score_club_b),
+                'value' => (int) ($matchSummary->total_goals ?? 0),
                 'hint' => 'Akumulasi gol dari semua pertandingan selesai.',
             ],
             [
@@ -1338,7 +1449,7 @@ class MatchScheduleController extends Controller
             ],
             [
                 'label' => 'Kelompok Usia Aktif',
-                'value' => $matches->pluck('age_group_id')->filter()->unique()->count(),
+                'value' => (int) ($matchSummary->active_age_groups ?? 0),
                 'hint' => 'Jumlah kelompok usia yang sudah punya hasil.',
             ],
         ];
@@ -1684,7 +1795,6 @@ class MatchScheduleController extends Controller
         }
 
         $baseQuery = MatchSchedule::query()->forActiveSeason()
-            ->with(['ageGroup', 'clubA', 'clubB'])
             ->where('competition_format', MatchSchedule::FORMAT_LEAGUE)
             ->where('is_finished', true)
             ->whereNotNull('score_club_a')
@@ -1704,85 +1814,48 @@ class MatchScheduleController extends Controller
             $baseQuery->whereIn('age_group_id', $allowedAgeGroupIds);
         }
 
-        return $baseQuery
-            ->orderBy('age_group_id')
-            ->orderBy('match_date')
-            ->orderBy('kickoff_time')
-            ->get()
+        $ageGroups = AgeGroup::competition()->get()->keyBy('id');
+
+        $clubAQuery = (clone $baseQuery)
+            ->selectRaw('age_group_id, club_a_id as club_id, 1 as played, score_club_a as goals_for, score_club_b as goals_against, CASE WHEN score_club_a > score_club_b THEN 1 ELSE 0 END as won, CASE WHEN score_club_a = score_club_b THEN 1 ELSE 0 END as drawn, CASE WHEN score_club_a < score_club_b THEN 1 ELSE 0 END as lost, CASE WHEN score_club_a > score_club_b THEN 3 WHEN score_club_a = score_club_b THEN 1 ELSE 0 END as points');
+
+        $clubBQuery = (clone $baseQuery)
+            ->selectRaw('age_group_id, club_b_id as club_id, 1 as played, score_club_b as goals_for, score_club_a as goals_against, CASE WHEN score_club_b > score_club_a THEN 1 ELSE 0 END as won, CASE WHEN score_club_b = score_club_a THEN 1 ELSE 0 END as drawn, CASE WHEN score_club_b < score_club_a THEN 1 ELSE 0 END as lost, CASE WHEN score_club_b > score_club_a THEN 3 WHEN score_club_b = score_club_a THEN 1 ELSE 0 END as points');
+
+        $standingsRows = DB::query()
+            ->fromSub($clubAQuery->unionAll($clubBQuery), 'standings_base')
+            ->join('clubs', 'clubs.id', '=', 'standings_base.club_id')
+            ->selectRaw('standings_base.age_group_id, standings_base.club_id, clubs.name as club_name, COALESCE(NULLIF(clubs.short_name, ""), clubs.name) as club_short_name, SUM(standings_base.played) as played, SUM(standings_base.won) as won, SUM(standings_base.drawn) as drawn, SUM(standings_base.lost) as lost, SUM(standings_base.goals_for) as goals_for, SUM(standings_base.goals_against) as goals_against, SUM(standings_base.goals_for) - SUM(standings_base.goals_against) as goal_difference, SUM(standings_base.points) as points')
+            ->groupBy('standings_base.age_group_id', 'standings_base.club_id', 'clubs.name', 'clubs.short_name')
+            ->orderBy('standings_base.age_group_id')
+            ->orderByDesc('points')
+            ->orderByDesc('goal_difference')
+            ->orderByDesc('goals_for')
+            ->orderBy('clubs.name')
+            ->get();
+
+        return $standingsRows
             ->groupBy('age_group_id')
-            ->map(function (Collection $matches, int $groupId) {
-                $table = collect();
-
-                foreach ($matches as $match) {
-                    foreach ([
-                        [
-                            'club' => $match->clubA,
-                            'goals_for' => (int) $match->score_club_a,
-                            'goals_against' => (int) $match->score_club_b,
-                        ],
-                        [
-                            'club' => $match->clubB,
-                            'goals_for' => (int) $match->score_club_b,
-                            'goals_against' => (int) $match->score_club_a,
-                        ],
-                    ] as $entry) {
-                        if (! $entry['club']) {
-                            continue;
-                        }
-
-                        $clubId = $entry['club']->id;
-
-                        if (! $table->has($clubId)) {
-                            $table->put($clubId, [
-                                'club_id' => $clubId,
-                                'club_name' => $entry['club']->name,
-                                'club_short_name' => $entry['club']->short_name ?: $entry['club']->name,
-                                'played' => 0,
-                                'won' => 0,
-                                'drawn' => 0,
-                                'lost' => 0,
-                                'goals_for' => 0,
-                                'goals_against' => 0,
-                                'goal_difference' => 0,
-                                'points' => 0,
-                            ]);
-                        }
-
-                        $row = $table->get($clubId);
-                        $row['played']++;
-                        $row['goals_for'] += $entry['goals_for'];
-                        $row['goals_against'] += $entry['goals_against'];
-
-                        if ($entry['goals_for'] > $entry['goals_against']) {
-                            $row['won']++;
-                            $row['points'] += 3;
-                        } elseif ($entry['goals_for'] === $entry['goals_against']) {
-                            $row['drawn']++;
-                            $row['points'] += 1;
-                        } else {
-                            $row['lost']++;
-                        }
-
-                        $row['goal_difference'] = $row['goals_for'] - $row['goals_against'];
-
-                        $table->put($clubId, $row);
-                    }
-                }
-
+            ->map(function (Collection $rows, int $groupId) use ($ageGroups) {
                 return [
-                    'age_group' => $matches->first()?->ageGroup,
-                    'rows' => $table
-                        ->sortBy([
-                            ['points', 'desc'],
-                            ['goal_difference', 'desc'],
-                            ['goals_for', 'desc'],
-                            ['club_name', 'asc'],
-                        ])
+                    'age_group' => $ageGroups->get($groupId),
+                    'rows' => $rows
                         ->values()
-                        ->map(function (array $row, int $index) {
-                            $row['position'] = $index + 1;
-
-                            return $row;
+                        ->map(function ($row, int $index) {
+                            return [
+                                'club_id' => (int) $row->club_id,
+                                'club_name' => $row->club_name,
+                                'club_short_name' => $row->club_short_name,
+                                'played' => (int) $row->played,
+                                'won' => (int) $row->won,
+                                'drawn' => (int) $row->drawn,
+                                'lost' => (int) $row->lost,
+                                'goals_for' => (int) $row->goals_for,
+                                'goals_against' => (int) $row->goals_against,
+                                'goal_difference' => (int) $row->goal_difference,
+                                'points' => (int) $row->points,
+                                'position' => $index + 1,
+                            ];
                         }),
                 ];
             })

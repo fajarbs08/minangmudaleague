@@ -276,7 +276,7 @@
                                         <td>
                                             <div class="club-name-cell">
                                                 @if ($club->logo_file_url)
-                                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}">
+                                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}" loading="lazy" decoding="async" width="40" height="40">
                                                 @else
                                                     <span class="lap-logo-mark" style="width:40px;height:40px;font-size:14px;">{{ $clubMark }}</span>
                                                 @endif

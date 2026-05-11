@@ -17,20 +17,10 @@ class SettingsController extends Controller
     {
         abort_unless($request->user()?->isAdmin(), 403);
 
-        $clubAccounts = User::query()
-            ->where('role', 'club')
-            ->withCount('clubs')
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'name', 'email', 'is_active', 'created_at']);
-
-        $nextSequence = $this->nextClubAccountSequence();
-
-        return view('pages.club-accounts.create', [
+        return view('pages.club-accounts.create', $this->clubAccountPageData($request, [
             'title' => 'Buat Akun Club',
-            'clubAccounts' => $clubAccounts,
-            'nextSequence' => $nextSequence,
-            'currentYear' => now()->year,
-        ]);
+            'editingClubAccount' => null,
+        ]));
     }
 
     public function editClubAccount(Request $request, User $clubAccount): View
@@ -38,17 +28,16 @@ class SettingsController extends Controller
         abort_unless($request->user()?->isAdmin(), 403);
         abort_unless($clubAccount->role === 'club', 404);
 
-        return view('pages.club-accounts.edit', [
+        return view('pages.club-accounts.create', $this->clubAccountPageData($request, [
             'title' => 'Edit Akun Club',
-            'clubAccount' => $clubAccount->loadCount('clubs'),
-            'currentYear' => now()->year,
-        ]);
+            'editingClubAccount' => $clubAccount->loadCount('club'),
+        ]));
     }
 
     public function show(Request $request): View
     {
         $user = $request->user();
-        $club = $user->isClubUser() ? $user->clubs()->latest()->first() : null;
+        $club = $user->isClubUser() ? $user->club()->first() : null;
 
         return view('pages.settings', [
             'user' => $user,
@@ -59,7 +48,7 @@ class SettingsController extends Controller
     public function updateProfile(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $club = $user->isClubUser() ? $user->clubs()->latest()->first() : null;
+        $club = $user->isClubUser() ? $user->club()->first() : null;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -172,11 +161,9 @@ class SettingsController extends Controller
             'is_active' => (bool) $validated['is_active'],
         ])->save();
 
-        $statusLabel = $clubAccount->is_active ? 'diaktifkan' : 'dinonaktifkan';
-
         return redirect()
             ->route('club-accounts.create')
-            ->with('status', "Akun club berhasil {$statusLabel}.");
+            ->with('status', 'Status akun klub berhasil diperbarui.');
     }
 
     public function destroyClubAccount(Request $request, User $clubAccount): RedirectResponse
@@ -184,7 +171,7 @@ class SettingsController extends Controller
         abort_unless($request->user()?->isAdmin(), 403);
         abort_unless($clubAccount->role === 'club', 404);
 
-        if ($clubAccount->clubs()->exists()) {
+        if ($clubAccount->club()->exists()) {
             return redirect()
                 ->route('club-accounts.create')
                 ->withErrors(['club_account' => 'Akun club yang sudah memiliki data club tidak bisa dihapus.']);
@@ -200,6 +187,29 @@ class SettingsController extends Controller
     private function nextClubAccountSequence(): string
     {
         return str_pad((string) (User::query()->where('role', 'club')->count() + 1), 3, '0', STR_PAD_LEFT);
+    }
+
+    private function clubAccountPageData(Request $request, array $overrides = []): array
+    {
+        $allowedSorts = ['name', 'email', 'is_active', 'created_at'];
+        $sort = $request->string('sort')->value() ?: 'created_at';
+        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+            $direction = 'desc';
+        }
+
+        return array_merge([
+            'clubAccounts' => User::query()
+                ->where('role', 'club')
+                ->withCount('club')
+                ->orderBy($sort, $direction)
+                ->get(['id', 'name', 'email', 'is_active', 'created_at']),
+            'nextSequence' => $this->nextClubAccountSequence(),
+            'currentYear' => now()->year,
+            'editingClubAccount' => null,
+        ], $overrides);
     }
 
     private function generateClubAccountEmail(string $accountName, string $sequence): string

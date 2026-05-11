@@ -43,12 +43,12 @@
                                              <div class="mb-3">
                                                   <label class="form-label" for="example-password">Password</label>
                                                   <div class="position-relative w-100">
-                                                       <input class="form-control form-control-lg rounded" id="UserPass" placeholder="Enter password" required="" type="password" />
-                                                       <button class="btn text-muted p-0 position-absolute end-0 top-50 border-0 fs-4 translate-middle-y me-2" type="button">
-                                                            <iconify-icon class="fs-20 mt-1 text-muted" icon="solar:eye-bold-duotone"></iconify-icon>
-                                                       </button>
-                                                  </div>
-                                             </div>
+                                                        <input class="form-control form-control-lg rounded" id="UserPass" placeholder="Enter password" required="" type="password" />
+                                                        <button class="btn text-muted p-0 position-absolute end-0 top-50 border-0 fs-4 translate-middle-y me-2" type="button" id="toggle-password" aria-label="Tampilkan password" aria-pressed="false">
+                                                             <iconify-icon class="fs-20 mt-1 text-muted" id="toggle-password-icon" icon="solar:eye-bold-duotone"></iconify-icon>
+                                                        </button>
+                                                   </div>
+                                              </div>
                                              <div class="mb-3">
                                                   <div class="form-check">
                                                        <input class="form-check-input" id="checkbox-signin" type="checkbox" />
@@ -85,4 +85,27 @@
      </div>
 </div>
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const passwordInput = document.getElementById('UserPass');
+    const toggleButton = document.getElementById('toggle-password');
+    const toggleIcon = document.getElementById('toggle-password-icon');
+
+    if (!passwordInput || !toggleButton || !toggleIcon) {
+        return;
+    }
+
+    toggleButton.addEventListener('click', function () {
+        const isHidden = passwordInput.type === 'password';
+
+        passwordInput.type = isHidden ? 'text' : 'password';
+        toggleButton.setAttribute('aria-pressed', String(isHidden));
+        toggleButton.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+        toggleIcon.setAttribute('icon', isHidden ? 'solar:eye-closed-bold-duotone' : 'solar:eye-bold-duotone');
+    });
+});
+</script>
 @endsection

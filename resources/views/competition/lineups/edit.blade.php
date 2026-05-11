@@ -6,7 +6,7 @@
         <h4 class="mb-1">Edit DSP</h4>
         <p class="text-muted mb-0">{{ $lineupList->title }}</p>
     </div>
-    <a href="{{ route('lineup-lists.index') }}" class="btn btn-light flex-shrink-0">Kembali</a>
+    <a href="{{ route('lineup-lists.show', $lineupList) }}" class="btn btn-light flex-shrink-0">Kembali</a>
 </div>
 
 @include('competition.partials.flash')
@@ -18,7 +18,7 @@
             @method('PUT')
             @include('competition.lineups._form')
             <div class="mt-4 d-flex flex-column flex-sm-row justify-content-end gap-2 lineup-form-page-actions">
-                <a href="{{ route('lineup-lists.index') }}" class="btn btn-light">Batal</a>
+                <a href="{{ route('lineup-lists.show', $lineupList) }}" class="btn btn-light">Batal</a>
                 <button type="submit" class="btn btn-primary">Update</button>
             </div>
         </form>

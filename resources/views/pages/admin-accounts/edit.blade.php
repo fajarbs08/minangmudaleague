@@ -31,7 +31,17 @@
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Password Baru</label>
-                    <input type="password" name="password" class="form-control">
+                    <div class="input-group">
+                        <input type="password" name="password" class="form-control" data-password-input>
+                        <button class="btn btn-light admin-password-toggle" type="button" data-password-toggle aria-label="Tampilkan password" aria-pressed="false">
+                            <span data-password-hidden-icon>
+                                <i data-lucide="eye" class="fs-16"></i>
+                            </span>
+                            <span class="d-none" data-password-visible-icon>
+                                <i data-lucide="eye-off" class="fs-16"></i>
+                            </span>
+                        </button>
+                    </div>
                     @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
             </div>
@@ -42,4 +52,34 @@
         </form>
     </div>
 </div>
+
+<style>
+    .admin-password-toggle {
+        width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<script>
+    (() => {
+        document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+            const input = button.closest('.input-group')?.querySelector('[data-password-input]');
+            const hiddenIcon = button.querySelector('[data-password-hidden-icon]');
+            const visibleIcon = button.querySelector('[data-password-visible-icon]');
+            if (!input || !hiddenIcon || !visibleIcon) return;
+
+            button.addEventListener('click', () => {
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                button.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+                button.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                hiddenIcon.classList.toggle('d-none', isHidden);
+                visibleIcon.classList.toggle('d-none', !isHidden);
+                input.focus();
+            });
+        });
+    })();
+</script>
 @endsection

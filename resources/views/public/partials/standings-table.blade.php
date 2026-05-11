@@ -1,14 +1,5 @@
 @php
-    $standingsGroup = $publicStandings->first();
-    $standingsRows = collect($standingsGroup['rows'] ?? []);
-    $leaderRow = $standingsRows->first();
-    $bestGoalDiffRow = $standingsRows->sortByDesc('goal_difference')->first();
-    $bestWinsRow = $standingsRows->sortByDesc('won')->first();
-    $bestAttackRow = $standingsRows->sortByDesc('goals_for')->first();
-    $bestDefenseRow = $standingsRows->sortBy('goals_against')->first();
-    $mostPlayedRow = $standingsRows->sortByDesc('played')->first();
-    $ageGroupName = $standingsGroup['age_group']?->name ?? 'Klasemen';
-    $lastUpdatedAt = $standingsGroup['last_match_date'] ?? null;
+    $standingsGroups = collect($publicStandings ?? []);
 
     $clubBadge = function ($row): array {
         $logoUrl = $row['club_logo_url'] ?? null;
@@ -72,6 +63,9 @@
         'date' => null,
         'club_id' => null,
     ];
+
+    $topScorers = $topScorers ?? collect();
+    $topAssists = $topAssists ?? collect();
 
 @endphp
 
@@ -146,48 +140,134 @@
                 </div>
             </form>
         </div>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Peringkat</th><th>Nama Klub</th><th>Poin Total</th><th>Poin Sebelumnya</th><th>+/- Poin</th><th>Riwayat Laga</th><th class="text-center">Detail</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($standingsRows as $row)
-                        @php $clubIdentity = $clubBadge($row); @endphp
-                        <tr>
-                            <td>{{ str_pad((string) ($row['position'] ?? 0), 2, '0', STR_PAD_LEFT) }}</td>
-                            <td>
-                                <div class="team">
-                                    @if (filled($clubIdentity['logo_url'] ?? null))
-                                        <img src="{{ $clubIdentity['logo_url'] }}" alt="{{ $clubIdentity['label'] }}">
-                                    @else
-                                        <span class="lap-team-badge" aria-hidden="true">{{ $clubIdentity['initials'] }}</span>
-                                    @endif
-                                    {{ $row['club_short_name'] ?? $row['club_name'] ?? 'TBD' }}
-                                </div>
-                            </td>
-                            <td>{{ $formatNumber(data_get($row, 'points', 0), 2) }}</td>
-                            <td>{{ $formatNumber(data_get($row, 'previous_points', 0), 2) }}</td>
-                            <td class="{{ data_get($row, 'points_delta', 0) >= 0 ? 'positive' : 'negative' }}">{{ data_get($row, 'points_delta', 0) >= 0 ? '+' : '' }}{{ $formatNumber(data_get($row, 'points_delta', 0), 2) }}</td>
-                            <td>
-                                @php $recentForm = array_slice($row['recent_form'] ?? [], 0, 2); @endphp
-                                @forelse ($recentForm as $form)
-                                    <span class="badge {{ strtolower($form) }}">{{ strtoupper($form) }}</span>
+        <div class="standings-section-grid">
+            @forelse ($standingsGroups as $group)
+                @php
+                    $groupId = $group['age_group']?->id ?? $loop->index;
+                    $groupRows = collect($group['rows'] ?? []);
+                    $groupLastUpdatedAt = $group['last_match_date'] ?? null;
+                @endphp
+                <section class="standings-section-card" id="standings-age-{{ $groupId }}">
+                    <div class="standings-section-head">
+                        <div>
+                            <h4>{{ $group['age_group']?->name ?: 'Klasemen' }}</h4>
+                            <p>
+                                @if ($groupLastUpdatedAt)
+                                    Update terakhir {{ \Illuminate\Support\Carbon::instance($groupLastUpdatedAt)->translatedFormat('d F Y') }}
+                                @else
+                                    Belum ada pertandingan selesai pada kelompok usia ini.
+                                @endif
+                            </p>
+                        </div>
+                        <span class="standings-section-badge">{{ $groupRows->count() }} klub</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Peringkat</th><th>Nama Klub</th><th>Poin Total</th><th>Poin Sebelumnya</th><th>+/- Poin</th><th>Riwayat Laga</th><th class="text-center">Detail</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($groupRows as $row)
+                                    @php $clubIdentity = $clubBadge($row); @endphp
+                                    <tr>
+                                        <td>{{ str_pad((string) ($row['position'] ?? 0), 2, '0', STR_PAD_LEFT) }}</td>
+                                        <td>
+                                            <div class="team">
+                                                @if (filled($clubIdentity['logo_url'] ?? null))
+                                                    <img src="{{ $clubIdentity['logo_url'] }}" alt="{{ $clubIdentity['label'] }}" loading="lazy" decoding="async" width="36" height="36">
+                                                @else
+                                                    <span class="lap-team-badge" aria-hidden="true">{{ $clubIdentity['initials'] }}</span>
+                                                @endif
+                                                {{ $row['club_short_name'] ?? $row['club_name'] ?? 'TBD' }}
+                                            </div>
+                                        </td>
+                                        <td>{{ $formatNumber(data_get($row, 'points', 0), 2) }}</td>
+                                        <td>{{ $formatNumber(data_get($row, 'previous_points', 0), 2) }}</td>
+                                        <td class="{{ data_get($row, 'points_delta', 0) >= 0 ? 'positive' : 'negative' }}">{{ data_get($row, 'points_delta', 0) >= 0 ? '+' : '' }}{{ $formatNumber(data_get($row, 'points_delta', 0), 2) }}</td>
+                                        <td>
+                                            @php $recentForm = array_slice($row['recent_form'] ?? [], 0, 2); @endphp
+                                            @forelse ($recentForm as $form)
+                                                <span class="badge {{ strtolower($form) }}">{{ strtoupper($form) }}</span>
+                                            @empty
+                                                <span class="badge d">D</span><span class="badge d">D</span>
+                                            @endforelse
+                                        </td>
+                                        <td class="text-center">@include('public.partials.table-detail-link', ['href' => filled($row['club_public_slug'] ?? null) ? route('public.clubs.show', ['clubSlug' => $row['club_public_slug']] + $publicSeasonQuery) : route('public.clubs', $publicSeasonQuery)])</td>
+                                    </tr>
                                 @empty
-                                    <span class="badge d">D</span><span class="badge d">D</span>
+                                    <tr>
+                                        <td colspan="7" class="text-center">Belum ada data klasemen.</td>
+                                    </tr>
                                 @endforelse
-                            </td>
-                            <td class="text-center">@include('public.partials.table-detail-link', ['href' => filled($row['club_public_slug'] ?? null) ? route('public.clubs.show', ['clubSlug' => $row['club_public_slug']] + $publicSeasonQuery) : route('public.clubs', $publicSeasonQuery)])</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center">Belum ada data klasemen.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            @empty
+                <section class="standings-section-card">
+                    <div class="table-responsive">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="text-center">Belum ada data klasemen.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            @endforelse
+        </div>
+
+        <div class="standings-leaderboard-grid">
+            @foreach ([
+                [
+                    'title' => 'Top Skor',
+                    'description' => 'Pencetak gol terbanyak dari laga liga yang sudah selesai.',
+                    'metric' => 'Gol',
+                    'groups' => $topScorers,
+                    'empty' => 'Belum ada data top goal untuk filter ini.',
+                ],
+                [
+                    'title' => 'Top Assist',
+                    'description' => 'Pemberi assist terbanyak dari laga liga yang sudah selesai.',
+                    'metric' => 'Assist',
+                    'groups' => $topAssists,
+                    'empty' => 'Belum ada data top assist untuk filter ini.',
+                ],
+            ] as $leaderboard)
+                <div class="standings-leaderboard-card">
+                    <div class="leaderboard-head">
+                        <div>
+                            <h4>{{ $leaderboard['title'] }}</h4>
+                            <p>{{ $leaderboard['description'] }}</p>
+                        </div>
+                        <span class="standings-leaderboard-badge">{{ collect($leaderboard['groups'])->sum(fn ($group) => collect($group['rows'] ?? [])->count()) }}</span>
+                    </div>
+                    <div class="standings-leaderboard-body">
+                        @forelse ($leaderboard['groups'] as $group)
+                            <div class="standings-leaderboard-group">
+                                <h5>{{ $group['age_group']?->name ?: '-' }}</h5>
+                                <div class="standings-leaderboard-list">
+                                    @foreach ($group['rows'] as $row)
+                                        <div class="standings-leaderboard-item">
+                                            <div class="standings-leaderboard-rank">{{ str_pad((string) $row['position'], 2, '0', STR_PAD_LEFT) }}</div>
+                                            <div class="standings-leaderboard-player">
+                                                <strong>{{ $row['player_name'] }}</strong>
+                                                <span>{{ $row['club_name'] }}</span>
+                                            </div>
+                                            <div class="standings-leaderboard-metric" aria-label="{{ $leaderboard['metric'] }}">{{ $row['total'] }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @empty
+                            <div class="standings-leaderboard-empty">{{ $leaderboard['empty'] }}</div>
+                        @endforelse
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
 </div>

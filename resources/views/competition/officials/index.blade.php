@@ -17,12 +17,24 @@
     ];
 @endphp
 
+@push('css')
+<style>
+    .lap-index-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 1080px;
+    }
+    .lap-index-deferred.is-compact {
+        contain-intrinsic-size: 1px 420px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="lap-admin-page-head">
     <div class="lap-admin-page-meta">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Ofisial</li>
             </ol>
         </nav>
@@ -67,7 +79,7 @@
 
 @include('competition.partials.flash')
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 lap-index-deferred is-compact">
     <div class="col-md-6 col-xl-3">
         <div class="card h-100 lap-admin-stat-card lap-admin-stat-card-primary">
             <div class="card-body">
@@ -154,7 +166,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card lap-index-deferred">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <h4 class="card-title mb-1">Daftar Ofisial</h4>
@@ -275,13 +287,15 @@
                             <td>
                                 <div class="d-flex align-items-center gap-3">
                                     @if ($official->photo_file_url)
-                                        <img
-                                            src="{{ $official->photo_file_url }}"
-                                            alt="{{ $official->name }}"
-                                            class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
-                                            width="36"
-                                            height="36"
-                                        >
+                                            <img
+                                                src="{{ $official->photo_file_url }}"
+                                                alt="{{ $official->name }}"
+                                                class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
+                                                width="36"
+                                                height="36"
+                                                loading="lazy"
+                                                decoding="async"
+                                            >
                                     @else
                                         <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold flex-shrink-0">
                                             {{ $initials ?: 'OF' }}
@@ -303,6 +317,8 @@
                                                 class="avatar-sm rounded-circle object-fit-cover flex-shrink-0"
                                                 width="36"
                                                 height="36"
+                                                loading="lazy"
+                                                decoding="async"
                                             >
                                         @else
                                             <div class="avatar-sm bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0">

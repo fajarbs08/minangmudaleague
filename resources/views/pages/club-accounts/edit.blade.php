@@ -18,10 +18,10 @@
         <div class="card h-100">
             <div class="card-body">
                 <span class="text-muted text-uppercase fs-12">Status</span>
-                <h3 class="mt-2 mb-1">{{ $clubAccount->clubs_count ? 'Sudah Terhubung' : 'Belum Terhubung' }}</h3>
-                <p class="text-muted mb-0">{{ $clubAccount->clubs_count ? 'Akun ini sudah punya data club.' : 'Akun ini belum punya data club.' }}</p>
+                <h3 class="mt-2 mb-1">{{ $clubAccount->club_count ? 'Sudah Terhubung' : 'Belum Terhubung' }}</h3>
+                <p class="text-muted mb-0">{{ $clubAccount->club_count ? 'Akun ini sudah punya data club.' : 'Akun ini belum punya data club.' }}</p>
                 <div class="mt-3">
-                    <span class="badge {{ $clubAccount->is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} border">
+                    <span class="badge club-account-status-badge {{ $clubAccount->is_active ? 'is-active' : 'is-inactive' }}">
                         {{ $clubAccount->is_active ? 'Akun Aktif' : 'Akun Nonaktif' }}
                     </span>
                 </div>

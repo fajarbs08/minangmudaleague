@@ -1,6 +1,6 @@
 @php
     $isLink = isset($href) && filled($href);
-    $classes = trim('dropdown-item d-flex align-items-center gap-2 '.($class ?? ''));
+    $classes = trim('dropdown-item competition-action-entry '.($class ?? ''));
     $type = $type ?? 'button';
     $attributes = $attributes ?? [];
 
@@ -21,7 +21,9 @@
             @endif
         @endforeach
     >
-        <i data-lucide="{{ $icon }}" class="fs-14"></i>
+        <span class="competition-action-icon" aria-hidden="true">
+            <i data-lucide="{{ $icon }}" class="fs-14"></i>
+        </span>
         <span>{{ $label }}</span>
     </a>
 @else
@@ -36,7 +38,9 @@
             @endif
         @endforeach
     >
-        <i data-lucide="{{ $icon }}" class="fs-14"></i>
+        <span class="competition-action-icon" aria-hidden="true">
+            <i data-lucide="{{ $icon }}" class="fs-14"></i>
+        </span>
         <span>{{ $label }}</span>
     </button>
 @endif

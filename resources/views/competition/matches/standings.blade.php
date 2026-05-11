@@ -4,12 +4,21 @@
     $filterCount = collect(request()->only(['age_group_id']))->filter(fn ($value) => filled($value))->count();
 @endphp
 
+@push('css')
+<style>
+    .lap-report-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 1080px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Laporan</li>
                 <li class="breadcrumb-item active" aria-current="page">Klasemen</li>
             </ol>
@@ -37,11 +46,13 @@
 </div>
 
 @include('competition.partials.flash')
+<div class="lap-report-deferred">
 @include('competition.matches.partials.standings-section', [
     'sectionTitle' => 'Klasemen',
     'sectionDescription' => 'Disusun otomatis dari pertandingan format liga yang sudah selesai.',
     'emptyMessage' => 'Belum ada klasemen yang bisa ditampilkan untuk filter ini.',
 ])
+</div>
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="standingsFilterCanvas" aria-labelledby="standingsFilterCanvasLabel">
     <div class="offcanvas-header">

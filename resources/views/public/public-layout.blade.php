@@ -17,6 +17,8 @@
             return asset('og-share-card.jpg').'?v='.$version;
         })();
         $resolvedSeoImageType = str_ends_with(strtolower(parse_url($resolvedSeoImage, PHP_URL_PATH) ?: ''), '.png') ? 'image/png' : 'image/jpeg';
+        $publicLogo = asset('images/logo-full-transparent.png');
+        $publicLogoSticky = asset('images/logo-dark.png');
         $publicAsset = fn (string $path) => asset('public-assets/'.$path);
         $publicMenu = [
             ['key' => 'home', 'label' => 'Beranda', 'route' => 'public.home'],
@@ -30,6 +32,9 @@
         $pageCurrent = $bannerCurrent ?? $pageHeading;
         $showBreadcrumb = $showBreadcrumb ?? (($activePublicPage ?? 'home') !== 'home');
         $isHomePage = ($activePublicPage ?? 'home') === 'home';
+        $usesPublicSwiper = $isHomePage;
+        $usesPublicParallax = $isHomePage;
+        $usesPublicNiceSelect = in_array(($activePublicPage ?? ''), ['schedule', 'standings'], true);
         $resolvedBreadcrumbItems = collect($breadcrumbItems ?? [
             ['label' => 'Beranda', 'url' => route('public.home')],
             ['label' => $pageCurrent],
@@ -56,7 +61,7 @@
         $currentUser = auth()->user();
         $isAuthenticated = auth()->check();
         $dashboardLabel = $isAuthenticated ? 'Dashboard' : 'Login';
-        $dashboardRoute = $isAuthenticated ? route('dashboard.home') : route('login');
+        $dashboardRoute = $isAuthenticated ? route('dashboard.index') : route('login');
         $dashboardIcon = $isAuthenticated ? 'fa-th-large' : 'fa-sign-in-alt';
         $logoutLabel = 'Logout';
         $breadcrumbBg = $publicAsset('img/breadcrumb-bg.jpg');
@@ -204,16 +209,20 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="preload" as="image" href="{{ $publicLogo }}">
     @foreach ($resolvedStructuredData as $structuredDataItem)
         <script type="application/ld+json">{!! json_encode($structuredDataItem, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     @endforeach
     <link rel="stylesheet" href="{{ $publicAsset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ $publicAsset('css/all.min.css') }}">
     <link rel="stylesheet" href="{{ $publicAsset('css/animate.css') }}">
-    <link rel="stylesheet" href="{{ $publicAsset('css/magnific-popup.css') }}">
     <link rel="stylesheet" href="{{ $publicAsset('css/meanmenu.css') }}">
-    <link rel="stylesheet" href="{{ $publicAsset('css/swiper-bundle.min.css') }}">
-    <link rel="stylesheet" href="{{ $publicAsset('css/nice-select.css') }}">
+    @if ($usesPublicSwiper)
+        <link rel="stylesheet" href="{{ $publicAsset('css/swiper-bundle.min.css') }}">
+    @endif
+    @if ($usesPublicNiceSelect)
+        <link rel="stylesheet" href="{{ $publicAsset('css/nice-select.css') }}">
+    @endif
     <link rel="stylesheet" href="{{ $publicAsset('css/main.css') }}">
     <link rel="stylesheet" href="{{ $publicAsset('css/lap-custom.css') }}">
     <style>
@@ -987,6 +996,7 @@
             }
         }
     </style>
+    @stack('headLinks')
     @stack('styles')
 </head>
 <body class="lap-public {{ ($activePublicPage ?? 'home') === 'home' ? 'is-home' : 'is-inner' }}">
@@ -1008,7 +1018,7 @@
                     <div class="offcanvas__top mb-5 d-flex justify-content-between align-items-center">
                         <div class="offcanvas__logo">
                             <a href="{{ route('public.home') }}">
-                                <img class="lap-logo-default" src="{{ asset('images/logo-full-transparent.png') }}" alt="Liga Anak Piaman Laweh">
+                                <img class="lap-logo-default" src="{{ $publicLogo }}" alt="Liga Anak Piaman Laweh" decoding="async" width="220" height="76">
                             </a>
                         </div>
                         <div class="offcanvas__close">
@@ -1022,7 +1032,7 @@
                     </p>
                     <div class="mobile-menu fix mb-3"></div>
                     <div class="sidebar-image mt-4 d-none d-xl-block">
-                        <img class="w-100" src="{{ $sidebarImage }}" alt="Portal publik Liga Anak Piaman Laweh">
+                        <img class="w-100" src="{{ $sidebarImage }}" alt="Portal publik Liga Anak Piaman Laweh" loading="lazy" decoding="async">
                     </div>
                     <div class="offcanvas__contact">
                         <h4>Jelajahi Portal</h4>
@@ -1038,7 +1048,7 @@
                                 <div class="lap-offcanvas-account">
                                     <span class="lap-offcanvas-account-avatar">
                                         @if ($currentUser?->profile_avatar_url)
-                                            <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}">
+                                            <img src="{{ $currentUser->profile_avatar_url }}" alt="{{ $currentUser->name }}" loading="lazy" decoding="async">
                                         @else
                                             {{ $currentUser?->profile_initials }}
                                         @endif
@@ -1129,22 +1139,24 @@
 
     @include('public.partials.footer-home')
 
-    <script src="{{ $publicAsset('js/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/viewport.jquery.js') }}"></script>
-    <script src="{{ $publicAsset('js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/jquery.nice-select.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/jquery.waypoints.js') }}"></script>
-    <script src="{{ $publicAsset('js/jquery.counterup.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/swiper-bundle.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/jquery.meanmenu.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/parallaxie.js') }}"></script>
-    <script src="{{ $publicAsset('js/jquery.magnific-popup.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/wow.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/gsap.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/ScrollTrigger.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/SplitText.min.js') }}"></script>
-    <script src="{{ $publicAsset('js/splitType.js') }}"></script>
-    <script src="{{ $publicAsset('js/main.js') }}"></script>
+    <script src="{{ $publicAsset('js/jquery-3.7.1.min.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/bootstrap.bundle.min.js') }}" defer></script>
+    @if ($usesPublicNiceSelect)
+        <script src="{{ $publicAsset('js/jquery.nice-select.min.js') }}" defer></script>
+    @endif
+    @if ($usesPublicSwiper)
+        <script src="{{ $publicAsset('js/swiper-bundle.min.js') }}" defer></script>
+    @endif
+    <script src="{{ $publicAsset('js/jquery.meanmenu.min.js') }}" defer></script>
+    @if ($usesPublicParallax)
+        <script src="{{ $publicAsset('js/parallaxie.js') }}" defer></script>
+    @endif
+    <script src="{{ $publicAsset('js/wow.min.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/gsap.min.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/ScrollTrigger.min.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/SplitText.min.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/splitType.js') }}" defer></script>
+    <script src="{{ $publicAsset('js/main.js') }}" defer></script>
     <script>
         (function () {
             const preloader = document.getElementById('rts__preloader');

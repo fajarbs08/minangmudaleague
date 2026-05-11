@@ -467,7 +467,7 @@
                 <div class="left-item">
                     <div class="thumb">
                         <h3>{{ $homeClubName }}</h3>
-                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-hero'])
+                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-hero', 'width' => 78, 'height' => 78])
                     </div>
                     @forelse ($homeGoals as $goal)
                         <p class="text-end">{{ strtoupper($goal->scorer?->name ?: 'Pemain tidak ditemukan') }}</p>
@@ -478,7 +478,7 @@
                 <span class="score-result">@include('public.partials.match-score', ['homeScore' => $matchResult?->score_club_a, 'awayScore' => $matchResult?->score_club_b, 'separator' => ' - '])</span>
                 <div class="left-item">
                     <div class="thumb">
-                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-hero'])
+                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-hero', 'width' => 78, 'height' => 78])
                         <h3>{{ $awayClubName }}</h3>
                     </div>
                     @forelse ($awayGoals as $goal)
@@ -499,7 +499,7 @@
                                 <div class="club-lineup-head">
                                     <h3>LINE UPS</h3>
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-head', 'width' => 58, 'height' => 58])
                                         {{ $homeClubName }}
                                     </span>
                                 </div>
@@ -550,12 +550,12 @@
                                 <div class="match-information-box">
                                     <div class="match-head-title">
                                         <span>
-                                            @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-head'])
+                                            @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-result-club-mark is-head', 'width' => 58, 'height' => 58])
                                             <span class="club-name">{{ $homeClubName }}</span>
                                         </span>
                                         <h3>Statistics</h3>
                                         <span>
-                                            @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-head'])
+                                            @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-head', 'width' => 58, 'height' => 58])
                                             <span class="club-name">{{ $awayClubName }}</span>
                                         </span>
                                     </div>
@@ -576,7 +576,7 @@
                                 <div class="club-lineup-head">
                                     <h3>LINE UPS</h3>
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-result-club-mark is-head', 'width' => 58, 'height' => 58])
                                         {{ $awayClubName }}
                                     </span>
                                 </div>

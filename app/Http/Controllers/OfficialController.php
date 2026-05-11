@@ -41,9 +41,11 @@ class OfficialController extends Controller
         }
 
         $clubs = Club::query()
+            ->select(['id', 'user_id', 'name'])
             ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
+        $clubIds = $clubs->modelKeys();
 
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
@@ -52,8 +54,11 @@ class OfficialController extends Controller
         if ($this->isHistoryView()) {
             $officials = SeasonOfficial::query()
                 ->where('season_id', $this->seasonContext->currentId())
-                ->with(['seasonClub', 'ageGroup'])
-                ->whereIn('club_id', $clubs->pluck('id'))
+                ->with([
+                    'seasonClub:id,season_id,club_id,name,logo_url',
+                    'ageGroup:id,name',
+                ])
+                ->whereIn('club_id', $clubIds)
                 ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
                 ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereJsonContains('registered_age_group_ids', (int) $ageGroupId))
                 ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
@@ -84,9 +89,20 @@ class OfficialController extends Controller
             $canDownloadIdCards = false;
             $idCardExportUrl = null;
         } else {
+            $officialRelations = [
+                'club:id,name,logo_url',
+                'ageGroup:id,name',
+            ];
+
+            if ($selectedAgeGroupId > 0) {
+                $officialRelations['ageRegistrations'] = fn ($query) => $query
+                    ->where('age_group_id', $selectedAgeGroupId)
+                    ->with('ageGroup:id,name');
+            }
+
             $officials = Official::query()
-                ->with(['club', 'ageGroup', 'ageRegistrations.ageGroup'])
-                ->whereIn('club_id', $clubs->pluck('id'))
+                ->with($officialRelations)
+                ->whereIn('club_id', $clubIds)
                 ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
                 ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
                 ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
@@ -141,7 +157,7 @@ class OfficialController extends Controller
             'title' => 'Ofisial',
             'officials' => $officials,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::competition()->get(),
+            'ageGroups' => AgeGroup::competition()->get(['id', 'name']),
             'canDownloadIdCards' => $canDownloadIdCards,
             'idCardFilterParams' => $idCardFilterParams,
             'idCardExportUrl' => $idCardExportUrl,
@@ -304,7 +320,7 @@ class OfficialController extends Controller
         $this->seasonSnapshotService->syncOfficialSnapshot($official->fresh(['club', 'ageRegistrations.ageGroup']));
 
         return redirect()
-            ->route('officials.edit', $official)
+            ->route('officials.show', $official)
             ->with('status', 'Data ofisial berhasil ditambahkan.');
     }
 
@@ -642,7 +658,7 @@ class OfficialController extends Controller
         $this->syncAgeRegistrations($official, $ageRegistrations);
         $this->seasonSnapshotService->syncOfficialSnapshot($official->fresh(['club', 'ageRegistrations.ageGroup']));
 
-        return redirect()->route('officials.index')->with('status', 'Data ofisial berhasil diperbarui.');
+        return redirect()->route('officials.show', $official)->with('status', 'Data ofisial berhasil diperbarui.');
     }
 
     public function submit(Official $official)
@@ -697,8 +713,8 @@ class OfficialController extends Controller
             'license_number' => ['nullable', 'string', 'max:255'],
             'license_levels' => ['nullable', 'in:A,B,C,D,Non-Lisensi'],
             'photo_file' => [blank($official?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512'],
-            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'identity_file' => [blank($official?->identity_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
+            'identity_file' => [blank($official?->identity_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
             'is_active' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'age_registrations' => ['nullable', 'array'],

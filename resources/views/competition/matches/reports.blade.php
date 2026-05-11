@@ -7,12 +7,25 @@
     ], fn ($value) => filled($value));
 @endphp
 
+@push('css')
+<style>
+    .lap-report-deferred {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 1080px;
+    }
+
+    .lap-report-deferred.is-compact {
+        contain-intrinsic-size: 1px 420px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Laporan</li>
                 <li class="breadcrumb-item active" aria-current="page">Rekap PDF</li>
             </ol>
@@ -41,7 +54,7 @@
 
 @include('competition.partials.flash')
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 lap-report-deferred is-compact">
     @foreach ($reportSummary as $item)
         <div class="col-md-6 col-xl-3">
             <div class="card h-100">
@@ -55,7 +68,7 @@
     @endforeach
 </div>
 
-<div class="d-grid gap-4">
+<div class="d-grid gap-4 lap-report-deferred">
     @include('competition.matches.partials.leaderboard-section', [
         'title' => 'Top Skor',
         'description' => 'Peringkat pencetak gol terbanyak dari pertandingan yang sudah selesai.',

@@ -21,10 +21,26 @@ window.bootstrap = {
   Tooltip,
 }
 
-import 'simplebar'
-import dragula from 'dragula';
+let simplebarPromise
+const loadSimplebar = () => {
+  if (!simplebarPromise) {
+    simplebarPromise = import('simplebar')
+  }
 
-window.dragula = dragula;
+  return simplebarPromise
+}
+
+let dragulaPromise
+window.ensureDragula = async () => {
+  if (!dragulaPromise) {
+    dragulaPromise = import('dragula').then(({ default: dragula }) => {
+      window.dragula = dragula
+      return dragula
+    })
+  }
+
+  return dragulaPromise
+}
 
 if (document.querySelector('iconify-icon')) {
   void import('iconify-icon')
@@ -223,15 +239,18 @@ const initActionDropdowns = () => {
     const menu = dropdown?.querySelector('.competition-action-menu, .dropdown-menu')
     if (!dropdown || !menu) return
 
+    const menuGap = 8
+    const viewportPadding = 12
+
     dropdown.classList.remove('dropup')
     dropdown.classList.add('dropdown')
 
     const buttonRect = button.getBoundingClientRect()
     const menuHeight = Math.min(measureMenuHeight(menu), window.innerHeight * 0.7)
-    const spaceBelow = window.innerHeight - buttonRect.bottom
-    const spaceAbove = buttonRect.top
+    const fitsBelow = buttonRect.bottom + menuGap + menuHeight <= window.innerHeight - viewportPadding
+    const fitsAbove = buttonRect.top - menuGap - menuHeight >= viewportPadding
 
-    if (spaceBelow < menuHeight + 16 && spaceAbove > spaceBelow) {
+    if (!fitsBelow && fitsAbove) {
       dropdown.classList.remove('dropdown')
       dropdown.classList.add('dropup')
     }
@@ -272,6 +291,12 @@ const initSearchAutocomplete = () => {
     dropdown.className = 'list-group position-absolute start-0 end-0 mt-2 shadow-sm d-none'
     dropdown.style.zIndex = '1080'
     wrapper.appendChild(dropdown)
+
+    dropdown.addEventListener('mousedown', (event) => {
+      if (event.target.closest('a,button')) {
+        event.preventDefault()
+      }
+    })
 
     let activeIndex = -1
     let abortController = null
@@ -796,6 +821,10 @@ class FormAdvanced {
 
 // Global init
 document.addEventListener('DOMContentLoaded', () => {
+  if (document.querySelector('[data-simplebar]')) {
+    void loadSimplebar()
+  }
+
   initDeleteModals()
   initTableDropdownOverflow()
   initActionDropdowns()

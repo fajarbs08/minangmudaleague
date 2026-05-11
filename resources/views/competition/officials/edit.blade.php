@@ -6,7 +6,7 @@
         <h4 class="mb-1">Edit Ofisial</h4>
         <p class="text-muted mb-0">{{ $official->name }}</p>
     </div>
-    <a href="{{ route('officials.index') }}" class="btn btn-light">Kembali</a>
+    <a href="{{ route('officials.show', $official) }}" class="btn btn-light">Kembali</a>
 </div>
 
 @include('competition.partials.flash')
@@ -18,7 +18,7 @@
             @method('PUT')
             @include('competition.officials._form')
             <div class="mt-4 d-flex justify-content-end gap-2">
-                <a href="{{ route('officials.index') }}" class="btn btn-light">Batal</a>
+                <a href="{{ route('officials.show', $official) }}" class="btn btn-light">Batal</a>
                 <button type="submit" class="btn btn-primary">Update</button>
             </div>
         </form>

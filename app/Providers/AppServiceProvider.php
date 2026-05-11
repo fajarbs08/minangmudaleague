@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Services\SeasonContext;
+use App\Services\SidebarViewModel;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
@@ -24,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        View::composer('layouts.partials.main-nav', function ($view) {
+            $view->with('sidebarViewModel', app(SidebarViewModel::class)->current());
+        });
 
         if (! app()->environment('production')) {
             return;

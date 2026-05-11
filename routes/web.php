@@ -47,14 +47,18 @@ Route::get('informasi/file/{informationResource}/unduh', [DashboardController::c
 Route::get('informasi/{resourceSlug}', [DashboardController::class, 'publicInformationShowRedirect'])->name('public.information.show');
 
 Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user']], function () {
-    Route::get('home', [DashboardController::class, 'index'])->name('root');
+    Route::redirect('home', 'dashboard')->name('root');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.home');
-    Route::get('dashboard/index', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::redirect('dashboard/index', 'dashboard');
     Route::get('dashboard/pencarian/saran', [SearchController::class, 'suggestions'])->name('search.suggestions');
     Route::get('dashboard/pencarian', [SearchController::class, 'index'])->name('search.index');
     Route::post('dashboard/season-context', [SeasonController::class, 'select'])->name('seasons.select');
     Route::middleware('role:admin,club')->group(function () {
-        Route::get('dashboard/hasil-pertandingan', [MatchScheduleController::class, 'results'])->name('match-results.index');
+        Route::get('dashboard/hasil-pertandingan/liga', [MatchScheduleController::class, 'leagueResults'])->name('match-results.league.index');
+        Route::redirect('dashboard/hasil-pertandingan', 'dashboard/hasil-pertandingan/liga')
+            ->name('match-results.redirect-to-league');
+        Route::get('dashboard/hasil-pertandingan/knockout', [MatchScheduleController::class, 'knockoutResults'])->name('match-results.knockout.index');
         Route::get('dashboard/laporan/klasemen', [MatchScheduleController::class, 'standings'])->name('reports.standings');
         Route::get('dashboard/laporan/klasemen/pdf', [MatchScheduleController::class, 'standingsPdf'])->name('reports.standings.pdf');
         Route::get('dashboard/laporan/top-skor', [MatchScheduleController::class, 'topScorers'])->name('reports.top-scorers');
@@ -120,7 +124,7 @@ Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user']], functio
 
     Route::middleware('role:admin')->group(function () {
         Route::post('dashboard/pertandingan/bulk-delete', [MatchScheduleController::class, 'bulkDestroy'])->name('matches.bulk-delete');
-        Route::get('dashboard/pertandingan', [DashboardController::class, 'legacyMatchesIndexRedirect'])->name('matches.legacy-index');
+        Route::redirect('dashboard/pertandingan', 'dashboard/pertandingan/liga')->name('matches.legacy-index');
         Route::get('dashboard/pertandingan/liga', [MatchScheduleController::class, 'leagueIndex'])->name('matches.league.index');
         Route::get('dashboard/pertandingan/knockout', [MatchScheduleController::class, 'knockoutIndex'])->name('matches.knockout.index');
         Route::patch('dashboard/pertandingan/knockout/{match}/position', [MatchScheduleController::class, 'updateKnockoutPosition'])->name('matches.knockout.position');
@@ -128,6 +132,7 @@ Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user']], functio
             ->except(['index', 'show'])
             ->parameters(['pertandingan' => 'match'])
             ->names('matches');
+        Route::get('dashboard/hasil-pertandingan/{match}/payload', [MatchScheduleController::class, 'resultPayload'])->name('match-results.payload');
         Route::patch('dashboard/hasil-pertandingan/{match}/result', [MatchScheduleController::class, 'updateResult'])->name('match-results.update');
         Route::get('dashboard/sponsor', [SponsorController::class, 'index'])->name('sponsors.index');
         Route::post('dashboard/sponsor', [SponsorController::class, 'store'])->name('sponsors.store');

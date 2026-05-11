@@ -172,7 +172,7 @@ class LineupListController extends Controller
         $lineupList = LineupList::create($data);
         $this->syncPlayers($lineupList, $request);
 
-        return redirect()->route('lineup-lists.index')->with('status', 'DSP berhasil ditambahkan.');
+        return redirect()->route('lineup-lists.show', $lineupList)->with('status', 'DSP berhasil ditambahkan.');
     }
 
     public function edit(LineupList $lineupList)
@@ -270,7 +270,7 @@ class LineupListController extends Controller
         $lineupList->update($data);
         $this->syncPlayers($lineupList, $request);
 
-        return redirect()->route('lineup-lists.index')->with('status', 'DSP berhasil diperbarui.');
+        return redirect()->route('lineup-lists.show', $lineupList)->with('status', 'DSP berhasil diperbarui.');
     }
 
     public function submit(LineupList $lineupList)

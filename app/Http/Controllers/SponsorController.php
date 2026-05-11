@@ -13,13 +13,22 @@ class SponsorController extends Controller
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $search = request()->string('search')->value();
+        $search = $request->string('search')->value();
+        $allowedSorts = ['name', 'tier', 'is_published', 'sort_order'];
+        $sort = $request->string('sort')->value() ?: 'sort_order';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'sort_order';
+            $direction = 'asc';
+        }
+
         $sponsors = Sponsor::query()
             ->when($search, fn ($query, $value) => $query->where('name', 'like', "%{$value}%"))
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderBy($sort, $direction)
+            ->when($sort !== 'name', fn ($query) => $query->orderBy('name'))
             ->get();
 
         return view('pages.sponsors.index', [

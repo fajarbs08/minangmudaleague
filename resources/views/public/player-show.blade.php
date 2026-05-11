@@ -57,6 +57,12 @@
     $clubMark = Str::upper(Str::substr($clubModel?->short_name ?: $clubModel?->name ?: 'KL', 0, 2));
 @endphp
 
+@if (filled($player->photo_file_url))
+    @push('headLinks')
+        <link rel="preload" as="image" href="{{ $player->photo_file_url }}">
+    @endpush
+@endif
+
 @push('styles')
     <style>
         .lap-player-detail-section {
@@ -131,7 +137,8 @@
         .lap-player-photo-panel img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
             display: block;
         }
 
@@ -521,7 +528,7 @@
                 <article class="lap-player-hero-card">
                     <div class="lap-player-photo-panel">
                         @if ($player->photo_file_url)
-                            <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}">
+                            <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}" decoding="async" fetchpriority="high" width="720" height="860">
                         @else
                             <div class="lap-player-photo-fallback">{{ $playerInitial ?: 'PL' }}</div>
                         @endif
@@ -642,7 +649,7 @@
                             <div class="lap-player-club-head">
                                 <div class="lap-player-club-mark">
                                     @if ($clubModel?->logo_file_url)
-                                        <img src="{{ $clubModel->logo_file_url }}" alt="{{ $clubModel->name }}">
+                                        <img src="{{ $clubModel->logo_file_url }}" alt="{{ $clubModel->name }}" loading="lazy" decoding="async" width="66" height="66">
                                     @else
                                         <span>{{ $clubMark }}</span>
                                     @endif

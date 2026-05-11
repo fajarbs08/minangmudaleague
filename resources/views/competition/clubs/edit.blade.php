@@ -6,7 +6,7 @@
         <h4 class="mb-1">Edit Klub</h4>
         <p class="text-muted mb-0">{{ $club->name }}</p>
     </div>
-    <a href="{{ route('clubs.index') }}" class="btn btn-light">Kembali</a>
+    <a href="{{ route('clubs.show', $club) }}" class="btn btn-light">Kembali</a>
 </div>
 
 @include('competition.partials.flash')
@@ -18,7 +18,7 @@
             @method('PUT')
             @include('competition.clubs._form')
             <div class="mt-4 d-flex justify-content-end gap-2">
-                <a href="{{ route('clubs.index') }}" class="btn btn-light">Batal</a>
+                <a href="{{ route('clubs.show', $club) }}" class="btn btn-light">Batal</a>
                 <button type="submit" class="btn btn-primary">Update</button>
             </div>
         </form>

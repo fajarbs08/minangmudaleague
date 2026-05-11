@@ -51,6 +51,12 @@
     ];
 @endphp
 
+@if (filled($club->logo_file_url))
+    @push('headLinks')
+        <link rel="preload" as="image" href="{{ $club->logo_file_url }}">
+    @endpush
+@endif
+
 @push('styles')
     <style>
         .lap-club-detail-section {
@@ -728,7 +734,7 @@
                         <div class="lap-club-media-core">
                             <div class="lap-club-logo-stage">
                                 @if ($club->logo_file_url)
-                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}">
+                                    <img src="{{ $club->logo_file_url }}" alt="{{ $club->name }}" decoding="async" fetchpriority="high" width="250" height="250">
                                 @else
                                     <span class="lap-club-logo-mark">{{ $clubMark }}</span>
                                 @endif
@@ -830,7 +836,7 @@
                                         <article class="lap-club-person-row">
                                             <div class="lap-club-avatar">
                                                 @if ($player->photo_file_url)
-                                                    <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}">
+                                                    <img src="{{ $player->photo_file_url }}" alt="{{ $player->name }}" loading="lazy" decoding="async" width="56" height="56">
                                                 @else
                                                     <span class="lap-club-avatar-mark">{{ $playerMark }}</span>
                                                 @endif
@@ -883,7 +889,7 @@
                                         <article class="lap-club-person-row">
                                             <div class="lap-club-avatar">
                                                 @if ($official->photo_file_url)
-                                                    <img src="{{ $official->photo_file_url }}" alt="{{ $official->name }}">
+                                                    <img src="{{ $official->photo_file_url }}" alt="{{ $official->name }}" loading="lazy" decoding="async" width="56" height="56">
                                                 @else
                                                     <span class="lap-club-avatar-mark">{{ $officialMark }}</span>
                                                 @endif
@@ -954,7 +960,7 @@
                                                     <div class="lap-club-team">
                                                         <span class="lap-club-team-logo">
                                                             @if ($match->club_a_logo_file_url)
-                                                                <img src="{{ $match->club_a_logo_file_url }}" alt="{{ $match->club_a_display_name ?: 'Klub A' }}">
+                                                                <img src="{{ $match->club_a_logo_file_url }}" alt="{{ $match->club_a_display_name ?: 'Klub A' }}" loading="lazy" decoding="async" width="48" height="48">
                                                             @else
                                                                 <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->club_a_display_name ?: 'A', 0, 2)) }}</span>
                                                             @endif
@@ -974,7 +980,7 @@
                                                         <strong class="lap-club-team-name">{{ $match->club_b_display_name ?: 'Klub B' }}</strong>
                                                         <span class="lap-club-team-logo">
                                                             @if ($match->club_b_logo_file_url)
-                                                                <img src="{{ $match->club_b_logo_file_url }}" alt="{{ $match->club_b_display_name ?: 'Klub B' }}">
+                                                                <img src="{{ $match->club_b_logo_file_url }}" alt="{{ $match->club_b_display_name ?: 'Klub B' }}" loading="lazy" decoding="async" width="48" height="48">
                                                             @else
                                                                 <span class="lap-club-team-logo-mark">{{ Str::upper(Str::substr($match->club_b_display_name ?: 'B', 0, 2)) }}</span>
                                                             @endif

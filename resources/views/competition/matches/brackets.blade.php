@@ -544,7 +544,7 @@
     <div>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}">Kompetisi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">Kompetisi</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Laporan</li>
                 <li class="breadcrumb-item active" aria-current="page">Bagan Knockout</li>
             </ol>

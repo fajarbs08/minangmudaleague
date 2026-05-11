@@ -95,6 +95,11 @@
     $topStanding = $standingsBlocks->first();
 @endphp
 
+@push('headLinks')
+    <link rel="preload" as="image" href="{{ $heroBgUrl }}">
+    <link rel="preload" as="image" href="{{ $publicAsset('img/home-1/hero1.png') }}">
+@endpush
+
 @push('styles')
     <style>
         .lap-home-template .flag-item img,
@@ -259,6 +264,14 @@
 
         .lap-home-template .ranking-section {
             padding-bottom: clamp(32px, 3vw, 52px);
+        }
+
+        .lap-home-template .news-section,
+        .lap-home-template .about-section,
+        .lap-home-template .team-section,
+        .lap-home-template .sponsor-section {
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 960px;
         }
 
         .lap-home-template .about-section {
@@ -483,7 +496,7 @@
     <div class="lap-home-template">
         <section class="hero-section1 parallaxie hero-1 bg-cover" style="background-image: url('{{ $heroBgUrl }}');">
             <div class="right-shape">
-                <img src="{{ $publicAsset('img/home-1/right-shape.png') }}" alt="">
+                <img src="{{ $publicAsset('img/home-1/right-shape.png') }}" alt="" loading="lazy" decoding="async">
             </div>
             <div class="container">
                 <div class="row g-4 align-items-center">
@@ -509,9 +522,9 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="hero-image">
-                            <img src="{{ $publicAsset('img/home-1/hero1.png') }}" alt="Ilustrasi kompetisi" class="tilt_scale">
+                            <img src="{{ $publicAsset('img/home-1/hero1.png') }}" alt="Ilustrasi kompetisi" class="tilt_scale" fetchpriority="high" decoding="async">
                             <div class="hero-image-bg">
-                                <img src="{{ $publicAsset('img/home-1/hero-image.png') }}" alt="">
+                                <img src="{{ $publicAsset('img/home-1/hero-image.png') }}" alt="" loading="lazy" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -537,7 +550,7 @@
                                                     <ul>
                                                         <li>
                                                             <span class="match-left">
-                                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubA), 'label' => $match->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark'])
+                                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubA), 'label' => $match->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark', 'width' => 38, 'height' => 38])
                                                                 {{ Str::upper(Str::limit($match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A', 3, '')) }}
                                                             </span>
                                                             <span class="match-right">
@@ -547,7 +560,7 @@
                                                         </li>
                                                         <li>
                                                             <span class="match-left">
-                                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubB), 'label' => $match->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark'])
+                                                                @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubB), 'label' => $match->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark', 'width' => 38, 'height' => 38])
                                                                 {{ Str::upper(Str::limit($match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B', 3, '')) }}
                                                             </span>
                                                             <span class="match-right">
@@ -556,7 +569,7 @@
                                                         </li>
                                                     </ul>
                                                     <div class="arrow-shape">
-                                                        <img src="{{ $publicAsset('img/home-1/match-result/arrow-shape.png') }}" alt="">
+                                                        <img src="{{ $publicAsset('img/home-1/match-result/arrow-shape.png') }}" alt="" loading="lazy" decoding="async">
                                                     </div>
                                                 </div>
                                             </div>
@@ -598,14 +611,14 @@
                                     <p>{{ $card['match']->competition_format_label }} , {{ $card['match']->venue ?: 'Lokasi menyusul' }}</p>
                                     <div class="match-schedule">
                                         <div class="flag-item">
-                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($card['match']->clubA), 'label' => $card['match']->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark'])
+                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($card['match']->clubA), 'label' => $card['match']->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark', 'width' => 38, 'height' => 38])
                                             <span>{{ $card['match']->clubA?->short_name ?: $card['match']->clubA?->name ?: 'Klub A' }}</span>
                                         </div>
                                         <div class="match-date">
                                             <span>{{ $card['match']->is_finished ? $card['match']->score_label : ($card['match']->kickoff_time ? $card['match']->kickoff_time->format('H.i') : 'VS') }}</span>
                                         </div>
                                         <div class="flag-item">
-                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($card['match']->clubB), 'label' => $card['match']->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark'])
+                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($card['match']->clubB), 'label' => $card['match']->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark', 'width' => 38, 'height' => 38])
                                             <span>{{ $card['match']->clubB?->short_name ?: $card['match']->clubB?->name ?: 'Klub B' }}</span>
                                         </div>
                                     </div>
@@ -640,7 +653,7 @@
                                 <div class="col-xl-6 col-lg-6 col-md-6 wow fadeInUp" data-wow-delay=".{{ 3 + ($index * 2) }}s">
                                     <div class="club-blog-items">
                                         <div class="thumb">
-                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($club), 'label' => $club->name, 'imgClass' => 'lap-home-story-logo', 'badgeClass' => 'lap-home-story-badge'])
+                                            @include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($club), 'label' => $club->name, 'imgClass' => 'lap-home-story-logo', 'badgeClass' => 'lap-home-story-badge', 'width' => 54, 'height' => 54])
                                         </div>
                                         <div class="content">
                                             <ul>
@@ -679,7 +692,7 @@
                             @forelse ($recentResults->take(3) as $match)
                                 <div class="match-result-box {{ $loop->last ? 'mb-0' : '' }}">
                                     <div class="match-result">
-                                        <div class="thumb">@include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubA), 'label' => $match->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark'])</div>
+                                        <div class="thumb">@include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubA), 'label' => $match->clubA?->name ?: 'Klub A', 'badgeClass' => 'lap-home-club-mark', 'width' => 56, 'height' => 56])</div>
                                         <p>{{ Str::limit($match->clubA?->short_name ?: $match->clubA?->name ?: 'Klub A', 10, '') }}</p>
                                     </div>
                                     <div class="content">
@@ -687,7 +700,7 @@
                                         <div class="result-box"><h4>@include('public.partials.match-score', ['homeScore' => $match->score_club_a, 'awayScore' => $match->score_club_b, 'separator' => ' - '])</h4></div>
                                     </div>
                                     <div class="match-result">
-                                        <div class="thumb">@include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubB), 'label' => $match->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark'])</div>
+                                        <div class="thumb">@include('public.partials.identity-mark', ['imageUrl' => $clubLogoUrl($match->clubB), 'label' => $match->clubB?->name ?: 'Klub B', 'badgeClass' => 'lap-home-club-mark', 'width' => 56, 'height' => 56])</div>
                                         <p>{{ Str::limit($match->clubB?->short_name ?: $match->clubB?->name ?: 'Klub B', 10, '') }}</p>
                                     </div>
                                 </div>
@@ -769,7 +782,7 @@
                         @if ($latestWinMatch)
                             <div class="col-lg-12 wow fadeInUp" data-wow-delay=".3s">
                                 <div class="news-thumb1">
-                                    <img src="{{ $publicAsset('img/home-1/news/news-01.jpg') }}" alt="Kemenangan terbaru">
+                                    <img src="{{ $publicAsset('img/home-1/news/news-01.jpg') }}" alt="Kemenangan terbaru" loading="lazy" decoding="async" fetchpriority="low">
                                     <div class="video-box">
                                         <a href="{{ route('public.results.show', ['matchSlug' => $latestWinMatch->public_slug]) }}" class="video-btn">
                                             <i class="fa-solid fa-circle-play"></i>
@@ -889,16 +902,16 @@
         </section>
 
         <section class="about-section fix section-padding">
-            <div class="left-shape"><img src="{{ $publicAsset('img/home-1/about/left-shape.png') }}" alt=""></div>
-            <div class="right-shape"><img src="{{ $publicAsset('img/home-1/about/right-shape.png') }}" alt=""></div>
+            <div class="left-shape"><img src="{{ $publicAsset('img/home-1/about/left-shape.png') }}" alt="" loading="lazy" decoding="async" fetchpriority="low"></div>
+            <div class="right-shape"><img src="{{ $publicAsset('img/home-1/about/right-shape.png') }}" alt="" loading="lazy" decoding="async" fetchpriority="low"></div>
             <div class="container">
                 <div class="about-wrapper">
                     <div class="row g-4">
                         <div class="col-lg-6 wow fadeInUp" data-wow-delay=".3s">
                             <div class="about-image">
-                                <img src="{{ $publicAsset('img/home-1/about/about.png') }}" alt="Ilustrasi portal kompetisi">
-                                <div class="thumb1"><img src="{{ $publicAsset('img/home-1/about/about-2.png') }}" alt=""></div>
-                                <div class="thumb2"><img src="{{ $publicAsset('img/home-1/about/about-3.png') }}" alt=""></div>
+                                <img src="{{ $publicAsset('img/home-1/about/about.png') }}" alt="Ilustrasi portal kompetisi" loading="lazy" decoding="async" fetchpriority="low">
+                                <div class="thumb1"><img src="{{ $publicAsset('img/home-1/about/about-2.png') }}" alt="" loading="lazy" decoding="async" fetchpriority="low"></div>
+                                <div class="thumb2"><img src="{{ $publicAsset('img/home-1/about/about-3.png') }}" alt="" loading="lazy" decoding="async" fetchpriority="low"></div>
                             </div>
                         </div>
                         <div class="col-lg-6">
@@ -962,7 +975,7 @@
                                 <div class="our-club-payer-item">
                                     <div class="player-image">
                                         @if ($playerPhoto)
-                                            <img src="{{ $playerPhoto }}" alt="{{ $player->name }}">
+                                            <img src="{{ $playerPhoto }}" alt="{{ $player->name }}" loading="lazy" decoding="async" fetchpriority="low">
                                         @else
                                             <div class="player-avatar-fallback" aria-hidden="true">
                                                 <i class="fa-regular fa-user"></i>
@@ -1022,7 +1035,7 @@
                                     @foreach ($row as $sponsor)
                                         <div class="sponsor-img {{ $loop->even ? 'bb-none' : '' }}">
                                             @if (!empty($sponsor['logo_url']))
-                                                <img src="{{ $sponsor['logo_url'] }}" alt="{{ $sponsor['name'] }}">
+                                                <img src="{{ $sponsor['logo_url'] }}" alt="{{ $sponsor['name'] }}" loading="lazy" decoding="async" fetchpriority="low" width="140" height="54">
                                             @else
                                                 <span>{{ Str::upper(Str::substr($sponsor['short_name'] ?: $sponsor['name'], 0, 2)) }}</span>
                                             @endif

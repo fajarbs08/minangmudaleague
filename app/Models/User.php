@@ -6,7 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -40,9 +40,9 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected bool $latestClubResolved = false;
+    protected bool $clubResolved = false;
 
-    protected ?Club $latestClubCache = null;
+    protected ?Club $clubCache = null;
 
     /**
      * Get the attributes that should be cast.
@@ -69,9 +69,9 @@ class User extends Authenticatable
         return $query->where('is_active', true);
     }
 
-    public function clubs(): HasMany
+    public function club(): HasOne
     {
-        return $this->hasMany(Club::class);
+        return $this->hasOne(Club::class);
     }
 
     public function isAdmin(): bool
@@ -90,7 +90,7 @@ class User extends Authenticatable
             return null;
         }
 
-        $club = $this->latestClub();
+        $club = $this->linkedClub();
 
         return $club?->logo_file_url;
     }
@@ -100,7 +100,7 @@ class User extends Authenticatable
         $source = $this->name;
 
         if ($this->isClubUser()) {
-            $club = $this->latestClub();
+            $club = $this->linkedClub();
             $source = $club?->name ?: $this->name;
         }
 
@@ -115,17 +115,17 @@ class User extends Authenticatable
         return $initials !== '' ? $initials : 'U';
     }
 
-    private function latestClub(): ?Club
+    private function linkedClub(): ?Club
     {
-        if ($this->relationLoaded('clubs')) {
-            return $this->getRelation('clubs')->sortByDesc('id')->first();
+        if ($this->relationLoaded('club')) {
+            return $this->getRelation('club');
         }
 
-        if (! $this->latestClubResolved) {
-            $this->latestClubCache = $this->clubs()->latest('id')->first();
-            $this->latestClubResolved = true;
+        if (! $this->clubResolved) {
+            $this->clubCache = $this->club()->first();
+            $this->clubResolved = true;
         }
 
-        return $this->latestClubCache;
+        return $this->clubCache;
     }
 }

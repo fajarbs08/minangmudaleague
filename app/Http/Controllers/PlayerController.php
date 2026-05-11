@@ -41,9 +41,11 @@ class PlayerController extends Controller
         }
 
         $clubs = Club::query()
+            ->select(['id', 'user_id', 'name'])
             ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
             ->orderBy('name')
             ->get();
+        $clubIds = $clubs->modelKeys();
 
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
@@ -51,8 +53,11 @@ class PlayerController extends Controller
         if ($this->isHistoryView()) {
             $players = SeasonPlayer::query()
                 ->where('season_id', $this->seasonContext->currentId())
-                ->with(['seasonClub', 'primaryAgeGroup'])
-                ->whereIn('club_id', $clubs->pluck('id'))
+                ->with([
+                    'seasonClub:id,season_id,club_id,name,logo_url',
+                    'primaryAgeGroup:id,name',
+                ])
+                ->whereIn('club_id', $clubIds)
                 ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
                 ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereJsonContains('registered_age_group_ids', (int) $ageGroupId))
                 ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
@@ -83,9 +88,20 @@ class PlayerController extends Controller
             $canDownloadIdCards = false;
             $idCardExportUrl = null;
         } else {
+            $playerRelations = [
+                'club:id,name,logo_url',
+                'primaryAgeGroup:id,name',
+            ];
+
+            if ($selectedAgeGroupId > 0) {
+                $playerRelations['ageRegistrations'] = fn ($query) => $query
+                    ->where('age_group_id', $selectedAgeGroupId)
+                    ->with('ageGroup:id,name');
+            }
+
             $players = Player::query()
-                ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
-                ->whereIn('club_id', $clubs->pluck('id'))
+                ->with($playerRelations)
+                ->whereIn('club_id', $clubIds)
                 ->when($request->input('club_id'), fn ($query, $clubId) => $query->where('club_id', $clubId))
                 ->when($request->input('age_group_id'), fn ($query, $ageGroupId) => $query->whereHas('ageRegistrations', fn ($inner) => $inner->where('age_group_id', $ageGroupId)))
                 ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
@@ -161,7 +177,7 @@ class PlayerController extends Controller
             'title' => 'Pemain',
             'players' => $players,
             'clubs' => $clubs,
-            'ageGroups' => AgeGroup::competition()->get(),
+            'ageGroups' => AgeGroup::competition()->get(['id', 'name']),
             'canDownloadIdCards' => $canDownloadIdCards,
             'idCardExportUrl' => $idCardExportUrl,
         ]);
@@ -706,7 +722,7 @@ class PlayerController extends Controller
         $this->syncAgeRegistrations($player, $ageRegistrations);
         $this->seasonSnapshotService->syncPlayerSnapshot($player->fresh(['club', 'ageRegistrations.ageGroup']));
 
-        return redirect()->route('players.index')->with('status', 'Data pemain berhasil diperbarui.');
+        return redirect()->route('players.show', $player)->with('status', 'Data pemain berhasil diperbarui.');
     }
 
     public function submit(Player $player)
@@ -758,10 +774,10 @@ class PlayerController extends Controller
             'citizenship' => ['required', 'in:WNI,WNA'],
             'birth_place' => ['required', 'string', 'max:255'],
             'photo_file' => [blank($player?->photo_path) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512'],
-            'diploma_file' => [blank($player?->diploma_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'report_file' => [blank($player?->report_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'birth_certificate_file' => [blank($player?->birth_certificate_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
-            'family_card_file' => [blank($player?->family_card_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:4096'],
+            'diploma_file' => [blank($player?->diploma_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
+            'report_file' => [blank($player?->report_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
+            'birth_certificate_file' => [blank($player?->birth_certificate_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
+            'family_card_file' => [blank($player?->family_card_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:512'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
             'weight_kg' => ['nullable', 'integer', 'min:10', 'max:200'],

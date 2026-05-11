@@ -1,0 +1,267 @@
+PRESENCE_HMAC_SECRET=KYS5gdhWqzvDxPAIrdOs6gt3BvxukPstHlDcZ75TFzOmyslROBzM3ClrCw2wDyC6
+PRESENCE_TOKEN_AUDIENCE=analytics-live-presence
+PRESENCE_WEBSITE_ID=2d9015fc-2f87-492f-962f-005b2ed426ce
+PRESENCE_WS_URL=wss://analytics.hanara.id/ws/live
+
+
+Tambah ke config/services.php
+'presence' => [
+    'secret' => env('PRESENCE_HMAC_SECRET'),
+    'audience' => env('PRESENCE_TOKEN_AUDIENCE', 'analytics-live-presence'),
+    'website_id' => env('PRESENCE_WEBSITE_ID'),
+    'ws_url' => env('PRESENCE_WS_URL', 'wss://analytics.hanara.id/ws/live'),
+],
+Buat service token
+File: app/Services/PresenceTokenService.php
+<?php
+namespace App\Services;
+use Illuminate\Support\Str;
+class PresenceTokenService
+{
+    public function issue(string $issuer, string $websiteId, string $visitorId, string $tabId, int $ttl = 300): string
+    {
+        $now = time();
+        $payload = [
+            'iss' => $issuer,
+            'aud' => config('services.presence.audience', 'analytics-live-presence'),
+            'websiteId' => $websiteId,
+            'visitorId' => $visitorId,
+            'tabId' => $tabId,
+            'iat' => $now,
+            'exp' => $now + $ttl,
+            'jti' => (string) Str::uuid(),
+        ];
+        $encodedPayload = $this->base64UrlEncode(json_encode($payload, JSON_UNESCAPED_SLASHES));
+        $signature = hash_hmac(
+            'sha256',
+            $encodedPayload,
+            (string) config('services.presence.secret'),
+            true,
+        );
+        return $encodedPayload . '.' . $this->base64UrlEncode($signature);
+    }
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+}
+Buat controller token
+File: app/Http/Controllers/PresenceTokenController.php
+<?php
+namespace App\Http\Controllers;
+use App\Services\PresenceTokenService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+class PresenceTokenController extends Controller
+{
+    public function __invoke(Request $request, PresenceTokenService $presenceTokenService): JsonResponse
+    {
+        $validated = $request->validate([
+            'tabId' => ['required', 'string', 'max:100'],
+        ]);
+        $websiteId = (string) config('services.presence.website_id');
+        abort_unless($websiteId, 500, 'Presence website ID is not configured.');
+        $visitorId = (string) ($request->cookie('hanara_visitor_id') ?: Str::uuid());
+        $issuer = $request->getHost();
+        $token = $presenceTokenService->issue(
+            issuer: $issuer,
+            websiteId: $websiteId,
+            visitorId: $visitorId,
+            tabId: $validated['tabId'],
+            ttl: 300,
+        );
+        return response()->json([
+            'websiteId' => $websiteId,
+            'visitorId' => $visitorId,
+            'tabId' => $validated['tabId'],
+            'token' => $token,
+            'wsUrl' => config('services.presence.ws_url'),
+            'heartbeatMs' => 15000,
+        ])->cookie(
+            'hanara_visitor_id',
+            $visitorId,
+            60 * 24 * 365,
+            '/',
+            null,
+            true,
+            false,
+            false,
+            'Lax',
+        );
+    }
+}
+Tambahkan route
+File: routes/web.php
+use App\Http\Controllers\PresenceTokenController;
+Route::post('/presence/token', PresenceTokenController::class)->name('presence.token');
+Snippet JS untuk layout utama Blade
+Pasang sebelum </body>:
+<script>
+(() => {
+  const TOKEN_URL = @json(route('presence.token'));
+  const HEARTBEAT_FALLBACK_MS = 15000;
+  const TAB_KEY = 'hanara-live-tab-id';
+  function getOrCreateTabId() {
+    let tabId = sessionStorage.getItem(TAB_KEY);
+    if (!tabId) {
+      tabId = crypto.randomUUID();
+      sessionStorage.setItem(TAB_KEY, tabId);
+    }
+    return tabId;
+  }
+  const tabId = getOrCreateTabId();
+  let config = null;
+  let ws = null;
+  let heartbeatTimer = null;
+  let reconnectTimer = null;
+  let reconnectDelay = 1000;
+  let lastPath = location.pathname + location.search + location.hash;
+  async function fetchConfig() {
+    const response = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ tabId }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch presence token');
+    }
+    config = await response.json();
+    return config;
+  }
+  function buildPayload(type) {
+    return {
+      type,
+      websiteId: config.websiteId,
+      visitorId: config.visitorId,
+      tabId: config.tabId,
+      token: config.token,
+      path: location.pathname + location.search + location.hash,
+      title: document.title || '',
+      hostname: location.hostname,
+      referrer: document.referrer || '',
+    };
+  }
+  function send(type) {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !config) return;
+    ws.send(JSON.stringify(buildPayload(type)));
+  }
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      send('presence:heartbeat');
+    }, config?.heartbeatMs || HEARTBEAT_FALLBACK_MS);
+  }
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null;
+      reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+      try {
+        await fetchConfig();
+        connect();
+      } catch (_) {
+        scheduleReconnect();
+      }
+    }, reconnectDelay);
+  }
+  function connect() {
+    ws = new WebSocket(config.wsUrl);
+    ws.addEventListener('open', () => {
+      reconnectDelay = 1000;
+      send('presence:join');
+      startHeartbeat();
+    });
+    ws.addEventListener('close', () => {
+      stopHeartbeat();
+      scheduleReconnect();
+    });
+    ws.addEventListener('error', () => {
+      if (ws) ws.close();
+    });
+  }
+  function handlePathChange() {
+    const nextPath = location.pathname + location.search + location.hash;
+    if (nextPath === lastPath) return;
+    lastPath = nextPath;
+    send('presence:navigate');
+  }
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+  history.pushState = function () {
+    originalPushState.apply(this, arguments);
+    handlePathChange();
+  };
+  history.replaceState = function () {
+    originalReplaceState.apply(this, arguments);
+    handlePathChange();
+  };
+  window.addEventListener('popstate', handlePathChange);
+  window.addEventListener('hashchange', handlePathChange);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      send('presence:heartbeat');
+    }
+  });
+  window.addEventListener('beforeunload', () => {
+    send('presence:leave');
+  });
+  window.addEventListener('pagehide', () => {
+    send('presence:leave');
+  });
+  fetchConfig().then(connect).catch(() => {
+    scheduleReconnect();
+  });
+})();
+</script>
+Kalau sekalian ingin sinkron dengan tracker Umami
+Tambahkan fungsi before-send:
+<script>
+window.hanaraBeforeSend = function(type, payload) {
+  try {
+    const visitorId = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('hanara_visitor_id='))
+      ?.split('=')[1];
+    if (!payload || !visitorId) return payload;
+    return {
+      ...payload,
+      id: decodeURIComponent(visitorId),
+    };
+  } catch (_) {
+    return payload;
+  }
+};
+</script>
+<script
+  async
+  src="https://analytics.hanara.id/hanara-analytics.js"
+  data-website-id="2d9015fc-2f87-492f-962f-005b2ed426ce"
+  data-host-url="https://analytics.hanara.id"
+  data-before-send="hanaraBeforeSend"
+></script>
+Checklist developer
+1. Tambah env.
+2. Tambah config services.php.
+3. Buat PresenceTokenService.
+4. Buat PresenceTokenController.
+5. Tambah route /presence/token.
+6. Tempel snippet JS di layout utama.
+7. Pastikan meta CSRF ada:
+<meta name="csrf-token" content="{{ csrf_token() }}">
+Uji
+1. buka halaman SPMB
+2. cek tab browser membuka koneksi ke wss://analytics.hanara.id/ws/live
+3. cek request POST /presence/token sukses
+4. tutup tab, status harus hilang cepat atau maksimal fallback TTL server

@@ -13,6 +13,7 @@ use App\Services\SeasonContext;
 use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ClubController extends Controller
@@ -40,6 +41,17 @@ class ClubController extends Controller
 
         $clubs = $this->isHistoryView()
             ? SeasonClub::query()
+                ->select([
+                    'id',
+                    'club_id',
+                    'name',
+                    'short_name',
+                    'zone',
+                    'logo_url',
+                    'statement_file_path',
+                    'verification_status',
+                    'verification_notes',
+                ])
                 ->where('season_id', $this->seasonContext->currentId())
                 ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
                 ->withCount([
@@ -59,6 +71,16 @@ class ClubController extends Controller
                 ->paginate(10)
                 ->withQueryString()
             : Club::query()
+                ->select([
+                    'id',
+                    'name',
+                    'short_name',
+                    'zone',
+                    'logo_url',
+                    'statement_file_path',
+                    'verification_status',
+                    'verification_notes',
+                ])
                 ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
                 ->withCount(['officials', 'players', 'lineupLists'])
                 ->when($request->input('search'), function ($query, $search) {
@@ -124,7 +146,7 @@ class ClubController extends Controller
         abort_unless($user->isAdmin() || $user->isClubUser(), 403);
 
         if ($user->isClubUser()) {
-            abort_if($user->clubs()->exists(), 403);
+            abort_if($user->club()->exists(), 403);
         }
 
         return view('competition.clubs.create', [
@@ -150,7 +172,7 @@ class ClubController extends Controller
         abort_unless($user->isAdmin() || $user->isClubUser(), 403);
 
         if ($user->isClubUser()) {
-            abort_if($user->clubs()->exists(), 403);
+            abort_if($user->club()->exists(), 403);
         }
 
         $data = $this->validatedData($request);
@@ -162,7 +184,7 @@ class ClubController extends Controller
         $club = Club::create($data);
         $this->seasonSnapshotService->syncClubSnapshot($club);
 
-        return redirect()->route('clubs.index')->with('status', 'Data klub berhasil ditambahkan.');
+        return redirect()->route('clubs.show', $club)->with('status', 'Data klub berhasil ditambahkan.');
     }
 
     public function edit(Club $club)
@@ -249,7 +271,7 @@ class ClubController extends Controller
             $this->imageAssetService->deleteDocumentUpload($oldStatementPath);
         }
 
-        return redirect()->route('clubs.index')->with('status', 'Data klub berhasil diperbarui.');
+        return redirect()->route('clubs.show', $club)->with('status', 'Data klub berhasil diperbarui.');
     }
 
     public function submit(Club $club)
@@ -289,7 +311,11 @@ class ClubController extends Controller
     private function validatedData(Request $request, ?Club $club = null): array
     {
         $data = $request->validate([
-            'user_id' => ['nullable', 'exists:users,id'],
+            'user_id' => [
+                'nullable',
+                'exists:users,id',
+                Rule::unique('clubs', 'user_id')->ignore($club?->id),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'short_name' => ['required', 'string', 'max:50'],
             'manager_name' => ['required', 'string', 'max:255'],
@@ -297,7 +323,7 @@ class ClubController extends Controller
             'zone' => ['required', 'string', 'max:255'],
             'founded_year' => ['required', 'integer', 'min:1900', 'max:'.date('Y')],
             'logo_file' => [blank($club?->logo_url) ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:512', 'dimensions:min_width=120,min_height=120'],
-            'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:1024'],
+            'statement_file' => [blank($club?->statement_file_path) ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:512'],
             'address' => ['required', 'string'],
             'training_address' => ['required', 'string'],
             'notes' => ['nullable', 'string'],

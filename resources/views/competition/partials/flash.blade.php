@@ -1,8 +1,35 @@
 @if (session('status'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('status') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1095; max-width: min(100vw, 420px);">
+        <div
+            class="toast border-0 shadow-sm"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            data-bs-autohide="true"
+            data-bs-delay="3500"
+            data-flash-toast
+        >
+            <div class="toast-header bg-success text-white border-0">
+                <strong class="me-auto">Berhasil</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Tutup"></button>
+            </div>
+            <div class="toast-body bg-white text-dark">
+                {{ session('status') }}
+            </div>
+        </div>
     </div>
+
+    @once
+        @push('scripts')
+            <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('[data-flash-toast]').forEach(function (node) {
+                    bootstrap.Toast.getOrCreateInstance(node).show();
+                });
+            });
+            </script>
+        @endpush
+    @endonce
 @endif
 
 @if ($errors->any())

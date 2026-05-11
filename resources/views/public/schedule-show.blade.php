@@ -475,13 +475,13 @@
                 <div class="left-item">
                     <div class="thumb">
                         <h3>{{ $homeClubName }}</h3>
-                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-hero'])
+                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-hero', 'width' => 78, 'height' => 78])
                     </div>
                 </div>
                 <span class="score-result {{ $statusBadgeClass }}">{{ $matchSchedule?->is_finished ? $matchSchedule?->score_label : ($matchSchedule?->kickoff_time?->format('H:i') ?: 'VS') }}</span>
                 <div class="left-item">
                     <div class="thumb">
-                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-hero'])
+                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-hero', 'width' => 78, 'height' => 78])
                         <h3>{{ $awayClubName }}</h3>
                     </div>
                 </div>
@@ -497,7 +497,7 @@
                                 <div class="club-lineup-head">
                                     <h3>LINE UPS</h3>
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-head', 'width' => 58, 'height' => 58])
                                         {{ $homeClubName }}
                                     </span>
                                 </div>
@@ -548,12 +548,12 @@
                             <div class="match-information-box schedule-info-card">
                                 <div class="match-head-title">
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $homeClubLogo, 'label' => $homeClubName, 'badgeClass' => 'lap-schedule-club-mark is-head', 'width' => 58, 'height' => 58])
                                         <span class="club-name">{{ $homeClubName }}</span>
                                     </span>
                                     <h3>DETAIL JADWAL</h3>
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-head', 'width' => 58, 'height' => 58])
                                         <span class="club-name">{{ $awayClubName }}</span>
                                     </span>
                                 </div>
@@ -576,7 +576,7 @@
                                 <div class="club-lineup-head">
                                     <h3>LINE UPS</h3>
                                     <span>
-                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-head'])
+                                        @include('public.partials.identity-mark', ['imageUrl' => $awayClubLogo, 'label' => $awayClubName, 'badgeClass' => 'lap-schedule-club-mark is-head', 'width' => 58, 'height' => 58])
                                         {{ $awayClubName }}
                                     </span>
                                 </div>

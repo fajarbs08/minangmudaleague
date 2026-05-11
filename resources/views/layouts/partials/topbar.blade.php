@@ -180,7 +180,7 @@
                     </div>
 
                     @php
-                         $contextSwitchUrl = request()->routeIs('public.*') ? route('dashboard.home') : route('public.home');
+                         $contextSwitchUrl = request()->routeIs('public.*') ? route('dashboard.index') : route('public.home');
                          $contextSwitchLabel = request()->routeIs('public.*') ? 'Dashboard' : 'Beranda';
                          $contextSwitchIcon = request()->routeIs('public.*') ? 'layout-dashboard' : 'house';
                     @endphp

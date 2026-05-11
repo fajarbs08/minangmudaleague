@@ -9,11 +9,13 @@
         /* ================================
            Mobile Menu Js Start
         ================================ */
-        $('#mobile-menu').meanmenu({
-            meanMenuContainer: '.mobile-menu',
-            meanScreenWidth: "1199",
-            meanExpand: ['<i class="far fa-plus"></i>'],
-        });
+        if ($.fn.meanmenu && $('#mobile-menu').length) {
+            $('#mobile-menu').meanmenu({
+                meanMenuContainer: '.mobile-menu',
+                meanScreenWidth: "1199",
+                meanExpand: ['<i class="far fa-plus"></i>'],
+            });
+        }
     
         /* ================================
            Sidebar Toggle Js Start
@@ -50,62 +52,71 @@
         /* ================================
            Video & Image Popup Js Start
         ================================ */
-        $(".img-popup").magnificPopup({
-            type: "image",
-            gallery: {
-                enabled: true,
-            },
-        });
+        if ($.fn.magnificPopup) {
+            $(".img-popup").magnificPopup({
+                type: "image",
+                gallery: {
+                    enabled: true,
+                },
+            });
 
-        $(".video-popup").magnificPopup({
-            type: "iframe",
-            callbacks: {},
-        });
+            $(".video-popup").magnificPopup({
+                type: "iframe",
+                callbacks: {},
+            });
+        }
   
         /* ================================
            Counterup Js Start
         ================================ */
-        $(".count").counterUp({
-            delay: 15,
-            time: 4000,
-        });
+        if ($.fn.counterUp) {
+            $(".count").counterUp({
+                delay: 15,
+                time: 4000,
+            });
+        }
   
         /* ================================
            Wow Animation Js Start
         ================================ */
-        new WOW().init();
+        if (typeof WOW !== 'undefined') {
+            new WOW().init();
+        }
   
         /* ================================
            Nice Select Js Start
         ================================ */
-        if ($('.single-select').length) {
+        if ($.fn.niceSelect && $('.single-select').length) {
             $('.single-select').niceSelect();
         }
 
         //>> Hero-1 Slider Start <<//
         const sliderActive2 = ".hero-slider";
-        const sliderInit2 = new Swiper(sliderActive2, {
-            loop: true,
-            slidesPerView: 1,
-            effect: "fade",
-            speed: 3000,
-            autoplay: {
-                delay: 3000,
-                disableOnInteraction: false,
-            },
-            pagination: {
-                el: ".gt-product-dot",
-                clickable: true,
-                renderBullet: function(index, className) {
-                    const dotContent = document.querySelectorAll(".gt-product-dot .dot-content");
-                    return `
-                        <span class="${className}">
-                            ${dotContent[index]?.outerHTML || ""}
-                        </span>
-                    `;
+        let sliderInit2 = null;
+        if (typeof Swiper !== 'undefined' && document.querySelector(sliderActive2)) {
+            sliderInit2 = new Swiper(sliderActive2, {
+                loop: true,
+                slidesPerView: 1,
+                effect: "fade",
+                speed: 3000,
+                autoplay: {
+                    delay: 3000,
+                    disableOnInteraction: false,
                 },
-            },
-        });
+                pagination: {
+                    el: ".gt-product-dot",
+                    clickable: true,
+                    renderBullet: function(index, className) {
+                        const dotContent = document.querySelectorAll(".gt-product-dot .dot-content");
+                        return `
+                            <span class="${className}">
+                                ${dotContent[index]?.outerHTML || ""}
+                            </span>
+                        `;
+                    },
+                },
+            });
+        }
 
         function animated_swiper(selector, init) {
             const animated = function animated() {
@@ -133,12 +144,14 @@
             });
             init.on("slideChange", animated);
         }
-        animated_swiper(sliderActive2, sliderInit2);
+        if (sliderInit2) {
+            animated_swiper(sliderActive2, sliderInit2);
+        }
 
         /* ================================
            Team Slider Js Start
         ================================ */
-        if ($('.team-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.team-slider').length > 0) {
             const teamSlider = new Swiper(".team-slider", {
                 spaceBetween: 30,
                 speed: 1300,
@@ -163,7 +176,7 @@
             });
         }
 
-        if ($('.team-slider-3').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.team-slider-3').length > 0) {
             const teamSlider3 = new Swiper(".team-slider-3", {
                 spaceBetween: 30,
                 speed: 1300,
@@ -187,7 +200,7 @@
             });
         }
 
-        if ($('.brand-slider-3').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.brand-slider-3').length > 0) {
             const brandSlider3 = new Swiper(".brand-slider-3", {
                 spaceBetween: 0,
                 speed: 1300,
@@ -207,7 +220,7 @@
         }
 
         //>> Testimonial Slider Start <<//
-        if ($('.tetsimonial-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.tetsimonial-slider').length > 0) {
             const tetsimonialSlider = new Swiper(".tetsimonial-slider", {
                 spaceBetween: 30,
                 speed: 1500,
@@ -232,7 +245,7 @@
             });
         }
 
-        if ($('.testimonial-slider-3').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.testimonial-slider-3').length > 0) {
             const testimonialSlider3 = new Swiper(".testimonial-slider-3", {
                 spaceBetween: 30,
                 speed: 1300,
@@ -247,7 +260,7 @@
         /* ================================
            Match Result Slider Js Start
         ================================ */
-        if ($('.match-result-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.match-result-slider').length > 0) {
             const matchResultSlider = new Swiper(".match-result-slider", {
                 spaceBetween: 0,
                 speed: 1300,
@@ -267,7 +280,7 @@
             });
         }
 
-        if ($('.upcoming-match-slider-3').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.upcoming-match-slider-3').length > 0) {
             const upcomingMatchSlider3 = new Swiper(".upcoming-match-slider-3", {
                 spaceBetween: 30,
                 speed: 1300,
@@ -296,7 +309,7 @@
         /* ================================
            Ticket Box Slider Js Start
         ================================ */
-        if ($('.ticket-box-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.ticket-box-slider').length > 0) {
             const ticketBoxSlider = new Swiper(".ticket-box-slider", {
                 spaceBetween: 30,
                 speed: 1300,
@@ -321,7 +334,7 @@
         /* ================================
            Upcomming Slider Js Start
         ================================ */
-        if ($('.upcomming-match-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.upcomming-match-slider').length > 0) {
             const upcommingMatchSlider = new Swiper(".upcomming-match-slider", {
                 direction: "vertical",
                 spaceBetween: 24,
@@ -343,7 +356,7 @@
         /* ================================
            Footer Instagram Slider Js Start
         ================================ */
-        if ($('.footer-instagram-slider').length > 0) {
+        if (typeof Swiper !== 'undefined' && $('.footer-instagram-slider').length > 0) {
             const footerInstagramSlider = new Swiper(".footer-instagram-slider", {
                 spaceBetween: 16,
                 speed: 1300,
@@ -369,7 +382,7 @@
         /* ================================
            Parallaxie Js Start
         ================================ */
-        if ($('.parallaxie').length && $(window).width() > 991) {
+        if ($.fn.parallaxie && $('.parallaxie').length && $(window).width() > 991) {
             if ($(window).width() > 768) {
                 $('.parallaxie').parallaxie({
                     speed: 0.55,
@@ -408,7 +421,7 @@
         /* ================================
            Section Title Animation Js Start
         ================================ */
-        if ($(".tv_hero_title").length) {
+        if ($(".tv_hero_title").length && typeof gsap !== 'undefined' && typeof SplitText !== 'undefined') {
             gsap.registerPlugin(SplitText);
 
             $(".tv_hero_title").each(function() {
@@ -497,7 +510,7 @@
             });
         }
 
-        if (window.matchMedia("(min-width: 1200px)").matches) {
+        if (typeof gsap !== 'undefined' && window.matchMedia("(min-width: 1200px)").matches) {
             document.querySelectorAll(".tv-desti-content").forEach((section) => {
                 let items = section.querySelectorAll(".tv-desti-item");
 

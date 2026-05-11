@@ -180,7 +180,7 @@ class SearchController extends Controller
 
         return $user->isAdmin()
             ? null
-            : $user->clubs()->pluck('id');
+            : Club::query()->where('user_id', $user->id)->pluck('id');
     }
 
     private function applySearchTerms(Builder $query, array $columns, string $keyword): Builder

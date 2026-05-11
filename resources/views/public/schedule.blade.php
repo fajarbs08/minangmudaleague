@@ -472,9 +472,9 @@
                                         <td>{{ optional($match->match_date)->translatedFormat('d M Y') ?: 'Tanggal menyusul' }}</td>
                                         <td>
                                             <div class="team">
-                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_a_logo_file_url ?: $clubLogoUrl($match->clubA), 'label' => $match->club_a_display_name ?: 'Klub A', 'badgeClass' => 'lap-schedule-club-mark'])
+                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_a_logo_file_url ?: $clubLogoUrl($match->clubA), 'label' => $match->club_a_display_name ?: 'Klub A', 'badgeClass' => 'lap-schedule-club-mark', 'width' => 36, 'height' => 36])
                                                 <span>{{ $match->club_a_short_name ?: $match->club_a_display_name ?: 'Klub A' }} vs {{ $match->club_b_short_name ?: $match->club_b_display_name ?: 'Klub B' }}</span>
-                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_b_logo_file_url ?: $clubLogoUrl($match->clubB), 'label' => $match->club_b_display_name ?: 'Klub B', 'badgeClass' => 'lap-schedule-club-mark'])
+                                                @include('public.partials.identity-mark', ['imageUrl' => $match->club_b_logo_file_url ?: $clubLogoUrl($match->clubB), 'label' => $match->club_b_display_name ?: 'Klub B', 'badgeClass' => 'lap-schedule-club-mark', 'width' => 36, 'height' => 36])
                                                 <span class="visually-hidden">{{ $match->club_a_display_name ?: 'Klub A' }} {{ $match->club_b_display_name ?: 'Klub B' }}</span>
                                             </div>
                                         </td>

@@ -31,6 +31,7 @@ import {
   Moon,
   Plus,
   PlusCircle,
+  PowerOff,
   RefreshCcw,
   Search,
   Send,
@@ -44,6 +45,7 @@ import {
   UserRound,
   Users,
   UsersRound,
+  UserX,
   X,
 } from 'lucide'
 
@@ -81,6 +83,7 @@ export const appIcons = {
   Moon,
   Plus,
   PlusCircle,
+  PowerOff,
   RefreshCcw,
   Search,
   Send,
@@ -94,5 +97,6 @@ export const appIcons = {
   UserRound,
   Users,
   UsersRound,
+  UserX,
   X,
 }
