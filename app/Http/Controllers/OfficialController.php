@@ -40,18 +40,21 @@ class OfficialController extends Controller
             $direction = 'desc';
         }
 
-        $clubs = Club::query()
-            ->select(['id', 'user_id', 'name'])
-            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
-            ->orderBy('name')
-            ->get();
-        $clubIds = $clubs->modelKeys();
+        $isHistoryView = $this->isHistoryView();
+        $clubs = $isHistoryView
+            ? $this->availableSeasonClubsForHistory()
+            : Club::query()
+                ->select(['id', 'user_id', 'name'])
+                ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+                ->orderBy('name')
+                ->get();
+        $clubIds = $isHistoryView ? $clubs->pluck('id')->all() : $clubs->modelKeys();
 
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
         $idCardFilterParams = [];
 
-        if ($this->isHistoryView()) {
+        if ($isHistoryView) {
             $officials = SeasonOfficial::query()
                 ->where('season_id', $this->seasonContext->currentId())
                 ->with([
@@ -341,13 +344,9 @@ class OfficialController extends Controller
 
     public function show(Official $official)
     {
-        $this->ensureClubAccess($official->club_id);
-
         if ($this->isHistoryView()) {
-            $seasonOfficial = SeasonOfficial::query()
+            $seasonOfficial = $this->authorizedSeasonOfficialQuery($official->id)
                 ->with(['seasonClub', 'ageGroup'])
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('official_id', $official->id)
                 ->firstOrFail();
 
             return view('competition.officials.show', [
@@ -356,6 +355,7 @@ class OfficialController extends Controller
             ]);
         }
 
+        $this->ensureClubAccess($official->club_id);
         $official->load(['club', 'reviewer', 'ageRegistrations.ageGroup']);
 
         return view('competition.officials.show', [
@@ -366,16 +366,12 @@ class OfficialController extends Controller
 
     public function downloadDocument(Official $official, string $document)
     {
-        $this->ensureClubAccess($official->club_id);
-
         $documents = $this->downloadableDocumentFieldMap();
 
         abort_unless(array_key_exists($document, $documents), 404);
 
         if ($this->isHistoryView()) {
-            $seasonOfficial = SeasonOfficial::query()
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('official_id', $official->id)
+            $seasonOfficial = $this->authorizedSeasonOfficialQuery($official->id)
                 ->firstOrFail();
 
             $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonOfficial->{$documents[$document]});
@@ -385,6 +381,7 @@ class OfficialController extends Controller
             return response()->file($absolutePath);
         }
 
+        $this->ensureClubAccess($official->club_id);
         $absolutePath = $this->imageAssetService->documentAbsolutePath($official->{$documents[$document]});
 
         abort_unless($absolutePath, 404);
@@ -1089,6 +1086,36 @@ class OfficialController extends Controller
             Club::where('id', $clubId)->where('user_id', $user->id)->exists(),
             403
         );
+    }
+
+    private function availableSeasonClubsForHistory()
+    {
+        $user = auth()->user();
+
+        return SeasonClub::query()
+            ->select(['club_id', 'name'])
+            ->where('season_id', $this->seasonContext->currentId())
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (SeasonClub $seasonClub) => (object) [
+                'id' => $seasonClub->club_id,
+                'name' => $seasonClub->name,
+            ])
+            ->values();
+    }
+
+    private function authorizedSeasonOfficialQuery(int $officialId)
+    {
+        $user = auth()->user();
+
+        return SeasonOfficial::query()
+            ->where('season_id', $this->seasonContext->currentId())
+            ->where('official_id', $officialId)
+            ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
+                'seasonClub',
+                fn ($seasonClubQuery) => $seasonClubQuery->where('user_id', $user->id)
+            ));
     }
 
     private function isHistoryView(): bool

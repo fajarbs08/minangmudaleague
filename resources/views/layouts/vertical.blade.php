@@ -31,6 +31,19 @@
         @include('layouts.partials.club-onboarding-modal')
 
         @include('layouts.partials.vendor-scripts')
+        <script>
+            (function () {
+                if (!('serviceWorker' in navigator)) {
+                    return;
+                }
+
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(function () {
+                        // PWA support is progressive; ignore registration failures.
+                    });
+                });
+            })();
+        </script>
         @stack('scripts')
 
     </body>

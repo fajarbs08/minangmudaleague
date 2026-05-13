@@ -201,12 +201,8 @@ class ClubController extends Controller
 
     public function show(Club $club)
     {
-        $this->authorizeClub($club);
-
         if ($this->isHistoryView()) {
-            $seasonClub = SeasonClub::query()
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('club_id', $club->id)
+            $seasonClub = $this->authorizedSeasonClubQuery($club->id)
                 ->withCount([
                     'seasonOfficials as officials_count',
                     'seasonPlayers as players_count',
@@ -220,6 +216,8 @@ class ClubController extends Controller
             ]);
         }
 
+        $this->authorizeClub($club);
+
         return view('competition.clubs.show', [
             'title' => 'Detail Klub',
             'club' => $club->loadCount(['officials', 'players', 'lineupLists']),
@@ -228,12 +226,8 @@ class ClubController extends Controller
 
     public function downloadStatement(Club $club)
     {
-        $this->authorizeClub($club);
-
         if ($this->isHistoryView()) {
-            $seasonClub = SeasonClub::query()
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('club_id', $club->id)
+            $seasonClub = $this->authorizedSeasonClubQuery($club->id)
                 ->firstOrFail();
 
             $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonClub->statement_file_path);
@@ -242,6 +236,8 @@ class ClubController extends Controller
 
             return response()->file($absolutePath);
         }
+
+        $this->authorizeClub($club);
 
         $absolutePath = $this->imageAssetService->documentAbsolutePath($club->statement_file_path);
 
@@ -347,6 +343,16 @@ class ClubController extends Controller
         $user = auth()->user();
 
         abort_unless($user->isAdmin() || $club->user_id === $user->id, 403);
+    }
+
+    private function authorizedSeasonClubQuery(int $clubId)
+    {
+        $user = auth()->user();
+
+        return SeasonClub::query()
+            ->where('season_id', $this->seasonContext->currentId())
+            ->where('club_id', $clubId)
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id));
     }
 
     private function deleteStoredFiles(Club $club): void

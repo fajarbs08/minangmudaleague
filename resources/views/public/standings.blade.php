@@ -95,8 +95,11 @@
         }
 
         .lap-public .latest-world-ranking-table .table-responsive {
+            width: 100%;
+            max-width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         .lap-public .latest-world-ranking-table table thead th {
@@ -154,6 +157,10 @@
             }
         }
 
+        .lap-public .latest-world-ranking-table table.standings-table.is-empty {
+            width: 100%;
+        }
+
         .lap-public .latest-world-ranking-table table thead {
             background: #f7f7f7;
         }
@@ -173,6 +180,11 @@
             font-size: 18px;
             font-weight: 700;
             color: #030523;
+        }
+
+        .lap-public .latest-world-ranking-table table .standings-empty-cell {
+            padding: 24px 16px;
+            white-space: normal;
         }
 
         .lap-public .latest-world-ranking-table table .team {
@@ -354,9 +366,13 @@
         .lap-public .standings-section-grid {
             display: grid;
             gap: 26px;
+            min-width: 0;
         }
 
         .lap-public .standings-section-card {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
             border: 1px solid rgba(3, 5, 35, 0.08);
             background: #ffffff;
             box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
@@ -413,9 +429,12 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 28px;
             margin-top: 34px;
+            min-width: 0;
         }
 
         .lap-public .standings-leaderboard-card {
+            min-width: 0;
+            max-width: 100%;
             border: 1px solid rgba(3, 5, 35, 0.08);
             background: #ffffff;
             box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);

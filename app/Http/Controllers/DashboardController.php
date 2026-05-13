@@ -449,6 +449,13 @@ class DashboardController extends Controller
             ->map(fn ($value) => (int) $value)
             ->values();
 
+        $matchDateOptions = (clone $resultsQuery)
+            ->whereNotNull('match_date')
+            ->reorder()
+            ->get(['match_date'])
+            ->pluck('match_date')
+            ->filter();
+
         $resultFilterOptions = [
             'age_groups' => AgeGroup::competition()
                 ->whereIn('id', $ageGroupIds)
@@ -458,23 +465,21 @@ class DashboardController extends Controller
                     'value' => (string) $ageGroup->id,
                     'label' => $ageGroup->name,
                 ]),
-            'years' => (clone $resultsQuery)
-                ->selectRaw('DISTINCT YEAR(match_date) as year')
-                ->whereNotNull('match_date')
-                ->orderByDesc('year')
-                ->pluck('year')
-                ->filter()
+            'years' => $matchDateOptions
+                ->map(fn ($matchDate) => \Illuminate\Support\Carbon::parse($matchDate)->year)
+                ->unique()
+                ->sortDesc()
+                ->values()
                 ->map(fn ($year) => [
                     'value' => (string) $year,
                     'label' => (string) $year,
                 ])
                 ->values(),
-            'dates' => (clone $resultsQuery)
-                ->selectRaw('DISTINCT DATE(match_date) as match_date_value')
-                ->whereNotNull('match_date')
-                ->orderBy('match_date_value')
-                ->pluck('match_date_value')
-                ->filter()
+            'dates' => $matchDateOptions
+                ->map(fn ($matchDate) => \Illuminate\Support\Carbon::parse($matchDate)->toDateString())
+                ->unique()
+                ->sort()
+                ->values()
                 ->map(function (string $dateValue) {
                     $date = \Illuminate\Support\Carbon::parse($dateValue);
 
@@ -667,7 +672,7 @@ class DashboardController extends Controller
         $defaultAgeGroupId = (clone $baseStandingsQuery)
             ->select('age_group_id')
             ->distinct()
-            ->orderBy('age_group_id')
+            ->reorder('age_group_id')
             ->value('age_group_id');
         $selectedAgeGroupId = $request->has('age_group_id')
             ? ($request->integer('age_group_id') ?: null)
@@ -709,6 +714,7 @@ class DashboardController extends Controller
         $ageGroupIds = (clone $baseStandingsQuery)
             ->select('age_group_id')
             ->distinct()
+            ->reorder('age_group_id')
             ->pluck('age_group_id')
             ->filter()
             ->map(fn ($value) => (int) $value)
@@ -723,11 +729,18 @@ class DashboardController extends Controller
                 'label' => $ageGroup->name,
             ]);
 
-        $yearOptions = (clone $baseStandingsQuery)
-            ->selectRaw('DISTINCT YEAR(match_date) as year')
+        $standingMatchDateOptions = (clone $baseStandingsQuery)
             ->whereNotNull('match_date')
-            ->orderByDesc('year')
-            ->pluck('year')
+            ->reorder()
+            ->get(['match_date'])
+            ->pluck('match_date')
+            ->filter();
+
+        $yearOptions = $standingMatchDateOptions
+            ->map(fn ($matchDate) => \Illuminate\Support\Carbon::parse($matchDate)->year)
+            ->unique()
+            ->sortDesc()
+            ->values()
             ->filter()
             ->map(fn ($year) => [
                 'value' => (string) $year,
@@ -735,11 +748,11 @@ class DashboardController extends Controller
             ])
             ->values();
 
-        $dateOptions = (clone $baseStandingsQuery)
-            ->selectRaw('DISTINCT DATE(match_date) as match_date_value')
-            ->whereNotNull('match_date')
-            ->orderBy('match_date_value')
-            ->pluck('match_date_value')
+        $dateOptions = $standingMatchDateOptions
+            ->map(fn ($matchDate) => \Illuminate\Support\Carbon::parse($matchDate)->toDateString())
+            ->unique()
+            ->sort()
+            ->values()
             ->filter()
             ->map(function (string $dateValue) {
                 $date = \Illuminate\Support\Carbon::parse($dateValue);

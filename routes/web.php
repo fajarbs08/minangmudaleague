@@ -28,6 +28,7 @@ require __DIR__.'/auth.php';
 
 Route::get('robots.txt', [DashboardController::class, 'robots'])->name('public.robots');
 Route::get('sitemap.xml', [DashboardController::class, 'sitemap'])->name('public.sitemap');
+Route::view('offline', 'public.offline')->name('public.offline');
 Route::get('pemain/{playerSlug}', [PlayerController::class, 'publicShow'])->name('public.players.show');
 Route::get('verifikasi/pemain/{playerSlug}', [PlayerController::class, 'publicScanShow'])->name('public.players.scan');
 Route::get('ofisial/{officialSlug}', [OfficialController::class, 'publicShow'])->name('public.officials.show');
@@ -46,7 +47,7 @@ Route::get('informasi/file/{informationResource}', [DashboardController::class, 
 Route::get('informasi/file/{informationResource}/unduh', [DashboardController::class, 'publicInformationFileRedirect']);
 Route::get('informasi/{resourceSlug}', [DashboardController::class, 'publicInformationShowRedirect'])->name('public.information.show');
 
-Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user']], function () {
+Route::group(['prefix' => '/', 'middleware' => ['auth', 'active-user', 'no-auth-cache']], function () {
     Route::redirect('home', 'dashboard')->name('root');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.home');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');

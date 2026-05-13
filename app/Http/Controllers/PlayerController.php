@@ -40,17 +40,20 @@ class PlayerController extends Controller
             $direction = 'desc';
         }
 
-        $clubs = Club::query()
-            ->select(['id', 'user_id', 'name'])
-            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
-            ->orderBy('name')
-            ->get();
-        $clubIds = $clubs->modelKeys();
+        $isHistoryView = $this->isHistoryView();
+        $clubs = $isHistoryView
+            ? $this->availableSeasonClubsForHistory()
+            : Club::query()
+                ->select(['id', 'user_id', 'name'])
+                ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+                ->orderBy('name')
+                ->get();
+        $clubIds = $isHistoryView ? $clubs->pluck('id')->all() : $clubs->modelKeys();
 
         $selectedClubId = (int) $request->input('club_id');
         $selectedAgeGroupId = (int) $request->input('age_group_id');
 
-        if ($this->isHistoryView()) {
+        if ($isHistoryView) {
             $players = SeasonPlayer::query()
                 ->where('season_id', $this->seasonContext->currentId())
                 ->with([
@@ -227,6 +230,7 @@ class PlayerController extends Controller
     public function create()
     {
         $this->ensureWritableSeasonContext('Kembali ke season aktif untuk menambah pemain.');
+
         return view('competition.players.create', [
             'title' => 'Tambah Pemain',
             'player' => new Player,
@@ -265,13 +269,9 @@ class PlayerController extends Controller
 
     public function show(Player $player)
     {
-        $this->ensureClubAccess($player->club_id);
-
         if ($this->isHistoryView()) {
-            $seasonPlayer = SeasonPlayer::query()
+            $seasonPlayer = $this->authorizedSeasonPlayerQuery($player->id)
                 ->with(['seasonClub', 'primaryAgeGroup'])
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('player_id', $player->id)
                 ->firstOrFail();
 
             return view('competition.players.show', [
@@ -280,6 +280,7 @@ class PlayerController extends Controller
             ]);
         }
 
+        $this->ensureClubAccess($player->club_id);
         $player->load(['club', 'primaryAgeGroup', 'reviewer', 'ageRegistrations.ageGroup', 'lineupLists']);
 
         return view('competition.players.show', [
@@ -290,16 +291,12 @@ class PlayerController extends Controller
 
     public function downloadDocument(Player $player, string $document)
     {
-        $this->ensureClubAccess($player->club_id);
-
         $documents = $this->downloadableDocumentFieldMap();
 
         abort_unless(array_key_exists($document, $documents), 404);
 
         if ($this->isHistoryView()) {
-            $seasonPlayer = SeasonPlayer::query()
-                ->where('season_id', $this->seasonContext->currentId())
-                ->where('player_id', $player->id)
+            $seasonPlayer = $this->authorizedSeasonPlayerQuery($player->id)
                 ->firstOrFail();
 
             $absolutePath = $this->imageAssetService->documentAbsolutePath($seasonPlayer->{$documents[$document]});
@@ -309,6 +306,7 @@ class PlayerController extends Controller
             return response()->file($absolutePath);
         }
 
+        $this->ensureClubAccess($player->club_id);
         $absolutePath = $this->imageAssetService->documentAbsolutePath($player->{$documents[$document]});
 
         abort_unless($absolutePath, 404);
@@ -1101,6 +1099,36 @@ class PlayerController extends Controller
             Club::where('id', $clubId)->where('user_id', $user->id)->exists(),
             403
         );
+    }
+
+    private function availableSeasonClubsForHistory()
+    {
+        $user = auth()->user();
+
+        return SeasonClub::query()
+            ->select(['club_id', 'name'])
+            ->where('season_id', $this->seasonContext->currentId())
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('user_id', $user->id))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (SeasonClub $seasonClub) => (object) [
+                'id' => $seasonClub->club_id,
+                'name' => $seasonClub->name,
+            ])
+            ->values();
+    }
+
+    private function authorizedSeasonPlayerQuery(int $playerId)
+    {
+        $user = auth()->user();
+
+        return SeasonPlayer::query()
+            ->where('season_id', $this->seasonContext->currentId())
+            ->where('player_id', $playerId)
+            ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
+                'seasonClub',
+                fn ($seasonClubQuery) => $seasonClubQuery->where('user_id', $user->id)
+            ));
     }
 
     private function isHistoryView(): bool

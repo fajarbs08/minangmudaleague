@@ -162,7 +162,7 @@
                         <span class="standings-section-badge">{{ $groupRows->count() }} klub</span>
                     </div>
                     <div class="table-responsive">
-                        <table>
+                        <table @class(['standings-table', 'is-empty' => $groupRows->isEmpty()])>
                             <thead>
                                 <tr>
                                     <th>Peringkat</th><th>Nama Klub</th><th>Poin Total</th><th>Poin Sebelumnya</th><th>+/- Poin</th><th>Riwayat Laga</th><th class="text-center">Detail</th>
@@ -198,7 +198,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center">Belum ada data klasemen.</td>
+                                        <td colspan="7" class="text-center standings-empty-cell">Belum ada data klasemen.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -208,10 +208,10 @@
             @empty
                 <section class="standings-section-card">
                     <div class="table-responsive">
-                        <table>
+                        <table class="standings-table is-empty">
                             <tbody>
                                 <tr>
-                                    <td colspan="7" class="text-center">Belum ada data klasemen.</td>
+                                    <td colspan="7" class="text-center standings-empty-cell">Belum ada data klasemen.</td>
                                 </tr>
                             </tbody>
                         </table>

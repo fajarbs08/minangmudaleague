@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\PreventAuthenticatedResponseCaching;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'active-user' => EnsureActiveUser::class,
+            'no-auth-cache' => PreventAuthenticatedResponseCaching::class,
             'role' => EnsureUserRole::class,
         ]);
     })
