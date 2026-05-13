@@ -50,6 +50,7 @@
     <meta name="robots" content="{{ $resolvedSeoRobots }}">
     <meta name="theme-color" content="#e41b23">
     <meta name="application-name" content="{{ $resolvedSiteName }}">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="{{ $resolvedSiteName }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="canonical" href="{{ $resolvedSeoUrl }}">
