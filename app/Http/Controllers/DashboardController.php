@@ -33,9 +33,9 @@ class DashboardController extends Controller
     {
         return view('public.home', $this->publicPageData([
             'title' => 'Liga Anak Piaman Laweh',
-            'seoTitle' => 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak',
+            'seoTitle' => 'Liga Anak Pariaman | Liga Anak Piaman Laweh',
             'activePublicPage' => 'home',
-            'seoDescription' => 'Platform resmi Liga Anak Piaman Laweh untuk jadwal pertandingan, hasil, klasemen, daftar klub, sponsor, dan kontak panitia.',
+            'seoDescription' => 'Portal resmi Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, untuk jadwal pertandingan, hasil, klasemen, klub peserta, pemain, sponsor, dan kontak panitia.',
         ]));
     }
 
@@ -176,11 +176,11 @@ class DashboardController extends Controller
 
         return view('public.schedule', $this->buildPublicSchedulePageData($request, [
             'title' => 'Jadwal Pertandingan',
-            'seoTitle' => 'Jadwal Pertandingan Liga Anak Piaman Laweh',
+            'seoTitle' => 'Jadwal Liga Anak Pariaman | Liga Anak Piaman Laweh',
             'activePublicPage' => 'schedule',
             'bannerTitle' => 'Jadwal Pertandingan',
             'bannerCurrent' => 'Jadwal Pertandingan',
-            'seoDescription' => 'Pantau jadwal pertandingan Liga Anak Piaman Laweh, termasuk laga terdekat, waktu kickoff, kelompok usia, dan venue pertandingan.',
+            'seoDescription' => 'Pantau jadwal pertandingan Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, termasuk laga terdekat, waktu kickoff, kelompok usia, dan venue pertandingan.',
             'scheduleFilterActionUrl' => route('public.schedule'),
             'scheduleCtaLabel' => 'LIHAT HASIL PERTANDINGAN',
             'scheduleCtaUrl' => route('public.results', $publicSeasonQuery),
@@ -215,7 +215,7 @@ class DashboardController extends Controller
 
         return view('public.schedule-show', $this->publicPageData([
             'title' => 'Detail Jadwal Pertandingan',
-            'seoTitle' => $homeClubLabel.' vs '.$awayClubLabel.' | Detail Jadwal Liga Anak Piaman Laweh',
+            'seoTitle' => $homeClubLabel.' vs '.$awayClubLabel.' | Jadwal Liga Anak Pariaman',
             'activePublicPage' => 'schedule',
             'bannerTitle' => 'Detail Jadwal Pertandingan',
             'bannerCurrent' => $matchBreadcrumbLabel,
@@ -268,11 +268,11 @@ class DashboardController extends Controller
 
         return view('public.schedule', $this->buildPublicResultsPageData($request, [
             'title' => 'Hasil Pertandingan',
-            'seoTitle' => 'Hasil Liga Anak Piaman Laweh | Skor Pertandingan',
+            'seoTitle' => 'Hasil Liga Anak Pariaman | Skor Liga Anak Piaman Laweh',
             'activePublicPage' => 'results',
             'bannerTitle' => 'Hasil Pertandingan',
             'bannerCurrent' => 'Hasil Pertandingan',
-            'seoDescription' => 'Pantau hasil pertandingan Liga Anak Piaman Laweh beserta skor akhir, lawan, venue, dan status laga.',
+            'seoDescription' => 'Pantau hasil pertandingan Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, beserta skor akhir, lawan, venue, dan status laga.',
             'scheduleFilterActionUrl' => route('public.results'),
             'scheduleCtaLabel' => 'LIHAT JADWAL PERTANDINGAN',
             'scheduleCtaUrl' => route('public.schedule', $publicSeasonQuery),
@@ -287,11 +287,11 @@ class DashboardController extends Controller
 
         return view('public.brackets', $this->publicPageData([
             'title' => 'Bagan Knockout',
-            'seoTitle' => 'Bagan Knockout Liga Anak Piaman Laweh',
+            'seoTitle' => 'Bagan Knockout Liga Anak Pariaman | Piaman Laweh',
             'activePublicPage' => 'brackets',
             'bannerTitle' => 'Bagan Knockout',
             'bannerCurrent' => 'Bagan Knockout',
-            'seoDescription' => 'Lihat bagan knockout resmi Liga Anak Piaman Laweh per kelompok usia, lengkap dengan jalur pertandingan dan hasil tiap babak.',
+            'seoDescription' => 'Lihat bagan knockout resmi Liga Anak Piaman Laweh, kompetisi sepak bola anak di Pariaman, per kelompok usia lengkap dengan jalur pertandingan dan hasil tiap babak.',
             'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
             'publicBracketryBrackets' => $this->publicBracketryBrackets($season, $publicSeasonQuery, $knockoutBrackets),
             'selectedPublicSeason' => $season,
@@ -397,11 +397,11 @@ class DashboardController extends Controller
 
         return $this->publicPageData(array_merge([
             'title' => 'Jadwal Pertandingan',
-            'seoTitle' => 'Jadwal Pertandingan Liga Anak Piaman Laweh',
+            'seoTitle' => 'Jadwal Liga Anak Pariaman | Liga Anak Piaman Laweh',
             'activePublicPage' => 'schedule',
             'bannerTitle' => 'Jadwal Pertandingan',
             'bannerCurrent' => 'Jadwal Pertandingan',
-            'seoDescription' => 'Pantau jadwal pertandingan Liga Anak Piaman Laweh, termasuk laga terdekat, waktu kickoff, kelompok usia, dan venue pertandingan.',
+            'seoDescription' => 'Pantau jadwal pertandingan Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, termasuk laga terdekat, waktu kickoff, kelompok usia, dan venue pertandingan.',
             'upcomingMatches' => $filteredScheduledMatches,
             'scheduleFilterOptions' => $scheduleFilterOptions,
             'scheduleFilters' => [
@@ -540,11 +540,11 @@ class DashboardController extends Controller
 
         return $this->publicPageData(array_merge([
             'title' => 'Hasil Pertandingan',
-            'seoTitle' => 'Hasil Liga Anak Piaman Laweh | Skor Pertandingan',
+            'seoTitle' => 'Hasil Liga Anak Pariaman | Skor Liga Anak Piaman Laweh',
             'activePublicPage' => 'results',
             'bannerTitle' => 'Hasil Pertandingan',
             'bannerCurrent' => 'Hasil Pertandingan',
-            'seoDescription' => 'Pantau hasil pertandingan Liga Anak Piaman Laweh beserta skor akhir, lawan, venue, dan status laga.',
+            'seoDescription' => 'Pantau hasil pertandingan Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, beserta skor akhir, lawan, venue, dan status laga.',
             'recentResults' => $filteredResults,
             'resultFilterOptions' => $resultFilterOptions,
             'resultFilters' => [
@@ -602,7 +602,7 @@ class DashboardController extends Controller
 
         return view('public.result-show', $this->publicPageData([
             'title' => $clubALabel.' vs '.$clubBLabel,
-            'seoTitle' => $clubALabel.' '.$match->score_label.' '.$clubBLabel.' | Hasil Liga Anak Piaman Laweh',
+            'seoTitle' => $clubALabel.' '.$match->score_label.' '.$clubBLabel.' | Hasil Liga Anak Pariaman',
             'activePublicPage' => 'results',
             'bannerTitle' => 'Detail Hasil Pertandingan',
             'bannerCurrent' => $matchBreadcrumbLabel,
@@ -815,11 +815,11 @@ class DashboardController extends Controller
 
         $viewData = $this->publicPageData([
             'title' => 'Klasemen Liga',
-            'seoTitle' => 'Klasemen Liga Anak Piaman Laweh | Posisi Klub',
+            'seoTitle' => 'Klasemen Liga Anak Pariaman | Posisi Klub Piaman Laweh',
             'activePublicPage' => 'standings',
             'bannerTitle' => 'Klasemen Liga',
             'bannerCurrent' => 'Klasemen Liga',
-            'seoDescription' => 'Klasemen sementara Liga Anak Piaman Laweh berdasarkan hasil pertandingan resmi di setiap kelompok usia.',
+            'seoDescription' => 'Klasemen sementara Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, berdasarkan hasil pertandingan resmi di setiap kelompok usia.',
             'publicStandings' => $standings,
             'topScorers' => $topScorers,
             'topAssists' => $topAssists,
@@ -866,11 +866,11 @@ class DashboardController extends Controller
 
         return view('public.clubs', $this->publicPageData([
             'title' => 'Klub Peserta',
-            'seoTitle' => 'Klub Peserta Liga Anak Piaman Laweh | Profil Tim',
+            'seoTitle' => 'Klub Sepak Bola Anak Pariaman | Liga Anak Piaman Laweh',
             'activePublicPage' => 'clubs',
             'bannerTitle' => 'Daftar Klub',
             'bannerCurrent' => 'Daftar Klub',
-            'seoDescription' => 'Daftar klub peserta '.($season?->name ?: 'Liga Anak Piaman Laweh').' lengkap dengan profil singkat, pemain, dan ofisial terdaftar.',
+            'seoDescription' => 'Daftar klub peserta '.($season?->name ?: 'Liga Anak Piaman Laweh').' di Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, lengkap dengan profil singkat, pemain, dan ofisial terdaftar.',
             'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
             'featuredClubs' => $featuredClubs,
             'selectedPublicSeason' => $season,
@@ -978,8 +978,8 @@ class DashboardController extends Controller
             'clubPlayers' => $clubPlayers,
             'clubOfficials' => $clubOfficials,
             'clubRecentMatches' => $clubMatches,
-            'seoTitle' => $club->name.' | Liga Anak Piaman Laweh',
-            'seoDescription' => 'Profil klub '.$club->name.' pada '.($season?->name ?: 'Liga Anak Piaman Laweh').', termasuk pemain, ofisial, dan riwayat pertandingan terbaru.',
+            'seoTitle' => $club->name.' | Klub Liga Anak Pariaman',
+            'seoDescription' => 'Profil klub '.$club->name.' pada '.($season?->name ?: 'Liga Anak Piaman Laweh').', liga sepak bola anak di Pariaman, termasuk pemain, ofisial, dan riwayat pertandingan terbaru.',
             'seoImage' => $this->normalizeAbsoluteUrl($club->logo_file_url ?: $this->defaultSeoImageUrl()),
             'seoUrl' => $this->normalizeAbsoluteUrl($request->fullUrl()),
             'seoSchemaType' => 'ProfilePage',
@@ -1783,11 +1783,11 @@ class DashboardController extends Controller
         }
 
         $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh') === 'Liga Anak Piaman Laweh'
-            ? 'Liga Anak Piaman Laweh | Portal Kompetisi Sepak Bola Anak'
-            : ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Piaman Laweh';
+            ? 'Liga Anak Pariaman | Portal Sepak Bola Anak Piaman Laweh'
+            : ($data['title'] ?? 'Liga Anak Piaman Laweh').' | Liga Anak Pariaman';
 
         $data['seoTitle'] = $data['seoTitle'] ?? $defaultSeoTitle;
-        $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh untuk jadwal, hasil pertandingan, klasemen, data klub peserta, sponsor, dan kontak panitia.';
+        $data['seoDescription'] = $data['seoDescription'] ?? 'Platform resmi Liga Anak Piaman Laweh, liga sepak bola anak di Pariaman, untuk jadwal, hasil pertandingan, klasemen, data klub peserta, sponsor, dan kontak panitia.';
         $data['seoImage'] = $data['seoImage'] ?? $this->defaultSeoImageUrl();
         $data['seoUrl'] = $data['seoUrl'] ?? $this->normalizeAbsoluteUrl(url()->current());
         $data['seoType'] = $data['seoType'] ?? 'website';

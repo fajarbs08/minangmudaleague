@@ -502,13 +502,13 @@
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-6">
                         <div class="hero-content">
-                            <h6 class="wow fadeInUp">Portal Resmi Kompetisi</h6>
+                            <h6 class="wow fadeInUp">Portal Resmi Liga Anak Piaman Laweh</h6>
                             <h1 class="hero_title tv_hero_title hero_title_1">
-                                Semua Informasi <br>
-                                <span>Kompetisi</span> Resmi
+                                Liga Anak <br>
+                                <span>Pariaman</span>
                             </h1>
                             <p class="wow fadeInUp" data-wow-delay=".3s">
-                                Pantau seluruh perjalanan Liga Anak Piaman Laweh dalam satu portal resmi: jadwal pertandingan, hasil terbaru, klasemen, data klub peserta, pemain terverifikasi, dan dukungan sponsor kompetisi.
+                                Liga Anak Piaman Laweh adalah liga sepak bola anak di Pariaman. Pantau jadwal pertandingan, hasil terbaru, klasemen, data klub peserta, pemain terverifikasi, dan dukungan sponsor kompetisi dalam satu portal resmi.
                             </p>
                             <div class="hero-btn wow fadeInUp" data-wow-delay=".5s">
                                 <a href="{{ route('public.schedule') }}" class="theme-btn">
@@ -522,7 +522,7 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="hero-image">
-                            <img src="{{ $publicAsset('img/home-1/hero1.png') }}" alt="Ilustrasi kompetisi" class="tilt_scale" fetchpriority="high" decoding="async">
+                            <img src="{{ $publicAsset('img/home-1/hero1.png') }}" alt="Ilustrasi Liga Anak Pariaman" class="tilt_scale" fetchpriority="high" decoding="async">
                             <div class="hero-image-bg">
                                 <img src="{{ $publicAsset('img/home-1/hero-image.png') }}" alt="" loading="lazy" decoding="async">
                             </div>
@@ -917,13 +917,13 @@
                         <div class="col-lg-6">
                             <div class="about-content">
                                 <div class="section-title mb-0 tv_hero_title">
-                                    <h6 class="wow fadeInUp">Satu portal, semua informasi</h6>
+                                    <h6 class="wow fadeInUp">Tentang Liga Anak Piaman Laweh</h6>
                                     <h2 class="text-white hero_title hero_title_1">
-                                        Pusat informasi <span>kompetisi</span> resmi
+                                        Liga sepak bola <span>anak</span> Pariaman
                                     </h2>
                                 </div>
                                 <p class="about-text wow fadeInUp" data-wow-delay=".3s">
-                                    Portal publik ini menjadi pusat informasi kompetisi: data klub peserta, pemain terverifikasi, ofisial aktif, jadwal pertandingan, dan arsip hasil resmi yang terus diperbarui.
+                                    Portal publik Liga Anak Pariaman ini menjadi pusat informasi kompetisi: data klub peserta, pemain terverifikasi, ofisial aktif, jadwal pertandingan, dan arsip hasil resmi yang terus diperbarui.
                                 </p>
                                 <div class="about-list-items wow fadeInUp" data-wow-delay=".5s">
                                     <ul>

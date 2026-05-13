@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @php
         $resolvedSiteName = 'Liga Anak Piaman Laweh';
+        $siteAlternateNames = [
+            'Liga Anak Pariaman',
+            'Liga Sepak Bola Anak Pariaman',
+            'Liga Sepakbola Anak',
+            'Liga Anak Piaman Laweh',
+        ];
         $resolvedSeoTitle = $seoTitle ?? $title;
         $resolvedSeoDescription = $seoDescription ?? 'Platform resmi Liga Anak Piaman Laweh.';
         $resolvedSeoRobots = $seoRobots ?? 'index,follow';
@@ -75,6 +81,7 @@
                 '@context' => 'https://schema.org',
                 '@type' => 'WebSite',
                 'name' => $resolvedSiteName,
+                'alternateName' => $siteAlternateNames,
                 'url' => route('public.home'),
                 'inLanguage' => 'id-ID',
             ],
@@ -82,6 +89,8 @@
                 '@context' => 'https://schema.org',
                 '@type' => 'SportsOrganization',
                 'name' => $resolvedSiteName,
+                'alternateName' => $siteAlternateNames,
+                'description' => 'Liga sepak bola anak di Pariaman dengan informasi jadwal, hasil, klasemen, klub, pemain, dan ofisial.',
                 'url' => route('public.home'),
                 'logo' => asset('images/logo-full-transparent.png'),
                 'image' => $resolvedSeoImage,
