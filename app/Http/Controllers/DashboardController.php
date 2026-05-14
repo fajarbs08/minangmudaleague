@@ -1779,7 +1779,7 @@ class DashboardController extends Controller
                 ];
             });
 
-            $data = array_merge($homePayload, $data);
+            $data = array_merge($data, $homePayload);
         }
 
         $defaultSeoTitle = ($data['title'] ?? 'Liga Anak Piaman Laweh') === 'Liga Anak Piaman Laweh'
