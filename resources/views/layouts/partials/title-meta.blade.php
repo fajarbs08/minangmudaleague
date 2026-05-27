@@ -35,6 +35,7 @@
 <meta name="twitter:url" content="{{ $resolvedUrl }}" />
 <meta name="twitter:image" content="{{ $resolvedImage }}" />
 <meta name="twitter:image:alt" content="{{ $resolvedTitle }}" />
+<link rel="icon" type="image/png" sizes="192x192" href="{{ asset('android-chrome-192x192.png') }}">
 <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">

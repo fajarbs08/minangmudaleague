@@ -968,7 +968,7 @@
                             @php
                                 $jerseyNumber = $player->displayJerseyNumber($player->primary_age_group_id) ?: $player->jersey_number;
                                 $playerClub = $player->club?->short_name ?: $player->club?->name ?: 'Klub belum diisi';
-                                $playerLink = $player->club ? route('public.clubs.show', ['clubSlug' => $player->club->public_slug]) : route('public.clubs');
+                                $playerLink = route('public.players.show', ['playerSlug' => $player->public_slug] + $publicSeasonQuery);
                                 $playerPhoto = $player->photo_file_url;
                             @endphp
                             <div class="swiper-slide">

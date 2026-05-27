@@ -13,8 +13,10 @@ use App\Services\SeasonContext;
 use App\Services\SeasonSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class ClubController extends Controller
 {
@@ -234,7 +236,7 @@ class ClubController extends Controller
 
             abort_unless($absolutePath, 404);
 
-            return response()->file($absolutePath);
+            return $this->statementDocumentResponse($absolutePath, $seasonClub->name);
         }
 
         $this->authorizeClub($club);
@@ -243,7 +245,7 @@ class ClubController extends Controller
 
         abort_unless($absolutePath, 404);
 
-        return response()->file($absolutePath);
+        return $this->statementDocumentResponse($absolutePath, $club->name);
     }
 
     public function update(Request $request, Club $club)
@@ -387,6 +389,24 @@ class ClubController extends Controller
                 $this->imageAssetService->deleteDocumentUpload($official->{$field});
             }
         });
+    }
+
+    private function statementDocumentResponse(string $absolutePath, string $clubName)
+    {
+        return response()
+            ->file($absolutePath)
+            ->setContentDisposition(
+                ResponseHeaderBag::DISPOSITION_INLINE,
+                $this->statementDocumentFilename($absolutePath, $clubName)
+            );
+    }
+
+    private function statementDocumentFilename(string $absolutePath, string $clubName): string
+    {
+        $name = Str::slug('surat-pernyataan-'.$clubName) ?: 'surat-pernyataan-klub';
+        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION)) ?: 'pdf';
+
+        return $name.'.'.$extension;
     }
 
     private function isHistoryView(): bool
