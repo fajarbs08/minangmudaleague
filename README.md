@@ -41,11 +41,14 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 - Setelah `php artisan migrate --force` dan asset selesai dibuild, aktifkan cache production dengan `composer run production:cache`.
 - Jika perlu rollback cache saat troubleshooting atau deploy ulang, jalankan `composer run production:clear`.
 - Jalankan worker queue terpisah di production, misalnya `php artisan queue:work database --queue=default --tries=1` lewat `systemd` atau `supervisor`.
+- Gunakan `scripts/deploy-production.sh` untuk deploy standar agar server selalu menulis `.deploy-manifest.json` berisi commit live.
+- Gunakan `scripts/check-live-release.sh` untuk membandingkan commit `live`, `HEAD` lokal, dan `origin/main` tanpa compare file manual.
 
 ## Dokumen Operasional
 
 - `CHANGELOG.md`
 - `docs/season-admin-checklist.md`
+- `docs/production-deploy.md`
 - `docs/season-production-runbook.md`
 - `scripts/season-post-migration-audit.sql`
 

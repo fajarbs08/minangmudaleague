@@ -23,6 +23,7 @@
 /artifacts-trash/*
 !/artifacts-trash/.gitkeep
 /storage/logs/*.log
+/.deploy-manifest.json
 
 # Local debug artifacts in project root
 /*-after-sort.json
