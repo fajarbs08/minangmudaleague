@@ -937,9 +937,13 @@ class OfficialController extends Controller
     private function filteredOfficialCardBaseScopeQuery(Request $request, array $clubIds)
     {
         return Official::query()
-            ->with(['club', 'ageRegistrations.ageGroup'])
+            ->with(['club', 'ageGroup', 'ageRegistrations.ageGroup'])
             ->whereIn('club_id', $clubIds)
-            ->whereHas('ageRegistrations', fn ($query) => $query->whereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition()))
+            ->where(function ($query) {
+                $query
+                    ->whereHas('ageRegistrations', fn ($registrationQuery) => $registrationQuery->whereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition()))
+                    ->orWhereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition());
+            })
             ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
@@ -963,7 +967,11 @@ class OfficialController extends Controller
     private function filteredOfficialIdCardScopeQuery(Request $request, array $clubIds, int $ageGroupId)
     {
         return $this->filteredOfficialCardBaseScopeQuery($request, $clubIds)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->where(function ($query) use ($ageGroupId) {
+                $query
+                    ->whereHas('ageRegistrations', fn ($registrationQuery) => $registrationQuery->where('age_group_id', $ageGroupId))
+                    ->orWhere('age_group_id', $ageGroupId);
+            })
             ->orderBy('name');
     }
 
@@ -989,7 +997,7 @@ class OfficialController extends Controller
             ? collect([$selectedAgeGroup])
             : AgeGroup::competition()
                 ->get()
-                ->filter(fn (AgeGroup $ageGroup) => $officials->contains(fn (Official $official) => $official->registrationForAgeGroup($ageGroup->id)))
+                ->filter(fn (AgeGroup $ageGroup) => $officials->contains(fn (Official $official) => (int) $official->preferredIdCardAgeGroupId() === (int) $ageGroup->id || $official->registrationForAgeGroup($ageGroup->id)))
                 ->values();
 
         if ($ageGroups->isEmpty()) {
@@ -1013,7 +1021,7 @@ class OfficialController extends Controller
                 }
 
                 $groupOfficials = $clubOfficials
-                    ->filter(fn (Official $official) => $official->registrationForAgeGroup($ageGroup->id))
+                    ->filter(fn (Official $official) => (int) $official->preferredIdCardAgeGroupId() === (int) $ageGroup->id || $official->registrationForAgeGroup($ageGroup->id))
                     ->values();
 
                 if ($groupOfficials->isEmpty()) {

@@ -956,7 +956,11 @@ class PlayerController extends Controller
         return Player::query()
             ->with(['club', 'primaryAgeGroup', 'ageRegistrations.ageGroup'])
             ->whereIn('club_id', $clubIds)
-            ->whereHas('ageRegistrations', fn ($query) => $query->whereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition()))
+            ->where(function ($query) {
+                $query
+                    ->whereHas('ageRegistrations', fn ($registrationQuery) => $registrationQuery->whereHas('ageGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition()))
+                    ->orWhereHas('primaryAgeGroup', fn ($ageGroupQuery) => $ageGroupQuery->competition());
+            })
             ->when($request->input('status'), fn ($query, $status) => $query->where('verification_status', $status))
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
@@ -976,7 +980,11 @@ class PlayerController extends Controller
     private function filteredPlayerIdCardScopeQuery(Request $request, array $clubIds, int $ageGroupId)
     {
         return $this->filteredPlayerCardBaseScopeQuery($request, $clubIds)
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $ageGroupId))
+            ->where(function ($query) use ($ageGroupId) {
+                $query
+                    ->whereHas('ageRegistrations', fn ($registrationQuery) => $registrationQuery->where('age_group_id', $ageGroupId))
+                    ->orWhere('primary_age_group_id', $ageGroupId);
+            })
             ->orderBy('name');
     }
 
@@ -1002,7 +1010,7 @@ class PlayerController extends Controller
             ? collect([$selectedAgeGroup])
             : AgeGroup::competition()
                 ->get()
-                ->filter(fn (AgeGroup $ageGroup) => $players->contains(fn (Player $player) => $player->registrationForAgeGroup($ageGroup->id)))
+                ->filter(fn (AgeGroup $ageGroup) => $players->contains(fn (Player $player) => (int) $player->preferredIdCardAgeGroupId() === (int) $ageGroup->id || $player->registrationForAgeGroup($ageGroup->id)))
                 ->values();
 
         if ($ageGroups->isEmpty()) {
@@ -1026,7 +1034,7 @@ class PlayerController extends Controller
                 }
 
                 $groupPlayers = $clubPlayers
-                    ->filter(fn (Player $player) => $player->registrationForAgeGroup($ageGroup->id))
+                    ->filter(fn (Player $player) => (int) $player->preferredIdCardAgeGroupId() === (int) $ageGroup->id || $player->registrationForAgeGroup($ageGroup->id))
                     ->values();
 
                 if ($groupPlayers->isEmpty()) {
