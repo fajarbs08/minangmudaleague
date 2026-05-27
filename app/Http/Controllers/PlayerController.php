@@ -168,10 +168,10 @@ class PlayerController extends Controller
             if (! empty($clubScopeIds)) {
                 if ($selectedAgeGroupId > 0) {
                     $canDownloadIdCards = $this->filteredPlayerIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
-                    $idCardExportUrl = route('players.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
+                    $idCardExportUrl = route('players.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams + ['download' => 1]);
                 } else {
                     $canDownloadIdCards = $this->filteredPlayerCardBaseScopeQuery($request, $clubScopeIds)->exists();
-                    $idCardExportUrl = route('players.id-cards.all.export', $idCardFilterParams);
+                    $idCardExportUrl = route('players.id-cards.all.export', $idCardFilterParams + ['download' => 1]);
                 }
             }
         }

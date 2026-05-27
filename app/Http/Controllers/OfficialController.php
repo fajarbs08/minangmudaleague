@@ -148,10 +148,10 @@ class OfficialController extends Controller
             if (! empty($clubScopeIds)) {
                 if ($selectedAgeGroupId > 0) {
                     $canDownloadIdCards = $this->filteredOfficialIdCardScopeQuery($request, $clubScopeIds, $selectedAgeGroupId)->exists();
-                    $idCardExportUrl = route('officials.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams);
+                    $idCardExportUrl = route('officials.id-cards.export', ['ageGroup' => $selectedAgeGroupId] + $idCardFilterParams + ['download' => 1]);
                 } else {
                     $canDownloadIdCards = $this->filteredOfficialCardBaseScopeQuery($request, $clubScopeIds)->exists();
-                    $idCardExportUrl = route('officials.id-cards.all.export', $idCardFilterParams);
+                    $idCardExportUrl = route('officials.id-cards.all.export', $idCardFilterParams + ['download' => 1]);
                 }
             }
         }
