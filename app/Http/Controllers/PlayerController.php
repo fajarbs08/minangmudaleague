@@ -413,7 +413,7 @@ class PlayerController extends Controller
 
         abort_unless(auth()->user()->isAdmin() || $player->canClubAccessIdCard(), 403);
 
-        if (! $player->registrationForAgeGroup($ageGroup->id)) {
+        if ((int) $player->preferredIdCardAgeGroupId() !== (int) $ageGroup->id) {
             abort(404);
         }
 
@@ -433,7 +433,7 @@ class PlayerController extends Controller
 
         abort_unless(auth()->user()->isAdmin() || $player->canClubAccessIdCard(), 403);
 
-        if (! $player->registrationForAgeGroup($ageGroup->id)) {
+        if ((int) $player->preferredIdCardAgeGroupId() !== (int) $ageGroup->id) {
             abort(404);
         }
 

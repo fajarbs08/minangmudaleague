@@ -356,7 +356,7 @@ class OfficialController extends Controller
         }
 
         $this->ensureClubAccess($official->club_id);
-        $official->load(['club', 'reviewer', 'ageRegistrations.ageGroup']);
+        $official->load(['club', 'reviewer', 'ageGroup', 'ageRegistrations.ageGroup']);
 
         return view('competition.officials.show', [
             'title' => 'Detail Ofisial',
@@ -576,7 +576,7 @@ class OfficialController extends Controller
 
         abort_unless(auth()->user()->isAdmin() || $official->canClubAccessIdCard(), 403);
 
-        if (! $official->registrationForAgeGroup($ageGroup->id)) {
+        if ((int) $official->preferredIdCardAgeGroupId() !== (int) $ageGroup->id) {
             abort(404);
         }
 
@@ -596,7 +596,7 @@ class OfficialController extends Controller
 
         abort_unless(auth()->user()->isAdmin() || $official->canClubAccessIdCard(), 403);
 
-        if (! $official->registrationForAgeGroup($ageGroup->id)) {
+        if ((int) $official->preferredIdCardAgeGroupId() !== (int) $ageGroup->id) {
             abort(404);
         }
 

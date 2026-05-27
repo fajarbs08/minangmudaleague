@@ -135,6 +135,12 @@ class Official extends Model
         return $this->verification_status === self::STATUS_APPROVED;
     }
 
+    public function preferredIdCardAgeGroupId(): ?int
+    {
+        return $this->ageRegistrations->firstWhere('age_group_id')?->age_group_id
+            ?? $this->age_group_id;
+    }
+
     public function getPhotoFileUrlAttribute(): ?string
     {
         return $this->fileUrl($this->photo_path);

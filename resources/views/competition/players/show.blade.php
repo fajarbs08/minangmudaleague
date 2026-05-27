@@ -4,6 +4,8 @@
 @php
     $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeEditedByClub());
+    $canDownloadIdCard = auth()->user()->isAdmin() || $player->canClubAccessIdCard();
+    $idCardAgeGroupId = $player->preferredIdCardAgeGroupId();
 @endphp
 @push('css')
 <style>
@@ -25,11 +27,18 @@
                 <span>Edit</span>
             </a>
         @endif
-        @if (! $isHistoryView && $player->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $player->canClubAccessIdCard()))
-            <a href="{{ route('players.id-card', [$player, $player->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
-                <i data-lucide="id-card" class="fs-14"></i>
-                <span>Unduh ID Card</span>
-            </a>
+        @if (! $isHistoryView && $idCardAgeGroupId)
+            @if ($canDownloadIdCard)
+                <a href="{{ route('players.id-card', [$player, $idCardAgeGroupId]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
+                    <i data-lucide="id-card" class="fs-14"></i>
+                    <span>Unduh ID Card</span>
+                </a>
+            @else
+                <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn" disabled>
+                    <i data-lucide="id-card" class="fs-14"></i>
+                    <span>Unduh ID Card</span>
+                </button>
+            @endif
         @endif
         @if (! $isHistoryView && (auth()->user()->isAdmin() || $player->canBeSubmittedByClub()))
             <button

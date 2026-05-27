@@ -4,6 +4,8 @@
 @php
     $isHistoryView = app(\App\Services\SeasonContext::class)->isViewingHistory();
     $canManageAgeRegistrations = ! $isHistoryView && (auth()->user()->isAdmin() || $official->canBeEditedByClub());
+    $canDownloadIdCard = auth()->user()->isAdmin() || $official->canClubAccessIdCard();
+    $idCardAgeGroupId = $official->preferredIdCardAgeGroupId();
 @endphp
 @push('css')
 <style>
@@ -25,11 +27,18 @@
                 <span>Edit</span>
             </a>
         @endif
-        @if (! $isHistoryView && $official->ageRegistrations->isNotEmpty() && (auth()->user()->isAdmin() || $official->canClubAccessIdCard()))
-            <a href="{{ route('officials.id-card', [$official, $official->ageRegistrations->first()->age_group_id]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
-                <i data-lucide="id-card" class="fs-14"></i>
-                <span>Unduh ID Card</span>
-            </a>
+        @if (! $isHistoryView && $idCardAgeGroupId)
+            @if ($canDownloadIdCard)
+                <a href="{{ route('officials.id-card', [$official, $idCardAgeGroupId]) }}" target="_blank" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn">
+                    <i data-lucide="id-card" class="fs-14"></i>
+                    <span>Unduh ID Card</span>
+                </a>
+            @else
+                <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn" disabled>
+                    <i data-lucide="id-card" class="fs-14"></i>
+                    <span>Unduh ID Card</span>
+                </button>
+            @endif
         @endif
         <a href="{{ route('officials.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 lap-detail-action-btn lap-detail-action-btn-back">
             <i data-lucide="arrow-left" class="fs-14"></i>
