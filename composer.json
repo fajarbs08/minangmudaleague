@@ -1,10 +1,20 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "fajarbs08/minangmudaleague",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Open source Laravel application for youth football league administration, public fixtures, results, standings, clubs, players, officials, and season history.",
+    "keywords": ["laravel", "football", "league", "youth-sports", "sports-management", "minangmudaleague"],
     "license": "MIT",
+    "homepage": "https://github.com/fajarbs08/minangmudaleague",
+    "support": {
+        "issues": "https://github.com/fajarbs08/minangmudaleague/issues",
+        "source": "https://github.com/fajarbs08/minangmudaleague"
+    },
+    "authors": [
+        {
+            "name": "Fajar Budi Setiawan"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "bacon/bacon-qr-code": "^3.1",

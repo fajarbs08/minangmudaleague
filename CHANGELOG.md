@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.0 - 2026-06-02
+
+### First OSS release
+
+- published the project as Minang Muda League under the MIT license
+- documented production adoption by Liga Anak Piaman Laweh, including public Musim 2026 club, fixture, and standings evidence
+- added OSS release submission notes for the first GitHub release
+- clarified package metadata for the GitHub repository `fajarbs08/minangmudaleague`
+
+
 ## 2026-05-06
 
 ### Harden club account visibility controls

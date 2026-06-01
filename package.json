@@ -1,8 +1,17 @@
 {
-  "name": "lap-dashboard",
+  "name": "minangmudaleague",
   "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/fajarbs08/minangmudaleague",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fajarbs08/minangmudaleague.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fajarbs08/minangmudaleague/issues"
+  },
   "version": "1.0.0",
-  "description": "Liga Anak Piaman Laweh dashboard",
+  "description": "Liga Anak Piaman Laweh league administration and public portal",
   "type": "module",
   "scripts": {
     "dev": "vite",

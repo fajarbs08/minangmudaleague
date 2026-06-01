@@ -1,4 +1,8 @@
-# Liga Anak Piaman Laweh
+# Minang Muda League
+
+Minang Muda League adalah aplikasi open source berbasis Laravel untuk administrasi liga sepak bola usia muda. Deployment produksi pertamanya dipakai oleh Liga Anak Piaman Laweh di `https://ligaanakpiamanlaweh.com`.
+
+Lisensi: MIT. Lihat `LICENSE`.
 
 Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 
@@ -7,6 +11,16 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 - verifikasi dokumen dan workflow revisi
 - DSP dan jadwal pertandingan
 - kartu identitas dan halaman publik hasil scan
+
+## Bukti Adopsi Produksi
+
+Aplikasi ini benar-benar dipakai oleh liga aktif, bukan hanya demo lokal.
+
+- Website produksi: `https://ligaanakpiamanlaweh.com`
+- Liga aktif: Liga Anak Piaman Laweh
+- Season publik yang terverifikasi pada `2026-06-02`: `Musim 2026`
+- Halaman publik yang terverifikasi `200 OK`: beranda, klub, jadwal pertandingan, dan klasemen
+- Detail bukti: `docs/adoption.md`
 
 ## Menjalankan Proyek
 
@@ -47,10 +61,17 @@ Sistem administrasi liga berbasis Laravel untuk pengelolaan:
 ## Dokumen Operasional
 
 - `CHANGELOG.md`
+- `docs/adoption.md`
+- `docs/oss-release-submission.md`
 - `docs/season-admin-checklist.md`
 - `docs/production-deploy.md`
 - `docs/season-production-runbook.md`
 - `scripts/season-post-migration-audit.sql`
+
+## Release
+
+Release OSS pertama ditandai sebagai `v1.0.0`. Catatan release tersedia di `CHANGELOG.md`, dan ringkasan pengajuan OSS ada di `docs/oss-release-submission.md`.
+
 
 ## Catatan
 
