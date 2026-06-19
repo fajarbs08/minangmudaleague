@@ -22,6 +22,8 @@
         ->all();
     $blockedSelectedPlayers = collect($blockedSelectedPlayers ?? []);
     $blockedLineupPlayers = collect($blockedLineupPlayers ?? []);
+    $selectedAgeGroup = $ageGroups->firstWhere('id', (int) $selectedAgeGroupId) ?: $lineupList->ageGroup;
+    $initialRequiredStarters = \App\Models\LineupList::requiredStartersForAgeGroup($selectedAgeGroup);
 @endphp
 
 <style>
@@ -198,6 +200,7 @@
                     data-used-club-ids="{{ $usedClubIds->implode(',') }}"
                     data-age-id="{{ $match->age_group_id }}"
                     data-age-name="{{ $match->ageGroup?->name }}"
+                    data-required-starters="{{ \App\Models\LineupList::requiredStartersForAgeGroup($match->ageGroup) }}"
                     data-match-day="{{ $match->match_day }}"
                     data-venue="{{ $match->venue }}"
                     data-date="{{ optional($match->match_date)->format('d M Y') }}"
@@ -240,16 +243,16 @@
         <input type="text" class="form-control" value="{{ old('match_day', $lineupList->match_day) }}" readonly data-lineup-matchday>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Lokasi</label>
-        <input type="text" class="form-control" value="{{ old('played_at', $lineupList->played_at) }}" readonly data-lineup-venue>
+        <label class="form-label">Played At</label>
+        <input type="text" name="played_at" class="form-control" value="{{ old('played_at', $lineupList->played_at) }}" data-lineup-venue>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Tanggal</label>
-        <input type="text" class="form-control" value="{{ old('match_date', optional($lineupList->match_date)->format('d M Y')) }}" readonly data-lineup-date>
+        <label class="form-label">Date</label>
+        <input type="date" name="match_date" class="form-control" value="{{ old('match_date', optional($lineupList->match_date)->format('Y-m-d')) }}" data-lineup-date>
     </div>
     <div class="col-lg-4 mb-3">
-        <label class="form-label">Jam Kickoff</label>
-        <input type="text" class="form-control" value="{{ old('played_time', optional($lineupList->played_time)->format('H:i')) }}" readonly data-lineup-kickoff>
+        <label class="form-label">Time</label>
+        <input type="time" name="played_time" class="form-control" value="{{ old('played_time', optional($lineupList->played_time)->format('H:i')) }}" data-lineup-kickoff>
     </div>
     <div class="col-lg-6 mb-3">
         <label class="form-label">Judul DSP</label>
@@ -262,16 +265,16 @@
         <input type="text" name="coach_name" class="form-control" value="{{ old('coach_name', $lineupList->coach_name) }}">
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Warna Jersey</label>
+        <label class="form-label">Jersey Colour</label>
         <input type="text" name="jersey_color" class="form-control" value="{{ old('jersey_color', $lineupList->jersey_color) }}">
     </div>
     <div class="col-lg-6 mb-3">
-        <label class="form-label">Warna Jersey Kiper</label>
+        <label class="form-label">GK Jersey Colour</label>
         <input type="text" name="goalkeeper_jersey_color" class="form-control" value="{{ old('goalkeeper_jersey_color', $lineupList->goalkeeper_jersey_color) }}">
     </div>
     <div class="col-lg-12 mb-3">
         <div class="alert alert-light border mb-0">
-            Detail lawan, lokasi, tanggal, dan jam pertandingan mengikuti jadwal resmi yang dibuat admin. Klub hanya memilih pertandingan lalu menyusun DSP.
+            Tim mengisi Jersey Colour, GK Jersey Colour, Played At, Date, dan Time. Nilai awal tetap mengikuti jadwal resmi saat pertandingan dipilih.
         </div>
     </div>
     <div class="col-lg-12 mb-3">
@@ -295,7 +298,7 @@
         </div>
 
         <div class="alert alert-info mb-3">
-            Aturan DSP: tepat {{ \App\Models\LineupList::REQUIRED_STARTERS }} starter dan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} cadangan. Jika pemain tersedia 16 orang, cukup pilih 11 starter lalu sisanya bisa dijadikan cadangan.
+            Aturan DSP: kelompok usia ini wajib tepat <span data-required-starters-label>{{ $initialRequiredStarters }}</span> starter dan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} cadangan. Untuk U-12, batas starter otomatis menjadi 8 pemain.
         </div>
 
         @if ($blockedSelectedPlayers->isNotEmpty())
@@ -316,8 +319,8 @@
 
         <div class="alert alert-secondary border mb-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2" data-lineup-progress>
             <div>
-                <div class="fw-semibold" data-lineup-progress-title>Starter 0/{{ \App\Models\LineupList::REQUIRED_STARTERS }} · Cadangan 0/{{ \App\Models\LineupList::MAX_SUBSTITUTES }}</div>
-                <div class="small text-muted" data-lineup-progress-text>Pilih tepat {{ \App\Models\LineupList::REQUIRED_STARTERS }} starter. Pemain yang sudah dipilih tidak akan muncul di dua kondisi sekaligus.</div>
+                <div class="fw-semibold" data-lineup-progress-title>Starter 0/<span data-required-starters-label>{{ $initialRequiredStarters }}</span> · Cadangan 0/{{ \App\Models\LineupList::MAX_SUBSTITUTES }}</div>
+                <div class="small text-muted" data-lineup-progress-text>Pilih tepat <span data-required-starters-label>{{ $initialRequiredStarters }}</span> starter. Pemain yang sudah dipilih tidak akan muncul di dua kondisi sekaligus.</div>
             </div>
         </div>
 
@@ -384,9 +387,9 @@
                         <div class="d-flex justify-content-between align-items-center gap-3 mb-3 lineup-section-header">
                             <div>
                                 <h6 class="mb-1">Starter</h6>
-                                <div class="text-muted small">Harus tepat {{ \App\Models\LineupList::REQUIRED_STARTERS }} pemain.</div>
+                                <div class="text-muted small">Harus tepat <span data-required-starters-label>{{ $initialRequiredStarters }}</span> pemain.</div>
                             </div>
-                            <span class="badge text-bg-primary"><span data-starter-count>0</span>/{{ \App\Models\LineupList::REQUIRED_STARTERS }}</span>
+                            <span class="badge text-bg-primary"><span data-starter-count>0</span>/<span data-required-starters-label>{{ $initialRequiredStarters }}</span></span>
                         </div>
                         <div class="d-flex flex-column gap-2" data-lineup-starters></div>
                         <div class="text-muted small" data-lineup-empty-starters>Belum ada starter dipilih.</div>
@@ -439,12 +442,28 @@
         const progressTitleNode = root.querySelector('[data-lineup-progress-title]');
         const progressTextNode = root.querySelector('[data-lineup-progress-text]');
         const progressNode = root.querySelector('[data-lineup-progress]');
-        const requiredStarters = {{ \App\Models\LineupList::REQUIRED_STARTERS }};
+        const requiredStarterLabelNodes = root.querySelectorAll('[data-required-starters-label]');
+        let requiredStarters = {{ $initialRequiredStarters }};
         const maxSubstitutes = {{ \App\Models\LineupList::MAX_SUBSTITUTES }};
         const draftKey = `lap-dashboard:lineup-form-draft:${window.location.pathname}`;
         const currentLineupClubId = clubInput?.dataset.currentClubId || '';
         let isRestoringDraft = false;
         let saveDraftTimer = null;
+        let previousSyncedMatchId = '';
+
+        const updateRequiredStarterLabels = () => {
+            requiredStarterLabelNodes.forEach((node) => {
+                node.textContent = requiredStarters;
+            });
+        };
+
+        const syncEditableField = (field, value, force = false) => {
+            if (!field) return;
+
+            if (force || !field.value) {
+                field.value = value || '';
+            }
+        };
 
         const selectedMatchOption = () => matchInput?.selectedOptions?.[0] || null;
 
@@ -460,15 +479,22 @@
                 if (venueDisplay) venueDisplay.value = '';
                 if (dateDisplay) dateDisplay.value = '';
                 if (kickoffDisplay) kickoffDisplay.value = '';
+                previousSyncedMatchId = '';
                 return;
             }
 
+            const matchChanged = option.value !== previousSyncedMatchId;
+
             ageInput.value = option.dataset.ageId || '';
+            requiredStarters = Number(option.dataset.requiredStarters || requiredStarters);
+            updateRequiredStarterLabels();
+
             if (ageDisplay) ageDisplay.value = option.dataset.ageName || '-';
             if (matchdayDisplay) matchdayDisplay.value = option.dataset.matchDay || '';
-            if (venueDisplay) venueDisplay.value = option.dataset.venue || '';
-            if (dateDisplay) dateDisplay.value = option.dataset.date || '';
-            if (kickoffDisplay) kickoffDisplay.value = option.dataset.kickoff || '';
+            syncEditableField(venueDisplay, option.dataset.venue || '', matchChanged && !isRestoringDraft);
+            syncEditableField(dateDisplay, option.dataset.dateValue || '', matchChanged && !isRestoringDraft);
+            syncEditableField(kickoffDisplay, option.dataset.kickoff || '', matchChanged && !isRestoringDraft);
+            previousSyncedMatchId = option.value;
 
             const clubAId = option.dataset.clubAId || '';
             const clubBId = option.dataset.clubBId || '';
@@ -567,6 +593,9 @@
         const draftFieldNames = [
             'match_id',
             'club_id',
+            'played_at',
+            'match_date',
+            'played_time',
             'coach_name',
             'jersey_color',
             'goalkeeper_jersey_color',

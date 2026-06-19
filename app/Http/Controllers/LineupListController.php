@@ -328,6 +328,8 @@ class LineupListController extends Controller
             'match_id' => ['required', 'exists:match_schedules,id'],
             'club_id' => ['required', 'exists:clubs,id'],
             'title' => ['nullable', 'string', 'max:255'],
+            'match_date' => ['nullable', 'date'],
+            'played_at' => ['nullable', 'string', 'max:255'],
             'played_time' => ['nullable', 'date_format:H:i'],
             'coach_name' => ['nullable', 'string', 'max:255'],
             'jersey_color' => ['nullable', 'string', 'max:255'],
@@ -354,12 +356,12 @@ class LineupListController extends Controller
             'age_group_id' => $match->age_group_id,
             'title' => substr($title, 0, 255),
             'match_day' => $match->match_day,
-            'match_date' => optional($match->match_date)->format('Y-m-d'),
+            'match_date' => ($validated['match_date'] ?? null) ?: optional($match->match_date)->format('Y-m-d'),
             'played_time' => ($validated['played_time'] ?? null) ?: optional($match->kickoff_time)->format('H:i'),
             'coach_name' => $validated['coach_name'] ?? null,
             'jersey_color' => $validated['jersey_color'] ?? null,
             'goalkeeper_jersey_color' => $validated['goalkeeper_jersey_color'] ?? null,
-            'played_at' => $match->venue,
+            'played_at' => ($validated['played_at'] ?? null) ?: $match->venue,
             'notes' => $validated['notes'] ?? null,
         ];
     }
@@ -547,9 +549,11 @@ class LineupListController extends Controller
             ]);
         }
 
-        if ($starterIds->count() !== LineupList::REQUIRED_STARTERS) {
+        $requiredStarters = LineupList::requiredStartersForAgeGroup($match->ageGroup);
+
+        if ($starterIds->count() !== $requiredStarters) {
             throw ValidationException::withMessages([
-                'starter_player_ids' => 'DSP harus berisi tepat '.LineupList::REQUIRED_STARTERS.' pemain starter.',
+                'starter_player_ids' => 'DSP harus berisi tepat '.$requiredStarters.' pemain starter.',
             ]);
         }
 

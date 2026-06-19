@@ -251,6 +251,7 @@
                                 && $matchLineupClubIds->contains((int) $lineup->match->club_a_id)
                                 && $matchLineupClubIds->contains((int) $lineup->match->club_b_id);
                             $isAdmin = auth()->user()->isAdmin();
+                            $requiredStarters = $lineup->requiredStarters();
                             $actionHint = match ($lineup->verification_status) {
                                 'draft' => $isAdmin ? 'Buka DSP atau edit manual admin.' : 'Lengkapi DSP lalu ajukan verifikasi.',
                                 'submitted' => $isAdmin ? 'Tinjau pengajuan lalu beri keputusan.' : 'Menunggu review admin.',
@@ -280,7 +281,7 @@
                             <td>{{ $lineup->ageGroup?->name }}</td>
                             <td>{{ optional($lineup->match_date ?: $lineup->match?->match_date)->format('d M Y') ?: '-' }}</td>
                             <td>
-                                <div class="small">Starter: {{ $lineup->starter_count }}</div>
+                                <div class="small">Starter: {{ $lineup->starter_count }}/{{ $requiredStarters }}</div>
                                 <div class="small text-muted">Cadangan: {{ $lineup->substitute_count }}</div>
                             </td>
                             <td>

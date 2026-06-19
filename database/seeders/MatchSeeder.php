@@ -121,6 +121,7 @@ class MatchSeeder extends AbstractDemoSeeder
         string $titleSuffix
     ): void {
         $players = $this->rosterPlayers($club, $ageGroup);
+        $requiredStarters = LineupList::requiredStartersForAgeGroup($ageGroup);
 
         $lineup = $this->upsertLineup($club, sprintf('DSP %s %s %s', $club->short_name, $ageGroup->code, $titleSuffix), [
             'match_id' => $match->id,
@@ -141,11 +142,11 @@ class MatchSeeder extends AbstractDemoSeeder
         ]);
 
         $this->syncLineupPlayers($lineup, array_merge(
-            $players->take(LineupList::REQUIRED_STARTERS)->map(fn ($player) => [
+            $players->take($requiredStarters)->map(fn ($player) => [
                 'player' => $player,
                 'role' => LineupList::ROLE_STARTER,
             ])->all(),
-            $players->slice(LineupList::REQUIRED_STARTERS, 2)->map(fn ($player) => [
+            $players->slice($requiredStarters, 2)->map(fn ($player) => [
                 'player' => $player,
                 'role' => LineupList::ROLE_SUBSTITUTE,
             ])->all()

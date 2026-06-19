@@ -17,6 +17,7 @@
     $rosterRows = max($players->count(), 1);
     $officialRows = max($officialEntries->count(), 1);
     $isAdmin = auth()->user()->isAdmin();
+    $requiredStarters = $lineupList->requiredStarters();
 @endphp
 
 @section('content')
@@ -307,22 +308,22 @@
                         <td colspan="5">{{ strtoupper($opponent?->name ?: '-') }}</td>
                     </tr>
                     <tr>
-                        <td>WARNA JERSEY</td>
+                        <td>JERSEY COLOUR</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>WARNA JERSEY KIPER</td>
+                        <td>GK JSY COLOUR</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->goalkeeper_jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>LOKASI</td>
+                        <td>PLAYED AT</td>
                         <td>:</td>
                         <td>{{ $venue ?: '-' }}</td>
-                        <td class="dsp-bold">TANGGAL</td>
+                        <td class="dsp-bold">DATE</td>
                         <td>: {{ optional($matchDate)->format('d-m-Y') ?: '-' }}</td>
-                        <td class="dsp-bold">JAM</td>
+                        <td class="dsp-bold">TIME</td>
                         <td>: {{ optional($kickoffTime)->format('H:i') ?: '-' }} WIB</td>
                     </tr>
                 </table>
@@ -383,9 +384,9 @@
     </div>
 </div>
 
-@if ($starters->count() !== \App\Models\LineupList::REQUIRED_STARTERS || $substitutes->count() > \App\Models\LineupList::MAX_SUBSTITUTES)
+@if ($starters->count() !== $requiredStarters || $substitutes->count() > \App\Models\LineupList::MAX_SUBSTITUTES)
     <div class="alert alert-warning mt-4">
-        Struktur DSP belum ideal. Starter harus {{ \App\Models\LineupList::REQUIRED_STARTERS }} pemain dan cadangan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} pemain.
+        Struktur DSP belum ideal. Starter harus {{ $requiredStarters }} pemain dan cadangan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} pemain.
     </div>
 @endif
 

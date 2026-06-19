@@ -29,6 +29,10 @@ class LineupList extends Model
 
     public const REQUIRED_STARTERS = 11;
 
+    public const REQUIRED_STARTERS_BY_AGE_GROUP_CODE = [
+        'U12' => 8,
+    ];
+
     public const MAX_SUBSTITUTES = 9;
 
     protected $fillable = [
@@ -174,6 +178,16 @@ class LineupList extends Model
         return $this->match?->opponentForClub($this->club_id);
     }
 
+    public static function requiredStartersForAgeGroup(?AgeGroup $ageGroup): int
+    {
+        return self::REQUIRED_STARTERS_BY_AGE_GROUP_CODE[$ageGroup?->code] ?? self::REQUIRED_STARTERS;
+    }
+
+    public function requiredStarters(): int
+    {
+        return self::requiredStartersForAgeGroup($this->ageGroup);
+    }
+
     public function validateForSubmission(): void
     {
         $errors = [];
@@ -194,9 +208,11 @@ class LineupList extends Model
             $errors['age_group_id'] = 'DSP hanya dapat disubmit untuk kelompok umur U-10, U-12, U-14, atau U-16.';
         }
 
-        $this->loadMissing('players');
-        if ($this->players->where('pivot.role', self::ROLE_STARTER)->count() !== self::REQUIRED_STARTERS) {
-            $errors['starter_player_ids'] = 'DSP harus berisi tepat '.self::REQUIRED_STARTERS.' starter sebelum submit verifikasi.';
+        $this->loadMissing('ageGroup', 'players');
+        $requiredStarters = $this->requiredStarters();
+
+        if ($this->players->where('pivot.role', self::ROLE_STARTER)->count() !== $requiredStarters) {
+            $errors['starter_player_ids'] = 'DSP harus berisi tepat '.$requiredStarters.' starter sebelum submit verifikasi.';
         }
         if ($this->players->where('pivot.role', self::ROLE_SUBSTITUTE)->count() > self::MAX_SUBSTITUTES) {
             $errors['substitute_player_ids'] = 'DSP maksimal berisi '.self::MAX_SUBSTITUTES.' cadangan sebelum submit verifikasi.';
