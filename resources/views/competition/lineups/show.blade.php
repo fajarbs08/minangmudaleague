@@ -1,7 +1,6 @@
 @extends('layouts.vertical', ['title' => $title])
 
 @php
-    $players = $starters->concat($substitutes)->values();
     $match = $lineupList->match;
     $opponent = $lineupList->opponent();
     $matchDay = $lineupList->match_day ?: $match?->match_day;
@@ -308,22 +307,22 @@
                         <td colspan="5">{{ strtoupper($opponent?->name ?: '-') }}</td>
                     </tr>
                     <tr>
-                        <td>JERSEY COLOUR</td>
+                        <td>JERSEY UTAMA</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>GK JSY COLOUR</td>
+                        <td>JERSEY KIPER</td>
                         <td>:</td>
                         <td colspan="5">{{ $lineupList->goalkeeper_jersey_color ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <td>PLAYED AT</td>
+                        <td>TEMPAT</td>
                         <td>:</td>
                         <td>{{ $venue ?: '-' }}</td>
-                        <td class="dsp-bold">DATE</td>
+                        <td class="dsp-bold">TANGGAL</td>
                         <td>: {{ optional($matchDate)->format('d-m-Y') ?: '-' }}</td>
-                        <td class="dsp-bold">TIME</td>
+                        <td class="dsp-bold">WAKTU</td>
                         <td>: {{ optional($kickoffTime)->format('H:i') ?: '-' }} WIB</td>
                     </tr>
                 </table>
@@ -346,11 +345,11 @@
                                 <td class="dsp-center">{{ $i + 1 }}</td>
                                 <td>{{ $player?->name ?: '' }}</td>
                                 <td class="dsp-center">
-                                    {{ $player ? ($player->pivot->jersey_number ?: ($player->displayJerseyNumber($lineupList->age_group_id) ?: '')) : '' }}
+                                    {{ $player ? ($player->displayJerseyNumber($lineupList->age_group_id) ?: '') : '' }}
                                 </td>
                                 <td>{{ $player ? ($player->displayPosition($lineupList->age_group_id) ?: '') : '' }}</td>
-                                <td class="dsp-center">{{ $player && $player->pivot->role === \App\Models\LineupList::ROLE_STARTER ? 'P' : '' }}</td>
-                                <td class="dsp-center">{{ $player && $player->pivot->role === \App\Models\LineupList::ROLE_SUBSTITUTE ? 'S' : '' }}</td>
+                                <td class="dsp-center"></td>
+                                <td class="dsp-center"></td>
                             </tr>
                         @endfor
                     </tbody>
@@ -384,11 +383,7 @@
     </div>
 </div>
 
-@if ($starters->count() !== $requiredStarters || $substitutes->count() > \App\Models\LineupList::MAX_SUBSTITUTES)
-    <div class="alert alert-warning mt-4">
-        Struktur DSP belum ideal. Starter harus {{ $requiredStarters }} pemain dan cadangan maksimal {{ \App\Models\LineupList::MAX_SUBSTITUTES }} pemain.
-    </div>
-@endif
+
 
 @unless ($isHistoryView)
     @include('competition.partials.workflow-panel', [

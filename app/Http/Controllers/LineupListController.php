@@ -170,7 +170,6 @@ class LineupListController extends Controller
         $this->validateLineupRoster($request);
 
         $lineupList = LineupList::create($data);
-        $this->syncPlayers($lineupList, $request);
 
         return redirect()->route('lineup-lists.show', $lineupList)->with('status', 'DSP berhasil ditambahkan.');
     }
@@ -181,8 +180,6 @@ class LineupListController extends Controller
         $this->ensureActiveSeasonLineup($lineupList);
         $this->ensureClubAccess($lineupList->club_id);
         abort_unless(auth()->user()->isAdmin() || $lineupList->canBeEditedByClub(), 422);
-        $lineupPlayers = $this->lineupPlayers();
-        $eligibleIds = $lineupPlayers->pluck('id');
 
         return view('competition.lineups.edit', [
             'title' => 'Edit DSP',
@@ -190,48 +187,36 @@ class LineupListController extends Controller
             'clubs' => $this->availableClubs(),
             'ageGroups' => AgeGroup::competition()->get(),
             'availableMatches' => $this->availableMatches($lineupList),
-            'lineupPlayers' => $lineupPlayers,
-            'blockedLineupPlayers' => $this->blockedLineupPlayers(),
-            'blockedSelectedPlayers' => $lineupList->players
-                ->whereNotIn('id', $eligibleIds)
-                ->values(),
-            'selectedStarters' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_STARTER)
-                ->whereIn('id', $eligibleIds)
-                ->pluck('id')
-                ->all(),
-            'selectedSubstitutes' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_SUBSTITUTE)
-                ->whereIn('id', $eligibleIds)
-                ->pluck('id')
-                ->all(),
-            'selectedStarterOrders' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_STARTER)
-                ->whereIn('id', $eligibleIds)
-                ->mapWithKeys(fn ($player) => [$player->id => $player->pivot->display_order])
-                ->all(),
-            'selectedSubstituteOrders' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_SUBSTITUTE)
-                ->whereIn('id', $eligibleIds)
-                ->mapWithKeys(fn ($player) => [$player->id => $player->pivot->display_order])
-                ->all(),
-            'selectedStarterJerseys' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_STARTER)
-                ->whereIn('id', $eligibleIds)
-                ->mapWithKeys(fn ($player) => [$player->id => $player->pivot->jersey_number])
-                ->all(),
-            'selectedSubstituteJerseys' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_SUBSTITUTE)
-                ->whereIn('id', $eligibleIds)
-                ->mapWithKeys(fn ($player) => [$player->id => $player->pivot->jersey_number])
-                ->all(),
         ]);
     }
 
     public function show(LineupList $lineupList)
     {
         $this->ensureClubAccess($lineupList->club_id);
-        $lineupList->load(['club', 'ageGroup', 'match.clubA', 'match.clubB', 'players.ageRegistrations']);
+        $lineupList->load(['club', 'ageGroup', 'match.clubA', 'match.clubB']);
+
+        $activeSeasonId = $this->seasonContext->activeId();
+        $isHistory = $lineupList->season_id && $activeSeasonId && (int) $lineupList->season_id !== (int) $activeSeasonId;
+
+        if ($isHistory) {
+            $players = \App\Models\SeasonPlayer::query()
+                ->where('season_id', $lineupList->season_id)
+                ->where('club_id', $lineupList->club_id)
+                ->whereJsonContains('registered_age_group_ids', (int) $lineupList->age_group_id)
+                ->where('verification_status', Player::STATUS_APPROVED)
+                ->orderBy('name')
+                ->get();
+        } else {
+            $players = Player::query()
+                ->where('club_id', $lineupList->club_id)
+                ->where('verification_status', Player::STATUS_APPROVED)
+                ->whereHas('ageRegistrations', function ($query) use ($lineupList) {
+                    $query->where('age_group_id', $lineupList->age_group_id);
+                })
+                ->orderBy('name')
+                ->get();
+        }
+
         $officials = Official::query()
             ->with('ageRegistrations.ageGroup')
             ->where('club_id', $lineupList->club_id)
@@ -244,14 +229,7 @@ class LineupListController extends Controller
         return view('competition.lineups.show', [
             'title' => 'Generate DSP',
             'lineupList' => $lineupList,
-            'starters' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_STARTER)
-                ->sortBy('pivot.display_order')
-                ->values(),
-            'substitutes' => $lineupList->players
-                ->where('pivot.role', LineupList::ROLE_SUBSTITUTE)
-                ->sortBy('pivot.display_order')
-                ->values(),
+            'players' => $players,
             'officials' => $officials,
         ]);
     }
@@ -268,7 +246,6 @@ class LineupListController extends Controller
         $this->validateLineupRoster($request);
 
         $lineupList->update($data);
-        $this->syncPlayers($lineupList, $request);
 
         return redirect()->route('lineup-lists.show', $lineupList)->with('status', 'DSP berhasil diperbarui.');
     }
@@ -309,21 +286,6 @@ class LineupListController extends Controller
 
     private function validatedData(Request $request): array
     {
-        $request->validate([
-            'starter_player_ids' => ['nullable', 'array'],
-            'starter_player_ids.*' => ['integer', 'exists:players,id'],
-            'substitute_player_ids' => ['nullable', 'array'],
-            'substitute_player_ids.*' => ['integer', 'exists:players,id'],
-            'starter_orders' => ['nullable', 'array'],
-            'starter_orders.*' => ['nullable', 'integer', 'min:1', 'max:99'],
-            'substitute_orders' => ['nullable', 'array'],
-            'substitute_orders.*' => ['nullable', 'integer', 'min:1', 'max:99'],
-            'starter_jerseys' => ['nullable', 'array'],
-            'starter_jerseys.*' => ['nullable', 'string', 'max:10'],
-            'substitute_jerseys' => ['nullable', 'array'],
-            'substitute_jerseys.*' => ['nullable', 'string', 'max:10'],
-        ]);
-
         $validated = $request->validate([
             'match_id' => ['required', 'exists:match_schedules,id'],
             'club_id' => ['required', 'exists:clubs,id'],
@@ -358,7 +320,20 @@ class LineupListController extends Controller
             'match_day' => $match->match_day,
             'match_date' => ($validated['match_date'] ?? null) ?: optional($match->match_date)->format('Y-m-d'),
             'played_time' => ($validated['played_time'] ?? null) ?: optional($match->kickoff_time)->format('H:i'),
-            'coach_name' => $validated['coach_name'] ?? null,
+            'coach_name' => ($validated['coach_name'] ?? null) ?: Official::query()
+                ->where('club_id', (int) $validated['club_id'])
+                ->where('is_active', true)
+                ->where('verification_status', Official::STATUS_APPROVED)
+                ->where(function ($q) {
+                    $q->where('role', 'Head Coach')
+                      ->orWhere('role', 'like', '%Pelatih%')
+                      ->orWhere('role', 'like', '%Coach%');
+                })
+                ->whereHas('allAgeRegistrations', function ($query) use ($match) {
+                    $query->where('age_group_id', $match->age_group_id);
+                })
+                ->orderBy('role')
+                ->value('name'),
             'jersey_color' => $validated['jersey_color'] ?? null,
             'goalkeeper_jersey_color' => $validated['goalkeeper_jersey_color'] ?? null,
             'played_at' => ($validated['played_at'] ?? null) ?: $match->venue,
@@ -433,7 +408,7 @@ class LineupListController extends Controller
             });
         }
 
-        return $query->get()->filter(function (MatchSchedule $match) use ($user, $lineupList, $currentClubId) {
+        $matches = $query->get()->filter(function (MatchSchedule $match) use ($user, $lineupList, $currentClubId) {
             $usedClubIds = $match->lineupLists->pluck('club_id')->map(fn ($id) => (int) $id)->all();
 
             if ($lineupList && $match->id === $lineupList->match_id) {
@@ -450,6 +425,34 @@ class LineupListController extends Controller
             return $match->includesClub($currentClubId)
                 && ! in_array($currentClubId, $usedClubIds, true);
         })->values();
+
+        $coaches = Official::query()
+            ->where('is_active', true)
+            ->where('verification_status', Official::STATUS_APPROVED)
+            ->where(function ($q) {
+                $q->where('role', 'Head Coach')
+                  ->orWhere('role', 'like', '%Pelatih%')
+                  ->orWhere('role', 'like', '%Coach%');
+            })
+            ->with('allAgeRegistrations')
+            ->get();
+
+        foreach ($matches as $match) {
+            $coachA = $coaches->filter(function ($official) use ($match) {
+                return (int) $official->club_id === (int) $match->club_a_id
+                    && $official->allAgeRegistrations->contains('age_group_id', $match->age_group_id);
+            })->first();
+
+            $coachB = $coaches->filter(function ($official) use ($match) {
+                return (int) $official->club_id === (int) $match->club_b_id
+                    && $official->allAgeRegistrations->contains('age_group_id', $match->age_group_id);
+            })->first();
+
+            $match->coach_a_name = $coachA?->name ?: '';
+            $match->coach_b_name = $coachB?->name ?: '';
+        }
+
+        return $matches;
     }
 
     private function syncPlayers(LineupList $lineupList, Request $request): void
@@ -518,66 +521,6 @@ class LineupListController extends Controller
         if (! $match) {
             throw ValidationException::withMessages([
                 'match_id' => 'Pertandingan yang dipilih tidak tersedia untuk akun ini.',
-            ]);
-        }
-
-        $starterIds = collect($request->input('starter_player_ids', []))
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->unique()
-            ->values();
-
-        $substituteIds = collect($request->input('substitute_player_ids', []))
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->unique()
-            ->values();
-
-        $eligiblePlayerIds = $this->eligibleLineupPlayersQuery()
-            ->where('club_id', (int) $request->input('club_id'))
-            ->whereHas('ageRegistrations', fn ($query) => $query->where('age_group_id', $match->age_group_id))
-            ->pluck('id');
-
-        $invalidPlayerIds = $starterIds
-            ->merge($substituteIds)
-            ->reject(fn ($id) => $eligiblePlayerIds->contains($id))
-            ->values();
-
-        if ($invalidPlayerIds->isNotEmpty()) {
-            throw ValidationException::withMessages([
-                'starter_player_ids' => 'Hanya pemain yang sesuai klub, kelompok usia, dan sudah diterima admin yang bisa masuk ke DSP. Perbaiki data pemain lalu ajukan ulang untuk verifikasi.',
-            ]);
-        }
-
-        $requiredStarters = LineupList::requiredStartersForAgeGroup($match->ageGroup);
-
-        if ($starterIds->count() !== $requiredStarters) {
-            throw ValidationException::withMessages([
-                'starter_player_ids' => 'DSP harus berisi tepat '.$requiredStarters.' pemain starter.',
-            ]);
-        }
-
-        if ($substituteIds->count() > LineupList::MAX_SUBSTITUTES) {
-            throw ValidationException::withMessages([
-                'substitute_player_ids' => 'DSP maksimal berisi '.LineupList::MAX_SUBSTITUTES.' pemain cadangan.',
-            ]);
-        }
-
-        $jerseyNumbers = $starterIds
-            ->mapWithKeys(fn ($playerId) => [$playerId => $request->input("starter_jerseys.{$playerId}")])
-            ->merge($substituteIds->mapWithKeys(fn ($playerId) => [$playerId => $request->input("substitute_jerseys.{$playerId}")]))
-            ->map(fn ($value) => $this->normalizeJerseyNumber($value))
-            ->filter()
-            ->values();
-
-        $duplicateJerseys = $jerseyNumbers
-            ->duplicates()
-            ->unique()
-            ->values();
-
-        if ($duplicateJerseys->isNotEmpty()) {
-            throw ValidationException::withMessages([
-                'starter_jerseys' => 'Nomor jersey tidak boleh sama dalam satu DSP: '.$duplicateJerseys->implode(', ').'.',
             ]);
         }
 

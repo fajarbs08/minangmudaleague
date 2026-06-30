@@ -761,6 +761,11 @@ class PlayerController extends Controller
     {
         $activeSeason = $this->seasonContext->requireActive();
 
+        if ($request->has('name')) {
+            $normalizedName = preg_replace('/\s+/', ' ', trim($request->input('name')));
+            $request->merge(['name' => $normalizedName]);
+        }
+
         $data = $request->validate([
             'club_id' => ['required', 'exists:clubs,id'],
             'primary_age_group_id' => ['nullable', AgeGroup::competitionExistsRule()],
@@ -800,6 +805,30 @@ class PlayerController extends Controller
         ]) + [
             'is_captain' => $request->boolean('is_captain'),
         ];
+
+        $duplicate = Player::query()
+            ->where('name', $data['name'])
+            ->whereDate('birth_date', $data['birth_date'])
+            ->where('verification_status', '!=', Player::STATUS_REJECTED)
+            ->when($player, function ($q) use ($player) {
+                $q->where('id', '!=', $player->id);
+            })
+            ->with('club')
+            ->first();
+
+        if ($duplicate) {
+            $clubName = $duplicate->club?->name ?: 'Klub Lain';
+            $statusLabel = match ($duplicate->verification_status) {
+                Player::STATUS_APPROVED => 'Disetujui',
+                Player::STATUS_SUBMITTED => 'Menunggu Verifikasi',
+                Player::STATUS_REVISION => 'Revisi',
+                Player::STATUS_DRAFT => 'Draft',
+                default => $duplicate->verification_status,
+            };
+            throw ValidationException::withMessages([
+                'name' => "Pemain dengan nama '{$data['name']}' dan tanggal lahir ini sudah terdaftar di {$clubName} dengan status: {$statusLabel}.",
+            ]);
+        }
 
         if ($request->hasFile('photo_file')) {
             $data['photo_path'] = $this->imageAssetService->storePhoto($request->file('photo_file'), 'players/photos');

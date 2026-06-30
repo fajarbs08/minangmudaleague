@@ -208,16 +208,6 @@ class LineupList extends Model
             $errors['age_group_id'] = 'DSP hanya dapat disubmit untuk kelompok umur U-10, U-12, U-14, atau U-16.';
         }
 
-        $this->loadMissing('ageGroup', 'players');
-        $requiredStarters = $this->requiredStarters();
-
-        if ($this->players->where('pivot.role', self::ROLE_STARTER)->count() !== $requiredStarters) {
-            $errors['starter_player_ids'] = 'DSP harus berisi tepat '.$requiredStarters.' starter sebelum submit verifikasi.';
-        }
-        if ($this->players->where('pivot.role', self::ROLE_SUBSTITUTE)->count() > self::MAX_SUBSTITUTES) {
-            $errors['substitute_player_ids'] = 'DSP maksimal berisi '.self::MAX_SUBSTITUTES.' cadangan sebelum submit verifikasi.';
-        }
-
         if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }

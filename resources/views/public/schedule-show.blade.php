@@ -450,9 +450,35 @@
             $lineupLists = $matchSchedule?->lineupLists ?? collect();
             $homeLineup = $lineupLists->firstWhere('club_id', $matchSchedule?->club_a_id);
             $awayLineup = $lineupLists->firstWhere('club_id', $matchSchedule?->club_b_id);
-            $starterPlayers = fn ($lineup) => collect($lineup?->players ?? [])->filter(fn ($player) => data_get($player, 'pivot.role') === 'starter')->values();
-            $homePlayers = $starterPlayers($homeLineup);
-            $awayPlayers = $starterPlayers($awayLineup);
+            $getLineupPlayers = function ($lineup) use ($matchSchedule) {
+                if (! $lineup) {
+                    return collect();
+                }
+
+                $activeSeasonId = app(\App\Services\SeasonContext::class)->activeId();
+                $isHistory = $lineup->season_id !== $activeSeasonId;
+
+                if ($isHistory) {
+                    return \App\Models\SeasonPlayer::query()
+                        ->where('season_id', $lineup->season_id)
+                        ->where('club_id', $lineup->club_id)
+                        ->whereJsonContains('registered_age_group_ids', (int) $lineup->age_group_id)
+                        ->where('verification_status', \App\Models\Player::STATUS_APPROVED)
+                        ->orderBy('name')
+                        ->get();
+                }
+
+                return \App\Models\Player::query()
+                    ->where('club_id', $lineup->club_id)
+                    ->where('verification_status', \App\Models\Player::STATUS_APPROVED)
+                    ->whereHas('ageRegistrations', function ($query) use ($lineup) {
+                        $query->where('age_group_id', $lineup->age_group_id);
+                    })
+                    ->orderBy('name')
+                    ->get();
+            };
+            $homePlayers = $getLineupPlayers($homeLineup);
+            $awayPlayers = $getLineupPlayers($awayLineup);
             $detailRows = collect([
                 ['label' => 'Kategori', 'value' => $matchSchedule?->ageGroup?->name ?: '-'],
                 ['label' => 'Format', 'value' => $matchSchedule?->competition_format_label ?: '-'],

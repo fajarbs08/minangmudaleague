@@ -302,6 +302,10 @@
             }
         }
 
+        .lap-home-template .our-club-payer-item .player-image {
+            background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+        }
+
         .lap-home-template .our-club-payer-item .player-image > img {
             width: 100%;
             height: 560px;
@@ -475,6 +479,13 @@
             font-size: 14px;
         }
 
+        @media (max-width: 1199.98px) {
+            .lap-home-template .our-club-payer-item .player-image > img,
+            .lap-home-template .our-club-payer-item .player-image .player-avatar-fallback {
+                height: 460px;
+            }
+        }
+
         @media (max-width: 991.98px) {
             .lap-home-template .hero-image {
                 max-width: 480px;
@@ -485,9 +496,33 @@
                 gap: 16px;
             }
 
+            .lap-home-template .our-club-payer-item .player-image > img,
+            .lap-home-template .our-club-payer-item .player-image .player-avatar-fallback {
+                height: 400px;
+            }
+            .lap-home-template .our-club-payer-item .player-image > img {
+                object-fit: contain;
+            }
         }
 
         @media (max-width: 767.98px) {
+            .lap-home-template .our-club-payer-item .player-image > img,
+            .lap-home-template .our-club-payer-item .player-image .player-avatar-fallback {
+                height: 350px;
+            }
+            .lap-home-template .our-club-payer-item .player-image > img {
+                object-fit: contain;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .lap-home-template .our-club-payer-item .player-image > img,
+            .lap-home-template .our-club-payer-item .player-image .player-avatar-fallback {
+                height: 300px;
+            }
+            .lap-home-template .our-club-payer-item .player-image > img {
+                object-fit: contain;
+            }
         }
     </style>
 @endpush
