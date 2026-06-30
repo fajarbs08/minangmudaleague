@@ -308,13 +308,13 @@
 
         .lap-home-template .our-club-payer-item .player-image > img {
             width: 100%;
-            height: 560px;
+            height: 450px;
             object-fit: cover;
         }
 
         .lap-home-template .our-club-payer-item .player-image .player-avatar-fallback {
             width: 100%;
-            height: 560px;
+            height: 450px;
             display: grid;
             place-items: center;
             background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
